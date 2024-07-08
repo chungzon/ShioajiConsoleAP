@@ -21,7 +21,10 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="DailyAverage.py" />
+    <Compile Include="DownloadStocksTicks.py" />
     <Compile Include="GetHighAndLowOfStock.py" />
+    <Compile Include="GetHighAndLowOfStockFromDatabase.py" />
     <Compile Include="ShioajiConsoleAP.py" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
