@@ -1,47 +1,39 @@
-﻿import shioaji as sj
-import pandas as pd
+﻿import pandas as pd
 from datetime import datetime, timedelta
 import xlsxwriter
 import numpy as np
+import pymssql
 
-# 初始化 Shioaji API
-api = sj.Shioaji(simulation=True)
-api.login(
-    api_key="6GWV7gnxYXaEomoyLuTFRe29BnoAyEohVpbSZQYHdY66",
-    secret_key="F6PJrruho4pRpC9KefgKeqReFQ2nhLV34uXe2RmMZFow"
-)
+def connect_db():
+    conn = pymssql.connect(
+        server='127.0.0.1:1433',
+        user='TSE_USER',
+        password='fuckme',
+        database='TSE'
+    )
+    return conn
 
-# 獲取歷史ticks的最後一筆作為每日收盤價
-def get_daily_close_prices(stock_code, days):
-    contract = api.Contracts.Stocks[stock_code]
-    end_date = datetime.today()
-    start_date = end_date - timedelta(days=days + 140)  # 多取一些天數以確保有足夠的交易日數據
-
-    all_ticks = []
-
-    current_date = start_date
-    while current_date <= end_date:
-        try:
-            ticks = api.ticks(
-                contract=contract, 
-                date=current_date.strftime('%Y-%m-%d')
-            )
-            if len(ticks.ts) > 0:
-                last_tick = {
-                    'date': current_date.strftime('%Y-%m-%d'),
-                    'close': ticks.close[-1]
-                }
-                all_ticks.append(last_tick)
-        except Exception as e:
-            pass  # 忽略沒有交易數據的日期
-        current_date += timedelta(days=1)
-
-    df = pd.DataFrame(all_ticks)
+# 從資料庫中獲取每日收盤價
+def get_daily_close_prices_from_db(stock_code, days):
+    conn = connect_db()
+    query = f"""
+    SELECT ts AS date, close_price
+    FROM (
+        SELECT *,
+               ROW_NUMBER() OVER (PARTITION BY CONVERT(date, ts) ORDER BY ts DESC) AS rn
+        FROM Ticks
+        WHERE stock_id = '{stock_code}'
+    ) AS sub
+    WHERE sub.rn = 1
+    ORDER BY date DESC
+    OFFSET 0 ROWS
+    FETCH NEXT {days + 120} ROWS ONLY
+    """
+    df = pd.read_sql(query, conn)
     df['date'] = pd.to_datetime(df['date'])
     df.set_index('date', inplace=True)
-    df = df[df.index.dayofweek < 5]  # 只保留工作日
-
-    return df['close'].tail(days + 120)
+    df = df.sort_index()  # 按日期排序
+    return df['close_price']
 
 # 計算移動平均
 def calculate_moving_average(prices, window):
@@ -150,10 +142,10 @@ def save_to_excel(filename, sma_values, weekly_sma_values, monthly_sma_values):
 
 # 主函數
 def main():
-    stock_code = "6125"  # 替換為您想要查詢的股票代碼
+    stock_code = "6152"  # 替換為您想要查詢的股票代碼
 
     # 獲取每日收盤價
-    close_prices = get_daily_close_prices(stock_code, 120)
+    close_prices = get_daily_close_prices_from_db(stock_code, 120)
     
     # 計算日均線的移動平均
     sma_values = [
@@ -181,6 +173,6 @@ def main():
     
     # 保存到 Excel 文件
     save_to_excel('D:\TradingData\日周月均線_with_SMA.xlsx', sma_values, weekly_sma_values, monthly_sma_values)
-    
+
 if __name__ == "__main__":
     main()
