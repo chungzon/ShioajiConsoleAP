@@ -1,5 +1,4 @@
-﻿
-import shioaji as sj
+﻿import shioaji as sj
 import pandas as pd
 import os
 import tkinter as tk
@@ -25,11 +24,13 @@ def find_peaks_troughs_v34(df):
     while i < len(df):
         # Initialize max and min
         max_value = df['High'].iloc[i]
+        max_date = df['date'].iloc[i]  # 新增 max_date
         
         # Find max peak
         j = i + 1
         while j < len(df) and df['High'].iloc[j] >= max_value:
             max_value = df['High'].iloc[j]
+            max_date = df['date'].iloc[j]  # 更新 max_date
             j += 1
         
         # After finding the max, initialize min
@@ -49,7 +50,7 @@ def find_peaks_troughs_v34(df):
         
         # Ensure max_value is before min_date and no invalid values
         if max_value > min_value:
-            segment = [max_value, min_date, min_value]
+            segment = [max_date, max_value, min_date, min_value]  # 將 max_date 和 max_value 位置交換
             for ratio in ratios:
                 segment.append((max_value - min_value) / 2 * ratio + min_value)
             segments.append(segment)
@@ -57,7 +58,7 @@ def find_peaks_troughs_v34(df):
         # Move to the next segment
         i = k
     
-    return pd.DataFrame(segments, columns=['Max_Value', 'Min_Date', 'Min_Value'] + ratio_columns)
+    return pd.DataFrame(segments, columns=['Max_Date', 'Max_Value', 'Min_Date', 'Min_Value'] + ratio_columns)  # 將 Max_Date 和 Max_Value 位置交換
 
 # 獲取最新收盤價
 def get_latest_close_price(stock_code):
@@ -80,7 +81,7 @@ def save_to_excel(df, output_file_path):
 
         # 依列應用格式
         for col_num, col_name in enumerate(df.columns):
-            if col_name != 'Min_Date':
+            if col_name not in ['Max_Date', 'Min_Date']:
                 worksheet.set_column(col_num, col_num, 12, num_format)
 
         # 新增折線圖和散佈圖
@@ -111,7 +112,7 @@ def save_to_excel(df, output_file_path):
         line_chart1.add_series({
             'name': '現價-0.618_Sort',
             'categories': f"='Peaks_and_Troughs'!$A$2:$A${max_row}",
-            'values': f"='Peaks_and_Troughs'!$K$2:$K${max_row}",
+            'values': f"='Peaks_and_Troughs'!$L$2:$L${max_row}",
             'marker': {'type': 'circle', 'size': 6},
             'data_labels': {
                 'value': True,
@@ -121,7 +122,7 @@ def save_to_excel(df, output_file_path):
         scatter_chart1.add_series({
             'name': 'Head_Sort',
             'categories': f"='Peaks_and_Troughs'!$A$2:$A${max_row}",
-            'values': f"='Peaks_and_Troughs'!$L$2:$L${max_row}",
+            'values': f"='Peaks_and_Troughs'!$M$2:$M${max_row}",
             'marker': {'type': 'circle', 'size': 6},
             'data_labels': {
                 'value': True,
@@ -131,7 +132,7 @@ def save_to_excel(df, output_file_path):
         scatter_chart1.add_series({
             'name': '頸線_Sort',
             'categories': f"='Peaks_and_Troughs'!$A$2:$A${max_row}",
-            'values': f"='Peaks_and_Troughs'!$M$2:$M${max_row}",
+            'values': f"='Peaks_and_Troughs'!$N$2:$N${max_row}",
             'marker': {'type': 'circle', 'size': 6},
             'data_labels': {
                 'value': True,
@@ -167,7 +168,7 @@ def save_to_excel(df, output_file_path):
         line_chart2.add_series({
             'name': '現價-0.618',
             'categories': f"='Peaks_and_Troughs'!$A$2:$A${max_row}",
-            'values': f"='Peaks_and_Troughs'!$H$2:$H${max_row}",
+            'values': f"='Peaks_and_Troughs'!$I$2:$I${max_row}",
             'marker': {'type': 'circle', 'size': 6},
             'data_labels': {
                 'value': True,
@@ -177,7 +178,7 @@ def save_to_excel(df, output_file_path):
         scatter_chart2.add_series({
             'name': 'Head',
             'categories': f"='Peaks_and_Troughs'!$A$2:$A${max_row}",
-            'values': f"='Peaks_and_Troughs'!$I$2:$I${max_row}",
+            'values': f"='Peaks_and_Troughs'!$J$2:$J${max_row}",
             'marker': {'type': 'circle', 'size': 6},
             'data_labels': {
                 'value': True,
@@ -187,14 +188,13 @@ def save_to_excel(df, output_file_path):
         scatter_chart2.add_series({
             'name': '頸線',
             'categories': f"='Peaks_and_Troughs'!$A$2:$A${max_row}",
-            'values': f"='Peaks_and_Troughs'!$J$2:$J${max_row}",
+            'values': f"='Peaks_and_Troughs'!$K$2:$K${max_row}",
             'marker': {'type': 'circle', 'size': 6},
             'data_labels': {
                 'value': True,
                 'custom': custom_labels_F
-            }
-        })
-
+            }})
+       
         # 設定第二張圖表標題和軸標籤
         line_chart2.set_title({'name': 'Stock Price Analysis (Original)'})
         line_chart2.set_x_axis({'name': 'Index'})
@@ -230,13 +230,13 @@ def main(stock_code, input_file_path, output_file_path):
     peak_trough_df['Max_Value'] = peak_trough_df['Max_Value'].round(2)
     peak_trough_df['Min_Value'] = peak_trough_df['Min_Value'].round(2)
 
-    # 計算現價-0.618，Radio_0.618 - 現價
+    # 計算現價-0.618，Ratio_0.618 - 現價
     peak_trough_df['現價-0.618'] = (peak_trough_df['Ratio_0.618'] - peak_trough_df['現價']).round(2)
 
     # 計算Head欄位，Max_Value - 現價
     peak_trough_df['Head'] = (peak_trough_df['Max_Value'] - peak_trough_df['現價']).round(2)
 
-    # 計算頸線欄位，Radio_1 - 現價
+    # 計算頸線欄位，Ratio_1 - 現價
     peak_trough_df['頸線'] = (peak_trough_df['Ratio_1'] - peak_trough_df['現價']).round(2)
 
     # 找出 Max_Value 和 Min_Value 欄位的最大值和最小值
@@ -253,7 +253,9 @@ def main(stock_code, input_file_path, output_file_path):
 
     # 新增一列填入 Max(Max_Value)、Min(Min_Value)、Ratio_0.618 和 Ratio_1 的值
     new_row = pd.DataFrame({
+        'Max_Date': [None],  # 新增 Max_Date
         'Max_Value': [max_max_value],
+        'Min_Date': [None],
         'Min_Value': [min_min_value],
         'Ratio_0.618': [ratio_0_618_value],
         'Ratio_1': [ratio_1_value],
