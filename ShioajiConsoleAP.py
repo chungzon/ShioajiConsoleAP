@@ -95,17 +95,17 @@ def save_to_excel(df, output_file_path):
 
         # custom_labels using P column data
         custom_labels_P = [
-            {'value': f"='Peaks_and_Troughs'!$P${i}", 'font': {'color': 'blue'}} for i in range(2, max_row)
+            {'value': f"='Peaks_and_Troughs'!$Q${i}", 'font': {'color': 'blue'}} for i in range(2, max_row)
         ]
         
         # custom_labels using N column data
         custom_labels_N = [
-            {'value': f"='Peaks_and_Troughs'!$N${i}", 'font': {'color': 'green'}} for i in range(2, max_row)
+            {'value': f"='Peaks_and_Troughs'!$O${i}", 'font': {'color': 'red'}} for i in range(2, max_row)
         ]
         
         # custom_labels using O column data
         custom_labels_O = [
-            {'value': f"='Peaks_and_Troughs'!$O${i}", 'font': {'color': 'red'}} for i in range(2, max_row)
+            {'value': f"='Peaks_and_Troughs'!$P${i}", 'font': {'color': 'green'}} for i in range(2, max_row)
         ]
 
         # 第一張圖表 - 排序後的數列
@@ -151,17 +151,17 @@ def save_to_excel(df, output_file_path):
         
         # custom_labels using E column data
         custom_labels_E = [
-            {'value': f"='Peaks_and_Troughs'!$E${i}", 'font': {'color': 'blue'}} for i in range(2, max_row)
+            {'value': f"='Peaks_and_Troughs'!$F${i}", 'font': {'color': 'blue'}} for i in range(2, max_row)
         ]
         
         # custom_labels using B column data
         custom_labels_B = [
-            {'value': f"='Peaks_and_Troughs'!$B${i}", 'font': {'color': 'green'}} for i in range(2, max_row)
+            {'value': f"='Peaks_and_Troughs'!$C${i}", 'font': {'color': 'red'}} for i in range(2, max_row)
         ]
         
         # custom_labels using F column data
         custom_labels_F = [
-            {'value': f"='Peaks_and_Troughs'!$F${i}", 'font': {'color': 'red'}} for i in range(2, max_row)
+            {'value': f"='Peaks_and_Troughs'!$G${i}", 'font': {'color': 'green'}} for i in range(2, max_row)
         ]
 
         # 第二張圖表 - 原始數列
