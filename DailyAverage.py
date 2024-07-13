@@ -70,7 +70,7 @@ def save_to_excel(filename, sma_values, weekly_sma_values, monthly_sma_values):
         worksheet.merge_range(4, 4, 4, 5, "")
 
         # 設定第一欄和第十欄的資料
-        sma_labels = ["SMA5", "SMA10", "SMA20", "SMA120"]
+        sma_labels = ["SMA5", "SMA10", "SMA20", "SMA60", "SMA120"]
         for i, label in enumerate(sma_labels):
             worksheet.write(i + 1, 0, label)
             worksheet.write(i + 1, 9, label)
@@ -99,7 +99,7 @@ def save_to_excel(filename, sma_values, weekly_sma_values, monthly_sma_values):
         worksheet.merge_range(start_row + 4, 4, start_row + 4, 5, "")
 
         # 設定第一欄和第十欄的資料
-        weekly_sma_labels = ["周SMA5", "周SMA10", "周SMA20", "周SMA120"]
+        weekly_sma_labels = ["周SMA5", "周SMA10", "周SMA20", "周SMA60", "周SMA120"]
         for i, label in enumerate(weekly_sma_labels):
             worksheet.write(start_row + i + 1, 0, label)
             worksheet.write(start_row + i + 1, 9, label)
@@ -128,7 +128,7 @@ def save_to_excel(filename, sma_values, weekly_sma_values, monthly_sma_values):
         worksheet.merge_range(start_row + 4, 4, start_row + 4, 5, "")
 
         # 設定第一欄和第十欄的資料
-        monthly_sma_labels = ["月SMA5", "月SMA10", "月SMA20", "月SMA120"]
+        monthly_sma_labels = ["月SMA5", "月SMA10", "月SMA20", "月SMA60", "月SMA120"]
         for i, label in enumerate(monthly_sma_labels):
             worksheet.write(start_row + i + 1, 0, label)
             worksheet.write(start_row + i + 1, 9, label)
@@ -152,6 +152,7 @@ def main():
         round(calculate_moving_average(close_prices, 5).iloc[-1], 2),
         round(calculate_moving_average(close_prices, 10).iloc[-1], 2),
         round(calculate_moving_average(close_prices, 20).iloc[-1], 2),
+        round(calculate_moving_average(close_prices, 60).iloc[-1], 2),
         round(calculate_moving_average(close_prices, 120).iloc[-1], 2),
     ]
 
@@ -160,6 +161,7 @@ def main():
         round(calculate_weekly_average(close_prices, 5).iloc[-1], 2),
         round(calculate_weekly_average(close_prices, 10).iloc[-1], 2),
         round(calculate_weekly_average(close_prices, 20).iloc[-1], 2),
+        round(calculate_weekly_average(close_prices, 60).iloc[-1], 2),
         round(calculate_weekly_average(close_prices, 120).iloc[-1], 2),
     ]
 
@@ -168,6 +170,7 @@ def main():
         round(calculate_monthly_average(close_prices, 5).iloc[-1], 2),
         round(calculate_monthly_average(close_prices, 10).iloc[-1], 2),
         round(calculate_monthly_average(close_prices, 20).iloc[-1], 2),
+        round(calculate_monthly_average(close_prices, 60).iloc[-1], 2),
         round(calculate_monthly_average(close_prices, 120).iloc[-1], 2),
     ]
     

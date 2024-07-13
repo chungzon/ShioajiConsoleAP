@@ -57,8 +57,8 @@ if __name__ == "__main__":
         secret_key="F6PJrruho4pRpC9KefgKeqReFQ2nhLV34uXe2RmMZFow"
     )
     stock_id = "6152"
-    start_date = datetime(2021, 1, 1)
-    end_date = datetime(2021, 12, 31)
+    start_date = datetime(2024, 7, 9)
+    end_date = datetime(2024, 7, 9)
 
     server = '127.0.0.1:1433'
     database = 'TSE'
