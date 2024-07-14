@@ -41,7 +41,7 @@ def get_daily_close_prices_from_db(stock_code, days):
     WHERE sub.rn = 1
     ORDER BY date DESC
     OFFSET 0 ROWS
-    FETCH NEXT {days + 120} ROWS ONLY
+    FETCH NEXT {days + 3650} ROWS ONLY
     """
     df = pd.read_sql(query, conn)
     df['date'] = pd.to_datetime(df['date'])
@@ -102,12 +102,12 @@ def calculate_moving_average(prices, window):
 
 # 計算周均線
 def calculate_weekly_average(prices, window):
-    weekly_prices = prices.resample('W').mean()
+    weekly_prices = prices.resample('W').last()
     return calculate_moving_average(weekly_prices, window)
 
 # 計算月均線
 def calculate_monthly_average(prices, window):
-    monthly_prices = prices.resample('M').mean()
+    monthly_prices = prices.resample('M').last()
     return calculate_moving_average(monthly_prices, window)
 
 # 儲存資料到Excel
@@ -122,6 +122,8 @@ def save_to_excel(peak_trough_df, sma_values, weekly_sma_values, monthly_sma_val
 
         # 確定開始寫入日均線的行數
         start_row = len(peak_trough_df) + 5
+        
+        worksheet.write(start_row - 1, 0, latest_close_price)
 
         # 設定日均線表格標題
         headers = ["日均線", "", "", "", "收", "買點", "", "", "", "日均線"]
@@ -159,10 +161,28 @@ def save_to_excel(peak_trough_df, sma_values, weekly_sma_values, monthly_sma_val
             worksheet.write(start_row + i + 1, 0, label)
             worksheet.write(start_row + i + 1, 9, label)
 
+        cell_green_format = workbook.add_format()
+        cell_green_format.set_pattern(1)
+        cell_green_format.set_bg_color('green')
+        cell_red_format = workbook.add_format()
+        cell_red_format.set_pattern(1)
+        cell_red_format.set_bg_color('red')
         # 填入日均線計算值
         for i, value in enumerate(sma_values):
             worksheet.write(start_row + i + 1, 2, value if not pd.isna(value) else "NaN")
             worksheet.write(start_row + i + 1, 7, value if not pd.isna(value) else "NaN")
+            if not pd.isna(value):
+                if latest_close_price > value:
+                    worksheet.write(start_row + i + 1, 1, "O", cell_green_format)
+                else:
+                    worksheet.write(start_row + i + 1, 1, "X", cell_red_format)
+                if  last_ratio_0_618 > value:
+                    worksheet.write(start_row + i + 1, 8, "O", cell_green_format)
+                else:
+                    worksheet.write(start_row + i + 1, 8, "X", cell_red_format)
+            else:
+                print("")
+            
             
         #填入數值分析
         if not pd.isna(sma_values[-1]):
@@ -184,6 +204,7 @@ def save_to_excel(peak_trough_df, sma_values, weekly_sma_values, monthly_sma_val
         start_row += 1
 
         # 插入周均線表格
+        headers = ["月均線", "", "", "", "收", "買點", "", "", "", "月均線"]
         worksheet.write_row(start_row, 0, headers)
 
         # 合併第5欄位和第6欄位的第1列和第2列資料格
@@ -215,6 +236,17 @@ def save_to_excel(peak_trough_df, sma_values, weekly_sma_values, monthly_sma_val
         for i, value in enumerate(weekly_sma_values):
             worksheet.write(start_row + i + 1, 2, value if not pd.isna(value) else "NaN")
             worksheet.write(start_row + i + 1, 7, value if not pd.isna(value) else "NaN")
+            if not pd.isna(value):
+                if latest_close_price > value:
+                    worksheet.write(start_row + i + 1, 1, "O", cell_green_format)
+                else:
+                    worksheet.write(start_row + i + 1, 1, "X", cell_red_format)
+                if  last_ratio_0_618 > value:
+                    worksheet.write(start_row + i + 1, 8, "O", cell_green_format)
+                else:
+                    worksheet.write(start_row + i + 1, 8, "X", cell_red_format)
+            else:
+                print("")
             
         #填入數值分析
         if not pd.isna(weekly_sma_values[-1]):
@@ -236,6 +268,7 @@ def save_to_excel(peak_trough_df, sma_values, weekly_sma_values, monthly_sma_val
         start_row += 1
 
         # 插入月均線表格
+        headers = ["月均線", "", "", "", "收", "買點", "", "", "", "月均線"]
         worksheet.write_row(start_row, 0, headers)
 
         # 合併第5欄位和第6欄位的第1列和第2列資料格
@@ -267,6 +300,17 @@ def save_to_excel(peak_trough_df, sma_values, weekly_sma_values, monthly_sma_val
         for i, value in enumerate(monthly_sma_values):
             worksheet.write(start_row + i + 1, 2, value if not pd.isna(value) else "NaN")
             worksheet.write(start_row + i + 1, 7, value if not pd.isna(value) else "NaN")
+            if not pd.isna(value):
+                if latest_close_price > value:
+                    worksheet.write(start_row + i + 1, 1, "O", cell_green_format)
+                else:
+                    worksheet.write(start_row + i + 1, 1, "X", cell_red_format)
+                if  last_ratio_0_618 > value:
+                    worksheet.write(start_row + i + 1, 8, "O", cell_green_format)
+                else:
+                    worksheet.write(start_row + i + 1, 8, "X", cell_red_format)
+            else:
+                print("")
             
         #填入數值分析
         if not pd.isna(monthly_sma_values[-1]):

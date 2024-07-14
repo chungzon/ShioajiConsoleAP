@@ -56,9 +56,9 @@ if __name__ == "__main__":
         api_key="6GWV7gnxYXaEomoyLuTFRe29BnoAyEohVpbSZQYHdY66",
         secret_key="F6PJrruho4pRpC9KefgKeqReFQ2nhLV34uXe2RmMZFow"
     )
-    stock_id = "6152"
-    start_date = datetime(2024, 7, 9)
-    end_date = datetime(2024, 7, 9)
+    stock_id = "5450"
+    start_date = datetime(2020, 12, 31)
+    end_date = datetime(2020, 12, 31)
 
     server = '127.0.0.1:1433'
     database = 'TSE'
