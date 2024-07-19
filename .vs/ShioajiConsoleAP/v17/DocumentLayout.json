@@ -3,28 +3,44 @@
   "WorkspaceRootPath": "D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\StockModel.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|solutionrelative:StockModel.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\StockController.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|solutionrelative:StockController.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\ShioajiConsoleAP.py||{8B382828-6202-11D1-8870-0000F87579D2}",
       "RelativeMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|solutionrelative:ShioajiConsoleAP.py||{8B382828-6202-11D1-8870-0000F87579D2}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\DailyAverage.py||{8B382828-6202-11D1-8870-0000F87579D2}",
-      "RelativeMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|solutionrelative:DailyAverage.py||{8B382828-6202-11D1-8870-0000F87579D2}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\DownloadStocksTicks.py||{8B382828-6202-11D1-8870-0000F87579D2}",
-      "RelativeMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|solutionrelative:DownloadStocksTicks.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+      "AbsoluteMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\StockView.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|solutionrelative:StockView.py||{8B382828-6202-11D1-8870-0000F87579D2}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\GetHighAndLowOfStockFromDatabase.py||{8B382828-6202-11D1-8870-0000F87579D2}",
       "RelativeMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|solutionrelative:GetHighAndLowOfStockFromDatabase.py||{8B382828-6202-11D1-8870-0000F87579D2}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\DownloadStocksKbars.py||{8B382828-6202-11D1-8870-0000F87579D2}",
-      "RelativeMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|solutionrelative:DownloadStocksKbars.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+      "AbsoluteMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\DownloadStocksTicks.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|solutionrelative:DownloadStocksTicks.py||{8B382828-6202-11D1-8870-0000F87579D2}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\GetHighAndLowOfStock.py||{8B382828-6202-11D1-8870-0000F87579D2}",
       "RelativeMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|solutionrelative:GetHighAndLowOfStock.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\DownloadStocksKbars.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|solutionrelative:DownloadStocksKbars.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\Integrated.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|solutionrelative:Integrated.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\DailyAverage.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{14BA9C39-A096-4979-AFAE-E94E8B91B8AC}|ShioajiConsoleAP.pyproj|solutionrelative:DailyAverage.py||{8B382828-6202-11D1-8870-0000F87579D2}"
     }
   ],
   "DocumentGroupContainers": [
@@ -34,20 +50,35 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 6,
+          "SelectedChildIndex": 4,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 4,
               "Title": "GetHighAndLowOfStockFromDatabase.py",
               "DocumentMoniker": "D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\GetHighAndLowOfStockFromDatabase.py",
               "RelativeDocumentMoniker": "GetHighAndLowOfStockFromDatabase.py",
               "ToolTip": "D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\GetHighAndLowOfStockFromDatabase.py",
               "RelativeToolTip": "GetHighAndLowOfStockFromDatabase.py",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "ViewState": "AQIAABkAAAAAAAAAAADgv1oAAAATAAAA",
               "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAHeSURBVDhPpVMxa1NRFP7ebZLSlgaltNpSVCySRUxL0NAh4FJpHWpxcZAUBEPG/AKHDsVBN5eGrCnoYKCDoDiUCKKBjtZBUZtJ2ojYJr40ue\u002B\u002B47k3VzD0hQr94OOed8853/k47z2cCETk2NAgk8mQDQMhhFjK5/Mb9vEotIDruoEsFovEzVvZbPaWLTcQ9uxCpVLp4l\u002Bk0\u002BlEPB5/wIPm7RVC9uxCMpm0UTdKpRKi0WiCQy3wUt8FCvw7VSNxbRapG4voDwucGgyjXC7bzH84ePt1HysbH/GhWoNstzA1OoSFhZuxQqFg8sfu4FutAd\u002BT8KSEYm7v7GJ0YnLClgYLaAcjU9N4Vx9Dda8OBz7OjwywSNsIXY39vEL7TxWpxv2eO3hWHUZ19xc8ti25UdvXzdpNWH0BDj8JiLOrPXfweOu9mRgRhOXUEPr7IiBfYeacB9HaBNRvQH4f6\u002BlgMERwGxJP7grEoq9shj9Uz\u002BVGpmIi4vXcwdzlcePgzLAuZPiSGw869Jg\u002Biw1Mvw50oLGcuoh71y8h1HwB1Js8UfFLnwScNnBhdYVLWsy1IwK5XM5GHaw9uu0LeSCMddZA32lz7zjOQxMcByK1SPU3O/Rjnai2fkjNz8/5L77TyQJ/AJc67LNf3QeWAAAAAElFTkSuQmCC",
               "WhenOpened": "2024-07-08T15:45:24.304Z",
-              "IsPinned": true
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "StockController.py",
+              "DocumentMoniker": "D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\StockController.py",
+              "RelativeDocumentMoniker": "StockController.py",
+              "ToolTip": "D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\StockController.py",
+              "RelativeToolTip": "StockController.py",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAEAAAAcAAAA",
+              "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAHeSURBVDhPpVMxa1NRFP7ebZLSlgaltNpSVCySRUxL0NAh4FJpHWpxcZAUBEPG/AKHDsVBN5eGrCnoYKCDoDiUCKKBjtZBUZtJ2ojYJr40ue\u002B\u002B47k3VzD0hQr94OOed8853/k47z2cCETk2NAgk8mQDQMhhFjK5/Mb9vEotIDruoEsFovEzVvZbPaWLTcQ9uxCpVLp4l\u002Bk0\u002BlEPB5/wIPm7RVC9uxCMpm0UTdKpRKi0WiCQy3wUt8FCvw7VSNxbRapG4voDwucGgyjXC7bzH84ePt1HysbH/GhWoNstzA1OoSFhZuxQqFg8sfu4FutAd\u002BT8KSEYm7v7GJ0YnLClgYLaAcjU9N4Vx9Dda8OBz7OjwywSNsIXY39vEL7TxWpxv2eO3hWHUZ19xc8ti25UdvXzdpNWH0BDj8JiLOrPXfweOu9mRgRhOXUEPr7IiBfYeacB9HaBNRvQH4f6\u002BlgMERwGxJP7grEoq9shj9Uz\u002BVGpmIi4vXcwdzlcePgzLAuZPiSGw869Jg\u002Biw1Mvw50oLGcuoh71y8h1HwB1Js8UfFLnwScNnBhdYVLWsy1IwK5XM5GHaw9uu0LeSCMddZA32lz7zjOQxMcByK1SPU3O/Rjnai2fkjNz8/5L77TyQJ/AJc67LNf3QeWAAAAAElFTkSuQmCC",
+              "WhenOpened": "2024-07-17T14:52:28.919Z",
+              "IsPinned": true,
+              "EditorCaption": ""
             },
             {
               "$type": "Bookmark",
@@ -55,31 +86,69 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 3,
+              "Title": "StockView.py",
+              "DocumentMoniker": "D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\StockView.py",
+              "RelativeDocumentMoniker": "StockView.py",
+              "ToolTip": "D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\StockView.py",
+              "RelativeToolTip": "StockView.py",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAEIAAAAAAAAA",
+              "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAHeSURBVDhPpVMxa1NRFP7ebZLSlgaltNpSVCySRUxL0NAh4FJpHWpxcZAUBEPG/AKHDsVBN5eGrCnoYKCDoDiUCKKBjtZBUZtJ2ojYJr40ue\u002B\u002B47k3VzD0hQr94OOed8853/k47z2cCETk2NAgk8mQDQMhhFjK5/Mb9vEotIDruoEsFovEzVvZbPaWLTcQ9uxCpVLp4l\u002Bk0\u002BlEPB5/wIPm7RVC9uxCMpm0UTdKpRKi0WiCQy3wUt8FCvw7VSNxbRapG4voDwucGgyjXC7bzH84ePt1HysbH/GhWoNstzA1OoSFhZuxQqFg8sfu4FutAd\u002BT8KSEYm7v7GJ0YnLClgYLaAcjU9N4Vx9Dda8OBz7OjwywSNsIXY39vEL7TxWpxv2eO3hWHUZ19xc8ti25UdvXzdpNWH0BDj8JiLOrPXfweOu9mRgRhOXUEPr7IiBfYeacB9HaBNRvQH4f6\u002BlgMERwGxJP7grEoq9shj9Uz\u002BVGpmIi4vXcwdzlcePgzLAuZPiSGw869Jg\u002Biw1Mvw50oLGcuoh71y8h1HwB1Js8UfFLnwScNnBhdYVLWsy1IwK5XM5GHaw9uu0LeSCMddZA32lz7zjOQxMcByK1SPU3O/Rjnai2fkjNz8/5L77TyQJ/AJc67LNf3QeWAAAAAElFTkSuQmCC",
+              "WhenOpened": "2024-07-17T14:51:00.19Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "StockModel.py",
+              "DocumentMoniker": "D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\StockModel.py",
+              "RelativeDocumentMoniker": "StockModel.py",
+              "ToolTip": "D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\StockModel.py",
+              "RelativeToolTip": "StockModel.py",
+              "ViewState": "AQIAAFcAAAAAAAAAAAD4v2AAAAAAAAAA",
+              "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAHeSURBVDhPpVMxa1NRFP7ebZLSlgaltNpSVCySRUxL0NAh4FJpHWpxcZAUBEPG/AKHDsVBN5eGrCnoYKCDoDiUCKKBjtZBUZtJ2ojYJr40ue\u002B\u002B47k3VzD0hQr94OOed8853/k47z2cCETk2NAgk8mQDQMhhFjK5/Mb9vEotIDruoEsFovEzVvZbPaWLTcQ9uxCpVLp4l\u002Bk0\u002BlEPB5/wIPm7RVC9uxCMpm0UTdKpRKi0WiCQy3wUt8FCvw7VSNxbRapG4voDwucGgyjXC7bzH84ePt1HysbH/GhWoNstzA1OoSFhZuxQqFg8sfu4FutAd\u002BT8KSEYm7v7GJ0YnLClgYLaAcjU9N4Vx9Dda8OBz7OjwywSNsIXY39vEL7TxWpxv2eO3hWHUZ19xc8ti25UdvXzdpNWH0BDj8JiLOrPXfweOu9mRgRhOXUEPr7IiBfYeacB9HaBNRvQH4f6\u002BlgMERwGxJP7grEoq9shj9Uz\u002BVGpmIi4vXcwdzlcePgzLAuZPiSGw869Jg\u002Biw1Mvw50oLGcuoh71y8h1HwB1Js8UfFLnwScNnBhdYVLWsy1IwK5XM5GHaw9uu0LeSCMddZA32lz7zjOQxMcByK1SPU3O/Rjnai2fkjNz8/5L77TyQJ/AJc67LNf3QeWAAAAAElFTkSuQmCC",
+              "WhenOpened": "2024-07-17T14:49:15.287Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "Integrated.py",
+              "DocumentMoniker": "D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\Integrated.py",
+              "RelativeDocumentMoniker": "Integrated.py",
+              "ToolTip": "D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\Integrated.py",
+              "RelativeToolTip": "Integrated.py",
+              "ViewState": "AQIAAK0AAAAAAAAAAAAQwL0AAAAAAAAA",
+              "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAHeSURBVDhPpVMxa1NRFP7ebZLSlgaltNpSVCySRUxL0NAh4FJpHWpxcZAUBEPG/AKHDsVBN5eGrCnoYKCDoDiUCKKBjtZBUZtJ2ojYJr40ue\u002B\u002B47k3VzD0hQr94OOed8853/k47z2cCETk2NAgk8mQDQMhhFjK5/Mb9vEotIDruoEsFovEzVvZbPaWLTcQ9uxCpVLp4l\u002Bk0\u002BlEPB5/wIPm7RVC9uxCMpm0UTdKpRKi0WiCQy3wUt8FCvw7VSNxbRapG4voDwucGgyjXC7bzH84ePt1HysbH/GhWoNstzA1OoSFhZuxQqFg8sfu4FutAd\u002BT8KSEYm7v7GJ0YnLClgYLaAcjU9N4Vx9Dda8OBz7OjwywSNsIXY39vEL7TxWpxv2eO3hWHUZ19xc8ti25UdvXzdpNWH0BDj8JiLOrPXfweOu9mRgRhOXUEPr7IiBfYeacB9HaBNRvQH4f6\u002BlgMERwGxJP7grEoq9shj9Uz\u002BVGpmIi4vXcwdzlcePgzLAuZPiSGw869Jg\u002Biw1Mvw50oLGcuoh71y8h1HwB1Js8UfFLnwScNnBhdYVLWsy1IwK5XM5GHaw9uu0LeSCMddZA32lz7zjOQxMcByK1SPU3O/Rjnai2fkjNz8/5L77TyQJ/AJc67LNf3QeWAAAAAElFTkSuQmCC",
+              "WhenOpened": "2024-07-16T15:46:55.863Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
               "Title": "DownloadStocksTicks.py",
               "DocumentMoniker": "D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\DownloadStocksTicks.py",
               "RelativeDocumentMoniker": "DownloadStocksTicks.py",
               "ToolTip": "D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\DownloadStocksTicks.py",
               "RelativeToolTip": "DownloadStocksTicks.py",
-              "ViewState": "AQIAAC8AAAAAAAAAAAAAwDcAAAAtAAAA",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAUAAAAAAAAA",
               "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAHeSURBVDhPpVMxa1NRFP7ebZLSlgaltNpSVCySRUxL0NAh4FJpHWpxcZAUBEPG/AKHDsVBN5eGrCnoYKCDoDiUCKKBjtZBUZtJ2ojYJr40ue\u002B\u002B47k3VzD0hQr94OOed8853/k47z2cCETk2NAgk8mQDQMhhFjK5/Mb9vEotIDruoEsFovEzVvZbPaWLTcQ9uxCpVLp4l\u002Bk0\u002BlEPB5/wIPm7RVC9uxCMpm0UTdKpRKi0WiCQy3wUt8FCvw7VSNxbRapG4voDwucGgyjXC7bzH84ePt1HysbH/GhWoNstzA1OoSFhZuxQqFg8sfu4FutAd\u002BT8KSEYm7v7GJ0YnLClgYLaAcjU9N4Vx9Dda8OBz7OjwywSNsIXY39vEL7TxWpxv2eO3hWHUZ19xc8ti25UdvXzdpNWH0BDj8JiLOrPXfweOu9mRgRhOXUEPr7IiBfYeacB9HaBNRvQH4f6\u002BlgMERwGxJP7grEoq9shj9Uz\u002BVGpmIi4vXcwdzlcePgzLAuZPiSGw869Jg\u002Biw1Mvw50oLGcuoh71y8h1HwB1Js8UfFLnwScNnBhdYVLWsy1IwK5XM5GHaw9uu0LeSCMddZA32lz7zjOQxMcByK1SPU3O/Rjnai2fkjNz8/5L77TyQJ/AJc67LNf3QeWAAAAAElFTkSuQmCC",
               "WhenOpened": "2024-07-08T16:49:48.647Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 7,
               "Title": "DownloadStocksKbars.py",
               "DocumentMoniker": "D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\DownloadStocksKbars.py",
               "RelativeDocumentMoniker": "DownloadStocksKbars.py",
               "ToolTip": "D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\DownloadStocksKbars.py",
               "RelativeToolTip": "DownloadStocksKbars.py",
-              "ViewState": "AQIAAC0AAAAAAAAAAAAQwDUAAAAFAAAA",
+              "ViewState": "AQIAAEIAAAAAAAAAAAAQwEsAAABKAAAA",
               "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAHeSURBVDhPpVMxa1NRFP7ebZLSlgaltNpSVCySRUxL0NAh4FJpHWpxcZAUBEPG/AKHDsVBN5eGrCnoYKCDoDiUCKKBjtZBUZtJ2ojYJr40ue\u002B\u002B47k3VzD0hQr94OOed8853/k47z2cCETk2NAgk8mQDQMhhFjK5/Mb9vEotIDruoEsFovEzVvZbPaWLTcQ9uxCpVLp4l\u002Bk0\u002BlEPB5/wIPm7RVC9uxCMpm0UTdKpRKi0WiCQy3wUt8FCvw7VSNxbRapG4voDwucGgyjXC7bzH84ePt1HysbH/GhWoNstzA1OoSFhZuxQqFg8sfu4FutAd\u002BT8KSEYm7v7GJ0YnLClgYLaAcjU9N4Vx9Dda8OBz7OjwywSNsIXY39vEL7TxWpxv2eO3hWHUZ19xc8ti25UdvXzdpNWH0BDj8JiLOrPXfweOu9mRgRhOXUEPr7IiBfYeacB9HaBNRvQH4f6\u002BlgMERwGxJP7grEoq9shj9Uz\u002BVGpmIi4vXcwdzlcePgzLAuZPiSGw869Jg\u002Biw1Mvw50oLGcuoh71y8h1HwB1Js8UfFLnwScNnBhdYVLWsy1IwK5XM5GHaw9uu0LeSCMddZA32lz7zjOQxMcByK1SPU3O/Rjnai2fkjNz8/5L77TyQJ/AJc67LNf3QeWAAAAAElFTkSuQmCC",
               "WhenOpened": "2024-07-08T14:31:18.463Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 9,
               "Title": "DailyAverage.py",
               "DocumentMoniker": "D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\DailyAverage.py",
               "RelativeDocumentMoniker": "DailyAverage.py",
@@ -91,7 +160,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 6,
               "Title": "GetHighAndLowOfStock.py",
               "DocumentMoniker": "D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\GetHighAndLowOfStock.py",
               "RelativeDocumentMoniker": "GetHighAndLowOfStock.py",
@@ -103,13 +172,13 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 2,
               "Title": "ShioajiConsoleAP.py",
               "DocumentMoniker": "D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\ShioajiConsoleAP.py",
               "RelativeDocumentMoniker": "ShioajiConsoleAP.py",
               "ToolTip": "D:\\Project\\ShioajiConsole\\ShioajiConsoleAP\\ShioajiConsoleAP.py",
               "RelativeToolTip": "ShioajiConsoleAP.py",
-              "ViewState": "AQIAAGMBAAAAAAAAAAAAwKwBAAASAAAA",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAMAAAAAAAAA",
               "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAHeSURBVDhPpVMxa1NRFP7ebZLSlgaltNpSVCySRUxL0NAh4FJpHWpxcZAUBEPG/AKHDsVBN5eGrCnoYKCDoDiUCKKBjtZBUZtJ2ojYJr40ue\u002B\u002B47k3VzD0hQr94OOed8853/k47z2cCETk2NAgk8mQDQMhhFjK5/Mb9vEotIDruoEsFovEzVvZbPaWLTcQ9uxCpVLp4l\u002Bk0\u002BlEPB5/wIPm7RVC9uxCMpm0UTdKpRKi0WiCQy3wUt8FCvw7VSNxbRapG4voDwucGgyjXC7bzH84ePt1HysbH/GhWoNstzA1OoSFhZuxQqFg8sfu4FutAd\u002BT8KSEYm7v7GJ0YnLClgYLaAcjU9N4Vx9Dda8OBz7OjwywSNsIXY39vEL7TxWpxv2eO3hWHUZ19xc8ti25UdvXzdpNWH0BDj8JiLOrPXfweOu9mRgRhOXUEPr7IiBfYeacB9HaBNRvQH4f6\u002BlgMERwGxJP7grEoq9shj9Uz\u002BVGpmIi4vXcwdzlcePgzLAuZPiSGw869Jg\u002Biw1Mvw50oLGcuoh71y8h1HwB1Js8UfFLnwScNnBhdYVLWsy1IwK5XM5GHaw9uu0LeSCMddZA32lz7zjOQxMcByK1SPU3O/Rjnai2fkjNz8/5L77TyQJ/AJc67LNf3QeWAAAAAElFTkSuQmCC",
               "WhenOpened": "2024-07-07T01:20:35.052Z",
               "EditorCaption": ""

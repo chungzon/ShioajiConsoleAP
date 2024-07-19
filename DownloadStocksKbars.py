@@ -66,8 +66,9 @@ def process_kbars(stock_code, start_date, end_date):
 
 # 主函數
 def main():
-    stock_codes = ["5450"]  # 替換為您想要查詢的股票代碼列表
-    start_date = "2019-05-02"
+    #stock_codes = ["2486", "2467", "2464"]  # 替換為您想要查詢的股票代碼列表
+    stock_codes = ["1513"]
+    start_date = "2024-04-01"
     end_date = "2024-07-12"
   
     total_start_time = time.time()
