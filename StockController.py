@@ -1,6 +1,6 @@
 ﻿import threading
 from datetime import datetime, timedelta
-from StockModel import connect_db, get_latest_dates, get_kbars, insert_kbars, get_ticks_data, insert_ticks_to_sql, get_stock_data_from_db, save_to_excel, find_peaks_troughs_v34, get_latest_close_price, get_daily_close_prices_from_db, calculate_moving_average, calculate_weekly_average, calculate_monthly_average
+from StockModel import connect_db, get_latest_dates, get_kbars, insert_kbars, get_ticks_data, insert_ticks_to_sql, get_stock_data_from_db, save_to_excel, find_peaks_troughs_v34, get_latest_close_price, get_daily_close_prices_from_db, calculate_moving_average, calculate_weekly_average, calculate_monthly_average, get_kbars_data
 from StockView import StockView
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
@@ -9,6 +9,8 @@ import tkinter as tk
 import threading
 import pandas as pd
 import os
+
+
 
 class StockController:
     def __init__(self):
@@ -24,15 +26,15 @@ class StockController:
         duration = end_time - start_time
         return date, duration
 
-    def confirm_stock(self):
+    def check_stock_data(self):
         stock_id = self.view.entry_stock_id.get()
         if not stock_id:
             self.view.set_status("股票代碼為必填")
             return
 
         latest_date_ticks, latest_date_kbars = get_latest_dates(stock_id)
-        self.view.label_update_date_ticks.config(text=latest_date_ticks.strftime('%Y-%m-%d'))
-        self.view.label_update_date_kbars.config(text=latest_date_kbars.strftime('%Y-%m-%d'))
+        self.view.label_update_date_ticks.config(text=f"Ticks 更新日期: {latest_date_ticks.strftime('%Y-%m-%d')}")
+        self.view.label_update_date_kbars.config(text=f"Kbars 更新日期: {latest_date_kbars.strftime('%Y-%m-%d')}")
         self.view.set_status(f"股票代碼: {stock_id}")
 
     def browse_file(self):
@@ -58,54 +60,68 @@ class StockController:
         if data_type == 'Ticks':
             start_date = (latest_date_ticks + timedelta(days=1))
             dates = [start_date + timedelta(days=i) for i in range((end_date - start_date).days + 1)]
-            total_start_time = time.time()  # 记录总开始时间
+            total_start_time = time.time()  # 紀錄總開始時間
+            self.view.progress_bar.config(maximum=len(dates))
             with ThreadPoolExecutor(max_workers=5) as executor:
                 futures = {executor.submit(self.process_date, stock_id, date): date for date in dates}
+                completed_tasks = 0
                 for future in as_completed(futures):
                     date, duration = future.result()
+                    completed_tasks += 1
+                    progress = (completed_tasks / len(dates)) * 100
+                    self.view.update_progress(progress)
                     self.view.set_status(f"Date: {date.strftime('%Y-%m-%d')} completed in {duration:.2f} seconds")
-            total_end_time = time.time()  # 记录总结束时间
-            total_duration = total_end_time - total_start_time  # 计算总花费时间
+            total_end_time = time.time()  # 紀錄總結束時間
+            total_duration = total_end_time - total_start_time  # 計算總花費時間
             self.view.set_status(f"所有資料已經成功抓取並存入資料庫，總花費時間: {total_duration:.2f} 秒")
         else:
-            start_date = (latest_date_kbars + timedelta(days=1)).strftime('%Y-%m-%d')
+            start_date = (latest_date_kbars + timedelta(days=1))
+            dates = [start_date + timedelta(days=i) for i in range((end_date - start_date).days + 1)]
+            total_start_time = time.time()  # 紀錄總開始時間
+            self.view.progress_bar.config(maximum=len(dates))
+            with ThreadPoolExecutor(max_workers=5) as executor:
+                futures = {executor.submit(self.process_data_update, stock_id, date): date for date in dates}
+                completed_tasks = 0
+                for future in as_completed(futures):
+                    date, duration = future.result()
+                    completed_tasks += 1
+                    progress = (completed_tasks / len(dates)) * 100
+                    self.view.update_progress(progress)
+                    self.view.set_status(f"Date: {date.strftime('%Y-%m-%d')} completed in {duration:.2f} seconds")
+            total_end_time = time.time()  # 紀錄總結束時間
+            total_duration = total_end_time - total_start_time  # 計算總花費時間
+            self.view.set_status(f"所有資料已經成功抓取並存入資料庫，總花費時間: {total_duration:.2f} 秒")
+            
+            # start_date = (latest_date_kbars + timedelta(days=1)).strftime('%Y-%m-%d')
+            # self.view.progress_var.set(0)
+            # self.view.progress_bar.config(maximum=1)
+            # self.view.set_status("更新資料中...")
+            # threading.Thread(target=self.process_data_update, args=(stock_id, start_date, end_date, data_type)).start()
+        #end_date = datetime.today().strftime('%Y-%m-%d')
 
-        self.view.progress_var.set(0)
-        self.view.progress_bar.config(maximum=1)
-        self.view.set_status("更新資料中...")
 
-    def process_data_update(self, stock_id, start_date, end_date, data_type):
+
+
+    def process_data_update(self, stock_id, date):
         start_time = time.time()
-
-        kbars_df = get_kbars(stock_id, start_date, end_date)
-        insert_kbars(kbars_df, stock_id)
-
+        kbars_df = get_kbars_data(stock_id, date)
+        if not kbars_df.empty:
+             insert_kbars(kbars_df, stock_id)
         end_time = time.time()
-        elapsed_time = end_time - start_time
-
-        self.view.update_progress(1)
-        self.view.set_status(f"{data_type}資料更新成功，花費時間: {elapsed_time:.2f}秒")
+        duration = end_time - start_time
+        return date, duration
     
     def analyze_data(self):
         stock_id = self.view.entry_stock_id.get()
         start_date = self.view.entry_start_date.get()
         end_date = self.view.entry_end_date.get()
         save_path = self.view.entry_file_path.get()
-
         if not stock_id or not start_date or not end_date or not save_path:
-            self.view.set_status("股票代碼、起始日期、結束日期和儲存路徑均為必填")
-            return
-        
-        df = get_stock_data_from_db(stock_id, start_date, end_date)
-        if df.empty:
-            self.view.set_status("沒有找到任何資料")
+            self.view.set_status("股票代碼和日期均為必填")
             return
 
-        # 執行數據分析
+        df = get_stock_data_from_db(stock_id, start_date, end_date)
         daily_high_low = df.groupby('date').agg({'High': 'max', 'Low': 'min'}).reset_index()
-        #save_to_excel(daily_high_low, stock_id, start_date, end_date, save_path)
-        
-        # 使用 find_peaks_troughs_v34 函數找出波段的最高價和最低價
         peak_trough_df = find_peaks_troughs_v34(daily_high_low)
 
         # 四捨五入至小數點以下兩位，不足補0
@@ -207,15 +223,15 @@ class StockController:
             round(calculate_monthly_average(close_prices, 60).iloc[-1], 2),
             round(calculate_monthly_average(close_prices, 120).iloc[-1], 2),
         ]
-    
-        # 保存到 Excel 文件
-        file_name = f"{stock_id}_{start_date}_to_{end_date}.xlsx"
-        file_path = os.path.join(save_path, file_name)  
-        save_to_excel(peak_trough_df, sma_values, weekly_sma_values, monthly_sma_values, last_ratio_0_618, latest_close_price, file_path)
-
         
-        self.view.set_status(f"分析完成，結果已儲存至: {save_path}")
-
+        # 設定儲存路徑和檔名
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+    
+        file_name = f"{stock_id}_{start_date}_to_{end_date}.xlsx"
+        file_path = os.path.join(save_path, file_name)
+        save_to_excel(peak_trough_df, sma_values, weekly_sma_values, monthly_sma_values, last_ratio_0_618, latest_close_price, file_path)
+        self.view.set_status("資料分析完成並已儲存")
 
 if __name__ == "__main__":
     StockController()

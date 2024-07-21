@@ -38,22 +38,69 @@ def get_latest_dates(stock_id):
     return df.iloc[0]['latest_date_ticks'], df.iloc[0]['latest_date_kbars']
 
 def get_ticks_data(stock_id, date):
+    ticks = api.ticks(
+        contract=api.Contracts.Stocks[stock_id],
+        date=date.strftime("%Y-%m-%d")
+    )
+    df = pd.DataFrame({**ticks})
+    df.ts = pd.to_datetime(df.ts)
+    df["stock_id"] = stock_id
+    return df
+
+def get_kbars_data(stock_id, date):
+    contract = api.Contracts.Stocks[stock_id]
+    kbars = api.kbars(
+        contract=api.Contracts.Stocks[stock_id],
+        start=date.strftime("%Y-%m-%d"),
+        end=date.strftime("%Y-%m-%d")
+    )
+    df = pd.DataFrame({**kbars})
+    df.ts = pd.to_datetime(df.ts)  # 將時間戳轉換為datetime
+    return df
+
+def insert_ticks_to_sql(df):
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    insert_query = """
+    INSERT INTO Ticks (ts, close_price, volume, bid_price, bid_volume, ask_price, ask_volume, tick_type, stock_id)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """
+
+    for index, row in df.iterrows():
+        cursor.execute(insert_query, (
+            row['ts'],
+            row['close'],
+            row['volume'],
+            row['bid_price'],
+            row['bid_volume'],
+            row['ask_price'],
+            row['ask_volume'],
+            row['tick_type'],
+            row['stock_id']
+        ))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def get_kbars_data_from_db(stock_id, date):
     conn = connect_db()
     query = f"""
     SELECT ts, Open_Price, High, Low, Close_Price, Volume
-    FROM Ticks
+    FROM KBars
     WHERE stock_id = '{stock_id}' AND ts >= '{date}' AND ts < DATEADD(day, 1, '{date}')
     """
     df = pd.read_sql(query, conn)
     conn.close()
     return df
 
-def insert_ticks_to_sql(df):
+def insert_kbars_to_sql(df):
     conn = connect_db()
     cursor = conn.cursor()
     for _, row in df.iterrows():
         cursor.execute("""
-            INSERT INTO Ticks (stock_id, ts, Open_Price, High, Low, Close_Price, Volume)
+            INSERT INTO KBars (stock_id, ts, Open_Price, High, Low, Close_Price, Volume)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
         """, (row['stock_id'], row['ts'], row['Open_Price'], row['High'], row['Low'], row['Close_Price'], row['Volume']))
     conn.commit()
