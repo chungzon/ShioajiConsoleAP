@@ -1,195 +1,151 @@
-﻿import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
-import pymssql
+﻿import shioaji as sj
 import pandas as pd
-import shioaji as sj
 from datetime import datetime, timedelta
-import concurrent.futures
 import time
+from win10toast import ToastNotifier
+import os
+from decimal import Decimal
 
 # 初始化 Shioaji API
-api = sj.Shioaji(simulation=True)
+api = sj.Shioaji(simulation=False)
 api.login(
     api_key="6GWV7gnxYXaEomoyLuTFRe29BnoAyEohVpbSZQYHdY66",
     secret_key="F6PJrruho4pRpC9KefgKeqReFQ2nhLV34uXe2RmMZFow"
 )
 
-def connect_db():
-    conn = pymssql.connect(
-        server='127.0.0.1:1433',
-        user='TSE_USER',
-        password='fuckme',
-        database='TSE'
-    )
-    return conn
+# 初始化通知器
+notifier = ToastNotifier()
 
-def get_latest_dates(stock_id):
-    conn = connect_db()
-    query_ticks = f"""
-    SELECT MAX(ts) as latest_date
-    FROM Ticks
-    WHERE stock_id = '{stock_id}'
-    """
-    query_kbars = f"""
-    SELECT MAX(ts) as latest_date
-    FROM Kbars
-    WHERE stock_id = '{stock_id}'
-    """
-    df_ticks = pd.read_sql(query_ticks, conn)
-    df_kbars = pd.read_sql(query_kbars, conn)
-    conn.close()
+# 儲存即時行情資料
+realtime_data = []
 
-    latest_date_ticks = df_ticks['latest_date'].iloc[0]
-    latest_date_kbars = df_kbars['latest_date'].iloc[0]
+# 訂閱即時行情回調函數
+def quote_callback(exchange, tick):
+    global realtime_data
+    data = {
+        'datetime': tick.datetime,
+        'open': float(tick.open),
+        'high': float(tick.high),
+        'low': float(tick.low),
+        'close': float(tick.close),
+        'volume': tick.volume,
+    }
+    realtime_data.append(data)
 
-    return latest_date_ticks, latest_date_kbars
-
-def get_kbars(stock_code, start_date, end_date):
+# 訂閱即時行情
+def subscribe_realtime_data(stock_code):
     contract = api.Contracts.Stocks[stock_code]
-    kbars = api.kbars(contract, start=start_date, end=end_date)
+    api.quote.set_on_tick_stk_v1_callback(quote_callback)
+    api.quote.subscribe(contract, quote_type=sj.constant.QuoteType.Tick, version=sj.constant.QuoteVersion.v1)
+
+# 取消訂閱即時行情
+def unsubscribe_realtime_data(stock_code):
+    contract = api.Contracts.Stocks[stock_code]
+    api.quote.unsubscribe(contract, quote_type=sj.constant.QuoteType.Tick, version=sj.constant.QuoteVersion.v1)
+
+# 使用黃金分割率計算回撤目標
+def calculate_fibonacci_levels(high, low):
+    diff = float(high) - float(low)
+    levels = {
+        'Level_0': float(high),
+        'Level_0.382': float(high) - 0.382 * diff,
+        'Level_0.5': float(high) - 0.5 * diff,
+        'Level_0.618': float(high) - 0.618 * diff,
+        'Level_1': float(low)
+    }
+    return levels
+
+# 買賣點判斷
+def identify_trade_signals(df):
+    df['SMA_5'] = df['close'].rolling(window=5).mean()
+    df['SMA_10'] = df['close'].rolling(window=10).mean()
+
+    buy_signals = []
+    sell_signals = []
+
+    for i in range(1, len(df)):
+        if df['close'][i] > df['SMA_5'][i] and df['close'][i-1] <= df['SMA_5'][i-1]:
+            buy_signals.append((df.index[i], df['close'][i]))
+        elif df['close'][i] < df['SMA_5'][i] and df['close'][i-1] >= df['SMA_5'][i-1]:
+            sell_signals.append((df.index[i], df['close'][i]))
+
+    return buy_signals, sell_signals
+
+# 通知使用者
+def notify_user(message):
+    notifier.show_toast("股票交易提醒", message, duration=10)
+
+# 計算投資報酬率
+def calculate_roi(buy_price, sell_price):
+    roi = (sell_price - buy_price) / buy_price * 100
+    return roi
+
+# 保存交易紀錄
+def save_trade_record(stock_code, action, price, roi=None):
+    record = {
+        '日期': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        '股票代碼': stock_code,
+        '動作': action,
+        '價格': price,
+        '投資報酬率': roi if roi is not None else ''
+    }
     
-    df = pd.DataFrame({**kbars})
-    df.ts = pd.to_datetime(df.ts)  # 將時間戳轉換為datetime
-    return df
-
-def insert_kbars(df, stock_code):
-    conn = connect_db()
-    cursor = conn.cursor()
+    file_path = 'D:\\TradingData\\交易紀錄.xlsx'
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
     
-    for _, row in df.iterrows():
-        cursor.execute(
-            """
-            INSERT INTO Kbars (stock_id, ts, Open_Price, High, Low, Close_Price, Volume) 
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """,
-            (stock_code, row.ts, row.Open, row.High, row.Low, row.Close, row.Volume)
-        )
+    if os.path.exists(file_path):
+        df = pd.read_excel(file_path)
+    else:
+        df = pd.DataFrame(columns=['日期', '股票代碼', '動作', '價格', '投資報酬率'])
     
-    conn.commit()
-    cursor.close()
-    conn.close()
+    df = pd.concat([df, pd.DataFrame([record])], ignore_index=True)
+    df.to_excel(file_path, index=False)
 
-def process_kbars(stock_code, start_date, end_date, progress_var, status_label):
-    start_time = time.time()
-    
-    # 獲取Kbars數據
-    kbars_df = get_kbars(stock_code, start_date, end_date)
-    
-    # 插入數據到資料庫
-    insert_kbars(kbars_df, stock_code)
-    
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    
-    # 更新進度條和狀態標籤
-    progress_var.set(progress_var.get() + 1)
-    status_label.config(text=f"單個任務花費時間: {elapsed_time:.2f}秒")
-    
-    return elapsed_time
+# 監控股票價格
+def monitor_stock(stock_code):
+    buy_price = None
 
-def confirm_stock():
-    stock_id = entry_stock_id.get()
-    if not stock_id:
-        messagebox.showerror("錯誤", "股票代碼為必填")
-        return
+    while True:
+        if len(realtime_data) < 5:
+            time.sleep(60)  # 等待足夠的即時資料
+            continue
+        
+        df = pd.DataFrame(realtime_data)
+        df.set_index('datetime', inplace=True)
+        
+        highest_price = df['high'].max()
+        lowest_price = df['low'].min()
+        fib_levels = calculate_fibonacci_levels(highest_price, lowest_price)
 
-    latest_date_ticks, latest_date_kbars = get_latest_dates(stock_id)
-    label_update_date_ticks.config(text=latest_date_ticks.strftime('%Y-%m-%d'))
-    label_update_date_kbars.config(text=latest_date_kbars.strftime('%Y-%m-%d'))
-    messagebox.showinfo("確認", f"股票代碼: {stock_id}")
+        buy_signals, sell_signals = identify_trade_signals(df)
+        current_price = df['close'].iloc[-1]
+        print(f"當前價格: {current_price}")
 
-def browse_file():
-    file_selected = filedialog.askopenfilename(filetypes=[("All Files", "*.*")])
-    if file_selected:
-        entry_file_path.delete(0, tk.END)
-        entry_file_path.insert(0, file_selected)
+        if buy_price is None and current_price <= fib_levels['Level_0.618']:
+            buy_price = current_price
+            notify_user(f"股票 {stock_code} 已達買點，當前價格: {current_price}")
+            save_trade_record(stock_code, '買入', current_price)
 
-def update_data():
-    stock_id = entry_stock_id.get()
-    if not stock_id:
-        messagebox.showerror("錯誤", "股票代碼為必填")
-        return
+        if buy_price is not None and current_price >= fib_levels['Level_0.382']:
+            sell_price = current_price
+            roi = calculate_roi(buy_price, sell_price)
+            notify_user(f"股票 {stock_code} 已達賣點，當前價格: {current_price}，投資報酬率: {roi:.2f}%")
+            save_trade_record(stock_code, '賣出', current_price, roi)
+            buy_price = None  # Reset buy price after selling
 
-    latest_date_ticks, latest_date_kbars = get_latest_dates(stock_id)
-    start_date = (latest_date_kbars + timedelta(days=1)).strftime('%Y-%m-%d')
-    end_date = datetime.today().strftime('%Y-%m-%d')
-    
-    total_start_time = time.time()
-    
-    # 設置進度條
-    progress_var.set(0)
-    progress_bar.config(maximum=1)
-    
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-        futures = [executor.submit(process_kbars, stock_id, start_date, end_date, progress_var, status_label)]
-        for future in concurrent.futures.as_completed(futures):
-            elapsed_time = future.result()
-            status_label.config(text=f"單個任務花費時間: {elapsed_time:.2f}秒")
-    
-    total_end_time = time.time()
-    total_elapsed_time = total_end_time - total_start_time
-    
-    label_update_date_kbars.config(text=end_date)
-    messagebox.showinfo("更新", f"資料更新成功，總花費時間: {total_elapsed_time:.2f}秒")
+        if current_price < fib_levels['Level_1']:
+            notify_user(f"股票 {stock_code} 可能繼續下探，當前價格: {current_price}")
 
-def analyze_data():
-    stock_id = entry_stock_id.get()
-    file_path = entry_file_path.get()
-    if not stock_id or not file_path:
-        messagebox.showerror("錯誤", "股票代碼和資料儲存路徑均為必填")
-        return
-    # 添加分析資料的邏輯
-    messagebox.showinfo("分析", f"開始分析資料，股票代碼: {stock_id}, 資料儲存路徑: {file_path}")
+        time.sleep(60)  # 每分鐘檢查一次
 
-# 建立主窗口
-root = tk.Tk()
-root.title("股票資料分析器")
+# 主函數
+def main(stock_code):
+    subscribe_realtime_data(stock_code)
+    try:
+        monitor_stock(stock_code)
+    finally:
+        unsubscribe_realtime_data(stock_code)
 
-# 設置網格布局的列和行的權重，使其在窗口調整大小時自適應
-root.columnconfigure(0, weight=1)
-root.columnconfigure(1, weight=2)
-root.columnconfigure(2, weight=1)
-root.rowconfigure(0, weight=1)
-root.rowconfigure(1, weight=1)
-root.rowconfigure(2, weight=1)
-root.rowconfigure(3, weight=1)
-root.rowconfigure(4, weight=1)
-root.rowconfigure(5, weight=1)
-root.rowconfigure(6, weight=1)
-
-# 股票代碼
-tk.Label(root, text="股票代碼:").grid(row=0, column=0, padx=10, pady=5, sticky="e")
-entry_stock_id = tk.Entry(root)
-entry_stock_id.grid(row=0, column=1, padx=10, pady=5, sticky="we")
-tk.Button(root, text="確認", command=confirm_stock).grid(row=0, column=2, padx=10, pady=5)
-
-# Ticks 資料更新時間
-tk.Label(root, text="Ticks 資料更新時間:").grid(row=1, column=0, padx=10, pady=5, sticky="e")
-label_update_date_ticks = tk.Label(root, text="2024-07-16")
-label_update_date_ticks.grid(row=1, column=1, padx=10, pady=5, sticky="we")
-tk.Button(root, text="更新", command=update_data).grid(row=1, column=2, padx=10, pady=5)
-
-# Kbars 資料更新時間
-tk.Label(root, text="Kbars 資料更新時間:").grid(row=2, column=0, padx=10, pady=5, sticky="e")
-label_update_date_kbars = tk.Label(root, text="2024-07-16")
-label_update_date_kbars.grid(row=2, column=1, padx=10, pady=5, sticky="we")
-tk.Button(root, text="更新", command=update_data).grid(row=2, column=2, padx=10, pady=5)
-
-# 資料儲存路徑
-tk.Label(root, text="資料儲存路徑:").grid(row=3, column=0, padx=10, pady=5, sticky="e")
-entry_file_path = tk.Entry(root, width=50)
-entry_file_path.grid(row=3, column=1, padx=10, pady=5, sticky="we")
-tk.Button(root, text="瀏覽", command=browse_file).grid(row=3, column=2, padx=10, pady=5)
-
-# 進度條和狀態標籤
-progress_var = tk.DoubleVar()
-progress_bar = ttk.Progressbar(root, variable=progress_var, maximum=100)
-progress_bar.grid(row=4, column=0, columnspan=3, padx=10, pady=5, sticky="we")
-status_label = tk.Label(root, text="等待更新...")
-status_label.grid(row=5, column=0, columnspan=3, padx=10, pady=5, sticky="we")
-
-# 開始分析按鈕
-tk.Button(root, text="開始分析", command=analyze_data).grid(row=6, column=0, columnspan=3, pady=20)
-
-# 啟動主循環
-root.mainloop()
+if __name__ == "__main__":
+    stock_code = '6890'  # 替換為您想要查詢的股票代碼
+    main(stock_code)

@@ -14,8 +14,9 @@ import os
 
 class StockController:
     def __init__(self):
-        self.view = StockView(self)
-        self.view.mainloop()
+        root = tk.Tk()
+        self.view = StockView(root, self)
+        root.mainloop()
     
     def process_date(self, stock_id, date):
         start_time = time.time()
@@ -33,8 +34,16 @@ class StockController:
             return
 
         latest_date_ticks, latest_date_kbars = get_latest_dates(stock_id)
-        self.view.label_update_date_ticks.config(text=f"Ticks 更新日期: {latest_date_ticks.strftime('%Y-%m-%d')}")
-        self.view.label_update_date_kbars.config(text=f"Kbars 更新日期: {latest_date_kbars.strftime('%Y-%m-%d')}")
+        if latest_date_ticks is not None:
+            self.view.label_update_date_ticks.config(text=f"Ticks 更新日期: {latest_date_ticks.strftime('%Y-%m-%d')}")
+        else:
+            self.view.label_update_date_ticks.config(text=f"Ticks 更新日期: 尚未有資料")
+            
+        if latest_date_kbars is not None:
+            self.view.label_update_date_kbars.config(text=f"Kbars 更新日期: {latest_date_kbars.strftime('%Y-%m-%d')}")
+        else:
+            self.view.label_update_date_kbars.config(text=f"Kbars 更新日期: 尚未有資料")
+
         self.view.set_status(f"股票代碼: {stock_id}")
 
     def browse_file(self):
@@ -232,6 +241,19 @@ class StockController:
         file_path = os.path.join(save_path, file_name)
         save_to_excel(peak_trough_df, sma_values, weekly_sma_values, monthly_sma_values, last_ratio_0_618, latest_close_price, file_path)
         self.view.set_status("資料分析完成並已儲存")
+        
+    def download_ticks(self, stock_id, start_date, end_date):
+        start_date = datetime.strptime(start_date, "%Y-%m-%d")
+        end_date = datetime.strptime(end_date, "%Y-%m-%d")
+
+        dates = [start_date + timedelta(days=i) for i in range((end_date - start_date).days + 1)]
+
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {executor.submit(self.process_date, stock_id, date): date for date in dates}
+            for future in as_completed(futures):
+                date, duration = future.result()
+                print(f"Date: {date.strftime('%Y-%m-%d')} completed in {duration:.2f} seconds")
+
 
 if __name__ == "__main__":
     StockController()
