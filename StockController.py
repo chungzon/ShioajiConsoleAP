@@ -58,16 +58,22 @@ class StockController:
     def update_data_kbars(self):
         self.update_data('Kbars')
 
-    def update_data(self, data_type):
-        stock_id = self.view.entry_stock_id.get()
+    def update_data(self, data_type, stock_id=None, start_date=None, end_date=None):
+        if stock_id is None:
+            stock_id = self.view.entry_stock_id.get()
+            
         if not stock_id:
             self.view.set_status("股票代碼為必填")
             return
-
+        
         latest_date_ticks, latest_date_kbars = get_latest_dates(stock_id)
-        end_date = datetime.today()
+        
+        if end_date is None:
+            end_date = datetime.today()
+                    
         if data_type == 'Ticks':
-            start_date = (latest_date_ticks + timedelta(days=1))
+            if start_date is None:
+                start_date = (latest_date_ticks + timedelta(days=1))
             dates = [start_date + timedelta(days=i) for i in range((end_date - start_date).days + 1)]
             total_start_time = time.time()  # 紀錄總開始時間
             self.view.progress_bar.config(maximum=len(dates))
@@ -84,7 +90,8 @@ class StockController:
             total_duration = total_end_time - total_start_time  # 計算總花費時間
             self.view.set_status(f"所有資料已經成功抓取並存入資料庫，總花費時間: {total_duration:.2f} 秒")
         else:
-            start_date = (latest_date_kbars + timedelta(days=1))
+            if start_date is None:
+                start_date = (latest_date_kbars + timedelta(days=1))
             dates = [start_date + timedelta(days=i) for i in range((end_date - start_date).days + 1)]
             total_start_time = time.time()  # 紀錄總開始時間
             self.view.progress_bar.config(maximum=len(dates))
@@ -242,17 +249,17 @@ class StockController:
         save_to_excel(peak_trough_df, sma_values, weekly_sma_values, monthly_sma_values, last_ratio_0_618, latest_close_price, file_path)
         self.view.set_status("資料分析完成並已儲存")
         
-    def download_ticks(self, stock_id, start_date, end_date):
-        start_date = datetime.strptime(start_date, "%Y-%m-%d")
-        end_date = datetime.strptime(end_date, "%Y-%m-%d")
+    # def download_ticks(self, stock_id, start_date, end_date):
+    #     start_date = datetime.strptime(start_date, "%Y-%m-%d")
+    #     end_date = datetime.strptime(end_date, "%Y-%m-%d")
 
-        dates = [start_date + timedelta(days=i) for i in range((end_date - start_date).days + 1)]
+    #     dates = [start_date + timedelta(days=i) for i in range((end_date - start_date).days + 1)]
 
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            futures = {executor.submit(self.process_date, stock_id, date): date for date in dates}
-            for future in as_completed(futures):
-                date, duration = future.result()
-                print(f"Date: {date.strftime('%Y-%m-%d')} completed in {duration:.2f} seconds")
+    #     with ThreadPoolExecutor(max_workers=5) as executor:
+    #         futures = {executor.submit(self.process_date, stock_id, date): date for date in dates}
+    #         for future in as_completed(futures):
+    #             date, duration = future.result()
+    #             print(f"Date: {date.strftime('%Y-%m-%d')} completed in {duration:.2f} seconds")
 
 
 if __name__ == "__main__":

@@ -1,8 +1,7 @@
 ﻿import tkinter as tk
 from tkinter import filedialog, messagebox
 from tkinter import ttk
-
-
+import datetime
 
 class StockView:
     def __init__(self, root, controller):
@@ -18,9 +17,13 @@ class StockView:
 
         self.download_ticks_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.download_ticks_frame, text='下載Ticks數據')
+        
+        self.download_kbars_frame = ttk.Frame(self.notebook)
+        self.notebook.add(self.download_kbars_frame, text='下載KBars數據')
 
         self.create_main_tab()
         self.create_download_ticks_tab()
+        self.create_download_kbars_tab()
 
     def create_main_tab(self):
         # 股票代碼
@@ -85,11 +88,32 @@ class StockView:
 
         ttk.Button(self.download_ticks_frame, text="下載", command=self.download_ticks).grid(row=3, column=0, columnspan=2, pady=10)
 
+    def create_download_kbars_tab(self):
+        ttk.Label(self.download_kbars_frame, text="股票代碼:").grid(row=0, column=0, padx=10, pady=5)
+        self.stock_id_entry = ttk.Entry(self.download_kbars_frame)
+        self.stock_id_entry.grid(row=0, column=1, padx=10, pady=5)
+
+        ttk.Label(self.download_kbars_frame, text="開始日期 (YYYY-MM-DD):").grid(row=1, column=0, padx=10, pady=5)
+        self.start_date_entry = ttk.Entry(self.download_kbars_frame)
+        self.start_date_entry.grid(row=1, column=1, padx=10, pady=5)
+
+        ttk.Label(self.download_kbars_frame, text="結束日期 (YYYY-MM-DD):").grid(row=2, column=0, padx=10, pady=5)
+        self.end_date_entry = ttk.Entry(self.download_kbars_frame)
+        self.end_date_entry.grid(row=2, column=1, padx=10, pady=5)
+
+        ttk.Button(self.download_kbars_frame, text="下載", command=self.download_kbars).grid(row=3, column=0, columnspan=2, pady=10)
+
     def download_ticks(self):
         stock_id = self.stock_id_entry.get()
         start_date = self.start_date_entry.get()
         end_date = self.end_date_entry.get()
-        self.controller.download_ticks(stock_id, start_date, end_date)
+        self.controller.update_data("Ticks", stock_id, datetime.datetime.strptime(start_date, "%Y-%m-%d"), datetime.datetime.strptime(end_date, "%Y-%m-%d"))
+
+    def download_kbars(self):
+        stock_id = self.stock_id_entry.get()
+        start_date = self.start_date_entry.get()
+        end_date = self.end_date_entry.get()
+        self.controller.update_data("Kbars", stock_id, datetime.datetime.strptime(start_date, "%Y-%m-%d"), datetime.datetime.strptime(end_date, "%Y-%m-%d"))
 
     def set_status(self, status):
         self.status_label.config(text=f"狀態: {status}")
