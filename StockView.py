@@ -75,16 +75,16 @@ class StockView:
         
     def create_download_ticks_tab(self):
         ttk.Label(self.download_ticks_frame, text="股票代碼:").grid(row=0, column=0, padx=10, pady=5)
-        self.stock_id_entry = ttk.Entry(self.download_ticks_frame)
-        self.stock_id_entry.grid(row=0, column=1, padx=10, pady=5)
+        self.stock_id_ticks_entry = ttk.Entry(self.download_ticks_frame)
+        self.stock_id_ticks_entry.grid(row=0, column=1, padx=10, pady=5)
 
         ttk.Label(self.download_ticks_frame, text="開始日期 (YYYY-MM-DD):").grid(row=1, column=0, padx=10, pady=5)
-        self.start_date_entry = ttk.Entry(self.download_ticks_frame)
-        self.start_date_entry.grid(row=1, column=1, padx=10, pady=5)
+        self.start_date_ticks_entry = ttk.Entry(self.download_ticks_frame)
+        self.start_date_ticks_entry.grid(row=1, column=1, padx=10, pady=5)
 
         ttk.Label(self.download_ticks_frame, text="結束日期 (YYYY-MM-DD):").grid(row=2, column=0, padx=10, pady=5)
-        self.end_date_entry = ttk.Entry(self.download_ticks_frame)
-        self.end_date_entry.grid(row=2, column=1, padx=10, pady=5)
+        self.end_date_ticks_entry = ttk.Entry(self.download_ticks_frame)
+        self.end_date_ticks_entry.grid(row=2, column=1, padx=10, pady=5)
 
         ttk.Button(self.download_ticks_frame, text="下載", command=self.download_ticks).grid(row=3, column=0, columnspan=2, pady=10)
 
@@ -104,9 +104,9 @@ class StockView:
         ttk.Button(self.download_kbars_frame, text="下載", command=self.download_kbars).grid(row=3, column=0, columnspan=2, pady=10)
 
     def download_ticks(self):
-        stock_id = self.stock_id_entry.get()
-        start_date = self.start_date_entry.get()
-        end_date = self.end_date_entry.get()
+        stock_id = self.stock_id_ticks_entry.get()
+        start_date = self.start_date_ticks_entry.get()
+        end_date = self.end_date_ticks_entry.get()
         self.controller.update_data("Ticks", stock_id, datetime.datetime.strptime(start_date, "%Y-%m-%d"), datetime.datetime.strptime(end_date, "%Y-%m-%d"))
 
     def download_kbars(self):
