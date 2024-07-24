@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>14ba9c39-a096-4979-afae-e94e8b91b8ac</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>ShioajiConsoleAP.py</StartupFile>
+    <StartupFile>StockController.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>

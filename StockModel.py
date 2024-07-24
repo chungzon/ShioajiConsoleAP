@@ -572,6 +572,9 @@ def save_to_excel(peak_trough_df, sma_values, weekly_sma_values, monthly_sma_val
         line_chart2.set_title({'name': 'Stock Price Analysis (Original)'})
         line_chart2.set_x_axis({'name': 'Index'})
         line_chart2.set_y_axis({'name': 'Value'})
+        
+        line_chart1.set_x_axis({'num_format': ' ', 'line': {'color': 'red', 'width': 1.5}})
+        line_chart2.set_x_axis({'num_format': ' ', 'line': {'color': 'red', 'width': 1.5}})
 
         # 插入第二張圖表到工作表
         line_chart2.combine(scatter_chart2)
