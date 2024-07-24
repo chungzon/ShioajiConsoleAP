@@ -489,7 +489,8 @@ def save_to_excel(peak_trough_df, sma_values, weekly_sma_values, monthly_sma_val
             'marker': {'type': 'circle', 'size': 6},
             'data_labels': {
                 'value': True,
-                'custom': custom_labels_P
+                'custom': custom_labels_P,
+                'position': 'below'
             }  # 添加自定義數值標籤
         })
         scatter_chart1.add_series({
@@ -499,7 +500,8 @@ def save_to_excel(peak_trough_df, sma_values, weekly_sma_values, monthly_sma_val
             'marker': {'type': 'circle', 'size': 6},
             'data_labels': {
                 'value': True,
-                'custom': custom_labels_N
+                'custom': custom_labels_N,
+                'position': 'above'
             }
         })
         scatter_chart1.add_series({
@@ -524,12 +526,12 @@ def save_to_excel(peak_trough_df, sma_values, weekly_sma_values, monthly_sma_val
         
         # custom_labels using E column data
         custom_labels_E = [
-            {'value': f"='Peaks_and_Troughs'!$F${i}", 'font': {'color': 'blue'}} for i in range(2, max_row)
+            {'value': f"='Peaks_and_Troughs'!$F${i}", 'font': {'color': 'blue'}, 'position': 'below'} for i in range(2, max_row)
         ]
         
         # custom_labels using B column data
         custom_labels_B = [
-            {'value': f"='Peaks_and_Troughs'!$C${i}", 'font': {'color': 'red'}} for i in range(2, max_row)
+            {'value': f"='Peaks_and_Troughs'!$C${i}", 'font': {'color': 'red'}, 'position': 'above'} for i in range(2, max_row)
         ]
         
         # custom_labels using F column data
@@ -545,7 +547,8 @@ def save_to_excel(peak_trough_df, sma_values, weekly_sma_values, monthly_sma_val
             'marker': {'type': 'circle', 'size': 6},
             'data_labels': {
                 'value': True,
-                'custom': custom_labels_E
+                'custom': custom_labels_E,
+                'position': 'below'
             }
         })
         scatter_chart2.add_series({
@@ -555,7 +558,8 @@ def save_to_excel(peak_trough_df, sma_values, weekly_sma_values, monthly_sma_val
             'marker': {'type': 'circle', 'size': 6},
             'data_labels': {
                 'value': True,
-                'custom': custom_labels_B
+                'custom': custom_labels_B,
+                'position': 'above'
             }
         })
         scatter_chart2.add_series({
