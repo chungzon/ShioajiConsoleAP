@@ -3,6 +3,7 @@ from tkinter import filedialog, messagebox
 from tkinter import ttk
 import datetime
 import threading
+from tkcalendar import DateEntry
 
 class StockView:
     def __init__(self, root, controller):
@@ -24,23 +25,23 @@ class StockView:
 
     def create_main_tab(self):
         # 股票代碼
-        ttk.Label(self.main_frame, text="股票代碼:").grid(row=0, column=0, padx=10, pady=5)
+        ttk.Label(self.main_frame, text="股票代碼:").grid(row=0, column=0, padx=10, pady=5, sticky="e")
         self.entry_stock_id = ttk.Entry(self.main_frame)
         self.entry_stock_id.grid(row=0, column=1, padx=10, pady=5)
         ttk.Button(self.main_frame, text="檢查資料", command=self.controller.check_stock_data).grid(row=0, column=2, padx=10, pady=5)
 
         # 起始日期
         ttk.Label(self.main_frame, text="起始日期 (YYYY-MM-DD):").grid(row=1, column=0, padx=10, pady=5)
-        self.entry_start_date = ttk.Entry(self.main_frame)
-        self.entry_start_date.grid(row=1, column=1, padx=10, pady=5)
+        self.entry_start_date = DateEntry(self.main_frame, background='white', foreground='black', borderwidth=2, date_pattern='yyyy-mm-dd')
+        self.entry_start_date.grid(row=1, column=1, padx=10, pady=5, sticky="w")
 
         # 結束日期
-        ttk.Label(self.main_frame, text="結束日期 (YYYY-MM-DD):").grid(row=2, column=0, padx=10, pady=5)
-        self.entry_end_date = ttk.Entry(self.main_frame)
-        self.entry_end_date.grid(row=2, column=1, padx=10, pady=5)
+        ttk.Label(self.main_frame, text="結束日期 (YYYY-MM-DD):").grid(row=2, column=0, padx=10, pady=5, sticky="e")
+        self.entry_end_date = DateEntry(self.main_frame, background='white', foreground='black', borderwidth=2, date_pattern='yyyy-mm-dd')
+        self.entry_end_date.grid(row=2, column=1, padx=10, pady=5, sticky="w")
 
         # 儲存路徑
-        ttk.Label(self.main_frame, text="儲存路徑:").grid(row=3, column=0, padx=10, pady=5)
+        ttk.Label(self.main_frame, text="儲存路徑:").grid(row=3, column=0, padx=10, pady=5, sticky="e")
         self.entry_file_path = ttk.Entry(self.main_frame)
         self.entry_file_path.grid(row=3, column=1, padx=10, pady=5)
         ttk.Button(self.main_frame, text="瀏覽", command=self.controller.browse_file).grid(row=3, column=2, padx=10, pady=5)
@@ -70,31 +71,17 @@ class StockView:
         ttk.Button(self.main_frame, text="分析資料", command=self.controller.analyze_data).grid(row=9, column=0, columnspan=3, pady=20)
         
     def create_download_ticks_tab(self):
-        # self.stock_id_ticks_entry = ttk.Entry(self)
-        # self.stock_id_ticks_entry.pack()
-
-        # self.start_date_ticks_entry = ttk.Entry(self)
-        # self.start_date_ticks_entry.pack()
-
-        # self.end_date_ticks_entry = ttk.Entry(self)
-        # self.end_date_ticks_entry.pack()
-
-        # self.progress = ttk.Progressbar(self, orient='horizontal', length=200, mode='determinate')
-        # self.progress.pack()
-
-        # download_button = ttk.Button(self, text="下載", command=self.start_download)
-        # download_button.pack()
-        ttk.Label(self.download_ticks_frame, text="股票代碼:").grid(row=0, column=0, padx=10, pady=5)
+        ttk.Label(self.download_ticks_frame, text="股票代碼:").grid(row=0, column=0, padx=10, pady=5, sticky='e')
         self.stock_id_ticks_entry = ttk.Entry(self.download_ticks_frame)
-        self.stock_id_ticks_entry.grid(row=0, column=1, padx=10, pady=5)
+        self.stock_id_ticks_entry.grid(row=0, column=1, padx=10, pady=5, sticky='e')
 
-        ttk.Label(self.download_ticks_frame, text="開始日期 (YYYY-MM-DD):").grid(row=1, column=0, padx=10, pady=5)
-        self.start_date_ticks_entry = ttk.Entry(self.download_ticks_frame)
-        self.start_date_ticks_entry.grid(row=1, column=1, padx=10, pady=5)
+        ttk.Label(self.download_ticks_frame, text="開始日期 (YYYY-MM-DD):").grid(row=1, column=0, padx=10, pady=5, sticky='e')
+        self.start_date_ticks_entry = DateEntry(self.download_ticks_frame, background='white', foreground='black', borderwidth=2, date_pattern='yyyy-mm-dd')
+        self.start_date_ticks_entry.grid(row=1, column=1, padx=10, pady=5, sticky='w')
 
-        ttk.Label(self.download_ticks_frame, text="結束日期 (YYYY-MM-DD):").grid(row=2, column=0, padx=10, pady=5)
-        self.end_date_ticks_entry = ttk.Entry(self.download_ticks_frame)
-        self.end_date_ticks_entry.grid(row=2, column=1, padx=10, pady=5)
+        ttk.Label(self.download_ticks_frame, text="結束日期 (YYYY-MM-DD):").grid(row=2, column=0, padx=10, pady=5, sticky='e')
+        self.end_date_ticks_entry = DateEntry(self.download_ticks_frame, background='white', foreground='black', borderwidth=2, date_pattern='yyyy-mm-dd')
+        self.end_date_ticks_entry.grid(row=2, column=1, padx=10, pady=5, sticky='w')
         
         self.progress = ttk.Progressbar(self.download_ticks_frame, orient='horizontal', length=200, mode='determinate')
         self.progress.grid(row=3, column=0, columnspan=3, padx=10, pady=5, sticky="we")
