@@ -32,12 +32,12 @@ class StockView:
 
         # 起始日期
         ttk.Label(self.main_frame, text="起始日期 (YYYY-MM-DD):").grid(row=1, column=0, padx=10, pady=5)
-        self.entry_start_date = DateEntry(self.main_frame, background='white', foreground='black', borderwidth=2, date_pattern='yyyy-mm-dd')
+        self.entry_start_date = DateEntry(self.main_frame, background='white', foreground='black', borderwidth=2, date_pattern='yyyy-mm-dd', locale='zh_TW')
         self.entry_start_date.grid(row=1, column=1, padx=10, pady=5, sticky="w")
 
         # 結束日期
         ttk.Label(self.main_frame, text="結束日期 (YYYY-MM-DD):").grid(row=2, column=0, padx=10, pady=5, sticky="e")
-        self.entry_end_date = DateEntry(self.main_frame, background='white', foreground='black', borderwidth=2, date_pattern='yyyy-mm-dd')
+        self.entry_end_date = DateEntry(self.main_frame, background='white', foreground='black', borderwidth=2, date_pattern='yyyy-mm-dd', locale='zh_TW')
         self.entry_end_date.grid(row=2, column=1, padx=10, pady=5, sticky="w")
 
         # 儲存路徑
@@ -76,11 +76,11 @@ class StockView:
         self.stock_id_ticks_entry.grid(row=0, column=1, padx=10, pady=5, sticky='e')
 
         ttk.Label(self.download_ticks_frame, text="開始日期 (YYYY-MM-DD):").grid(row=1, column=0, padx=10, pady=5, sticky='e')
-        self.start_date_ticks_entry = DateEntry(self.download_ticks_frame, background='white', foreground='black', borderwidth=2, date_pattern='yyyy-mm-dd')
+        self.start_date_ticks_entry = DateEntry(self.download_ticks_frame, background='white', foreground='black', borderwidth=2, date_pattern='yyyy-mm-dd', locale='zh_TW')
         self.start_date_ticks_entry.grid(row=1, column=1, padx=10, pady=5, sticky='w')
 
         ttk.Label(self.download_ticks_frame, text="結束日期 (YYYY-MM-DD):").grid(row=2, column=0, padx=10, pady=5, sticky='e')
-        self.end_date_ticks_entry = DateEntry(self.download_ticks_frame, background='white', foreground='black', borderwidth=2, date_pattern='yyyy-mm-dd')
+        self.end_date_ticks_entry = DateEntry(self.download_ticks_frame, background='white', foreground='black', borderwidth=2, date_pattern='yyyy-mm-dd', locale='zh_TW')
         self.end_date_ticks_entry.grid(row=2, column=1, padx=10, pady=5, sticky='w')
         
         self.progress = ttk.Progressbar(self.download_ticks_frame, orient='horizontal', length=200, mode='determinate')
