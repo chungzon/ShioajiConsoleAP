@@ -2,28 +2,25 @@
 from tkinter import filedialog, messagebox
 from tkinter import ttk
 import datetime
+import threading
 
 class StockView:
     def __init__(self, root, controller):
         self.root = root
         self.controller = controller
-        self.root.title("股票交易系統")
+        self.root.title("股票分析系統")
 
         self.notebook = ttk.Notebook(root)
         self.notebook.pack(expand=1, fill='both')
 
         self.main_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.main_frame, text='股票資料分析器')
+        self.notebook.add(self.main_frame, text='股票資料分析')
 
         self.download_ticks_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.download_ticks_frame, text='下載Ticks數據')
-        
-        self.download_kbars_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.download_kbars_frame, text='下載KBars數據')
+        self.notebook.add(self.download_ticks_frame, text='下載Ticks及KBar數據')
 
         self.create_main_tab()
         self.create_download_ticks_tab()
-        self.create_download_kbars_tab()
 
     def create_main_tab(self):
         # 股票代碼
@@ -70,10 +67,23 @@ class StockView:
         self.status_label.grid(row=7, column=0, columnspan=3, padx=10, pady=5)
 
         # 確認和分析資料按鈕
-        # tk.Button(self.root, text="確認", command=self.controller.update_stock_data).grid(row=8, column=0, columnspan=3, pady=20)
         ttk.Button(self.main_frame, text="分析資料", command=self.controller.analyze_data).grid(row=9, column=0, columnspan=3, pady=20)
         
     def create_download_ticks_tab(self):
+        # self.stock_id_ticks_entry = ttk.Entry(self)
+        # self.stock_id_ticks_entry.pack()
+
+        # self.start_date_ticks_entry = ttk.Entry(self)
+        # self.start_date_ticks_entry.pack()
+
+        # self.end_date_ticks_entry = ttk.Entry(self)
+        # self.end_date_ticks_entry.pack()
+
+        # self.progress = ttk.Progressbar(self, orient='horizontal', length=200, mode='determinate')
+        # self.progress.pack()
+
+        # download_button = ttk.Button(self, text="下載", command=self.start_download)
+        # download_button.pack()
         ttk.Label(self.download_ticks_frame, text="股票代碼:").grid(row=0, column=0, padx=10, pady=5)
         self.stock_id_ticks_entry = ttk.Entry(self.download_ticks_frame)
         self.stock_id_ticks_entry.grid(row=0, column=1, padx=10, pady=5)
@@ -85,35 +95,53 @@ class StockView:
         ttk.Label(self.download_ticks_frame, text="結束日期 (YYYY-MM-DD):").grid(row=2, column=0, padx=10, pady=5)
         self.end_date_ticks_entry = ttk.Entry(self.download_ticks_frame)
         self.end_date_ticks_entry.grid(row=2, column=1, padx=10, pady=5)
+        
+        self.progress = ttk.Progressbar(self.download_ticks_frame, orient='horizontal', length=200, mode='determinate')
+        self.progress.grid(row=3, column=0, columnspan=3, padx=10, pady=5, sticky="we")
 
-        ttk.Button(self.download_ticks_frame, text="下載", command=self.download_ticks).grid(row=3, column=0, columnspan=2, pady=10)
+        ttk.Button(self.download_ticks_frame, text="下載", command=self.start_download).grid(row=4, column=0, columnspan=2, pady=10)
+        
 
-    def create_download_kbars_tab(self):
-        ttk.Label(self.download_kbars_frame, text="股票代碼:").grid(row=0, column=0, padx=10, pady=5)
-        self.stock_id_entry = ttk.Entry(self.download_kbars_frame)
-        self.stock_id_entry.grid(row=0, column=1, padx=10, pady=5)
-
-        ttk.Label(self.download_kbars_frame, text="開始日期 (YYYY-MM-DD):").grid(row=1, column=0, padx=10, pady=5)
-        self.start_date_entry = ttk.Entry(self.download_kbars_frame)
-        self.start_date_entry.grid(row=1, column=1, padx=10, pady=5)
-
-        ttk.Label(self.download_kbars_frame, text="結束日期 (YYYY-MM-DD):").grid(row=2, column=0, padx=10, pady=5)
-        self.end_date_entry = ttk.Entry(self.download_kbars_frame)
-        self.end_date_entry.grid(row=2, column=1, padx=10, pady=5)
-
-        ttk.Button(self.download_kbars_frame, text="下載", command=self.download_kbars).grid(row=3, column=0, columnspan=2, pady=10)
-
-    def download_ticks(self):
+    def start_download(self):
         stock_id = self.stock_id_ticks_entry.get()
         start_date = self.start_date_ticks_entry.get()
         end_date = self.end_date_ticks_entry.get()
-        self.controller.update_data("Ticks", stock_id, datetime.datetime.strptime(start_date, "%Y-%m-%d"), datetime.datetime.strptime(end_date, "%Y-%m-%d"))
 
-    def download_kbars(self):
-        stock_id = self.stock_id_entry.get()
-        start_date = self.start_date_entry.get()
-        end_date = self.end_date_entry.get()
-        self.controller.update_data("Kbars", stock_id, datetime.datetime.strptime(start_date, "%Y-%m-%d"), datetime.datetime.strptime(end_date, "%Y-%m-%d"))
+        start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d")
+        end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d")
+
+        # 重置進度條
+        self.progress['value'] = 0
+
+        # 創建執行序
+        ticks_thread = threading.Thread(target=self.update_ticks, args=(stock_id, start_date, end_date))
+        kbars_thread = threading.Thread(target=self.update_kbars, args=(stock_id, start_date, end_date))
+
+        # 啟動執行序
+        ticks_thread.start()
+        kbars_thread.start()
+
+        # 等待所有執行序完成後更新進度條
+        self.monitor_threads([ticks_thread, kbars_thread])
+
+    def monitor_threads(self, threads):
+        if any(thread.is_alive() for thread in threads):
+            self.progress['value'] += 50 / len(threads)
+            self.download_ticks_frame.after(100, self.monitor_threads, threads)
+        else:
+            self.progress['value'] = 100
+
+    def update_ticks(self, stock_id, start_date, end_date):
+        self.controller.update_data("Ticks", stock_id, start_date, end_date)
+
+    def update_kbars(self, stock_id, start_date, end_date):
+        self.controller.update_data("Kbars", stock_id, start_date, end_date)
+    def download_ticks_and_kbar(self):
+        stock_id = self.stock_id_ticks_entry.get()
+        start_date = datetime.datetime.strptime(self.start_date_ticks_entry.get(), "%Y-%m-%d")
+        end_date = datetime.datetime.strptime(self.end_date_ticks_entry.get(), "%Y-%m-%d")
+        self.controller.update_data("Ticks", stock_id, start_date, end_date)
+        self.controller.update_data("Kbars", stock_id, start_date, end_date)
 
     def set_status(self, status):
         self.status_label.config(text=f"狀態: {status}")
