@@ -13,8 +13,8 @@ import xlsxwriter
 # 初始化 Shioaji API
 api = sj.Shioaji(simulation=True)
 api.login(
-    api_key="6GWV7gnxYXaEomoyLuTFRe29BnoAyEohVpbSZQYHdY66",
-    secret_key="F6PJrruho4pRpC9KefgKeqReFQ2nhLV34uXe2RmMZFow"
+    api_key="9o7ruXLDR2psg46JJF1s9eK3W79PduD1skFfNQF5948A",
+    secret_key="FitCPzfFjQCRd3cabRSD7QpovDVsVWNxh4MgwygshCBK"
 )
 
 def connect_db():
