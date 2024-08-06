@@ -1,11 +1,15 @@
 ﻿import tkinter as tk
 from tkinter import ttk
+from model.RealtimeMonitorModel import RealtimeMonitorModel
 from view.DataAnalysisView import DataAnalysisView
 from model.DataAnalysisModel import DataAnalysisModel
 from controller.DataAnalysisController import DataAnalysisController
 from view.DataDownloadView import DataDownloadView
 from model.DataDownloadModel import DataDownloadModel
 from controller.DataDownloadController import DataDownloadController
+from view.RealtimeMonitorView import RealtimeMonitorView
+from model.RealtimeMonitorModel import RealtimeMonitorModel
+from controller.RealtimeMonitorController import RealtimeMonitorController
 import shioaji as sj
 
 class MainApplication(tk.Tk):
@@ -35,8 +39,15 @@ class MainApplication(tk.Tk):
         self.data_download_view = DataDownloadView(self.tab_control, None)
         self.data_download_controller = DataDownloadController(self.data_download_model, self.data_download_view)
 
+        self.realtime_monitor_model = RealtimeMonitorModel(self.api)
+        self.realtime_monitor_view = RealtimeMonitorView(self.tab_control, None, self.realtime_monitor_model)
+        self.realtime_monitor_controller = RealtimeMonitorController(self.realtime_monitor_model, self.realtime_monitor_view)
+        # contract = self.api.Contracts.Stocks["2330"]
+        # self.realtime_monitor_model.subscribe_stock(contract, 1)
+
         self.tab_control.add(self.data_analysis_view, text="資料分析")
         self.tab_control.add(self.data_download_view, text="資料下載")
+        self.tab_control.add(self.realtime_monitor_view, text="即時監控")
         self.tab_control.pack(expand=1, fill="both")
 
 if __name__ == "__main__":
