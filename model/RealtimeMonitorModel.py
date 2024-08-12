@@ -48,7 +48,7 @@ class RealtimeMonitorModel:
         query = f"""
         SELECT ts, Open_Price, High, Low, Close_Price, Volume
         FROM Kbars
-        WHERE stock_id = {stock_id} AND ts >= '{start_date}' AND ts <= DATEADD(day, 1, '{end_date}')
+        WHERE stock_id = {stock_id} AND ts >= '{start_date}' AND ts <= DATEADD(day, 1, '{end_date}') ORDER BY ts ASC
         """
         df = pd.read_sql(query, conn)
         df['ts'] = pd.to_datetime(df['ts'])
@@ -56,12 +56,10 @@ class RealtimeMonitorModel:
         conn.close()
         return df
     
-    def find_peaks_troughs_v34(self, df, stock_id):
+    def find_peaks_troughs_v34(self, df, stock_id, lastest_close_price):
         segments = []
         ratios = [0.618, 1]
         columns = [f'Ratio_0.618', f'現價-0.618', f'Ratio_1', f'頸線', f'Head']
-        
-        lastest_close_price = self.get_latest_close_price(stock_id)
     
         i = 0
         while i < len(df):
@@ -109,5 +107,9 @@ class RealtimeMonitorModel:
         snapshot = self.api.snapshots([contract])
         latest_close = snapshot[0].close
         return latest_close
+
+    # 計算移動平均
+    def calculate_moving_average(self, prices, window):
+        return prices.rolling(window=window).mean()
     
     
