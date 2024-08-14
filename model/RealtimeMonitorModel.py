@@ -111,5 +111,48 @@ class RealtimeMonitorModel:
     # 計算移動平均
     def calculate_moving_average(self, prices, window):
         return prices.rolling(window=window).mean()
+
+    def calculate_ma_values(self, close_prices, k_type='1min'):
+        multiplier = 1 if k_type == '1min' else 3 if k_type == '3min' else 5  # 根據K線類型決定倍數
     
+        ma_5t = self.calculate_moving_average(close_prices, 5 * multiplier).iloc[-1]
+        ma_7t = self.calculate_moving_average(close_prices, 7 * multiplier).iloc[-1]
+        ma_10t = self.calculate_moving_average(close_prices, 10 * multiplier).iloc[-1]
+        ma_20t = self.calculate_moving_average(close_prices, 20 * multiplier).iloc[-1]
+        ma_60t = self.calculate_moving_average(close_prices, 60 * multiplier).iloc[-1]
+
+        return round(ma_5t, 2), round(ma_7t, 2), round(ma_10t, 2), round(ma_20t, 2), round(ma_60t, 2)
+
+
     
+    # 從資料庫中獲取每日收盤價
+    def get_daily_close_prices_from_db(self, stock_code, days):
+        conn = self.connect_db()
+        query = f"""
+        SELECT ts AS date, close_price
+        FROM (
+            SELECT *,
+                   ROW_NUMBER() OVER (PARTITION BY CONVERT(date, ts) ORDER BY ts DESC) AS rn
+            FROM KBars
+            WHERE stock_id = '{stock_code}'
+        ) AS sub
+        WHERE sub.rn = 1
+        ORDER BY date DESC
+        OFFSET 0 ROWS
+        FETCH NEXT {days + 120} ROWS ONLY
+        """
+        df = pd.read_sql(query, conn)
+        df['date'] = pd.to_datetime(df['date'])
+        df.set_index('date', inplace=True)
+        df = df.sort_index()  # 按日期排序
+        return df['close_price']
+    
+    # 計算周均線
+    def calculate_weekly_average(self, prices, window):
+        weekly_prices = prices.resample('W').last()
+        return self.calculate_moving_average(weekly_prices, window)
+
+    # 計算月均線
+    def calculate_monthly_average(self, prices, window):
+        monthly_prices = prices.resample('M').last()
+        return self.calculate_moving_average(monthly_prices, window)

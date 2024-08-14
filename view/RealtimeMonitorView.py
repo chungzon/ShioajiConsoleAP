@@ -44,21 +44,21 @@ class RealtimeMonitorView(tk.Frame):
 
         # 使用 tkintertable 初始化下方表格，但暂时不填充数据
         self.table_frames = [
-            self.create_tkintertable_frame("分均線", {}).grid(row=3, column=0, columnspan=2, sticky='nsew', padx=5, pady=5),
-            # self.create_tkintertable_frame("日均線", {}).grid(row=3, column=0, columnspan=2, sticky='nsew', padx=5, pady=5),
-            # self.create_tkintertable_frame("周均線", {}).grid(row=4, column=0, columnspan=2, sticky='nsew', padx=5, pady=5),
-            # self.create_tkintertable_frame("月均線", {}).grid(row=5, column=0, columnspan=2, sticky='nsew', padx=5, pady=5),
+            self.create_tkintertable_frame("分均線", {}).grid(row=2, column=0, columnspan=2, sticky='nsew', padx=5, pady=5),
+            self.create_tkintertable_frame("一分K均線", {}).grid(row=3, column=0, columnspan=2, sticky='nsew', padx=5, pady=5),
+            self.create_tkintertable_frame("三分K均線", {}).grid(row=4, column=0, columnspan=2, sticky='nsew', padx=5, pady=5),
+            self.create_tkintertable_frame("五分K均線", {}).grid(row=5, column=0, columnspan=2, sticky='nsew', padx=5, pady=5),
         ]
 
         # 第一個圖表
         self.fig1, self.ax1 = plt.subplots()
         self.canvas1 = FigureCanvasTkAgg(self.fig1, self)
-        self.canvas1.get_tk_widget().grid(row=1, column=2, rowspan=2, padx=10, pady=10, sticky='nsew')
+        self.canvas1.get_tk_widget().grid(row=0, column=2, rowspan=3, padx=10, pady=10, sticky='nsew')
         
         # 第二個圖表
         self.fig2, self.ax2 = plt.subplots()
         self.canvas2 = FigureCanvasTkAgg(self.fig2, self)
-        self.canvas2.get_tk_widget().grid(row=3, column=2, rowspan=2, padx=10, pady=10, sticky='nsew')
+        self.canvas2.get_tk_widget().grid(row=4, column=2, rowspan=3, padx=10, pady=10, sticky='nsew')
 
         # 均分图表和表格高度
         self.grid_rowconfigure(1, weight=1)
@@ -66,6 +66,7 @@ class RealtimeMonitorView(tk.Frame):
         self.grid_rowconfigure(3, weight=1)
         self.grid_rowconfigure(4, weight=1)
         self.grid_rowconfigure(5, weight=1)
+        self.grid_rowconfigure(6, weight=1)
 
     def create_tkintertable_frame(self, title, data):
         frame = ttk.LabelFrame(self, text=title)
@@ -154,14 +155,22 @@ class RealtimeMonitorView(tk.Frame):
         # 分均線
         sma3 = round(self.model.calculate_moving_average(pd['Close_Price'], 3).iloc[-1], 2)
         sma5 = round(self.model.calculate_moving_average(pd['Close_Price'], 5).iloc[-1], 2)
-        sma7 = round(self.model.calculate_moving_average(pd['Close_Price'], 7).iloc[-1], 2)
-        sma10 = round(self.model.calculate_moving_average(pd['Close_Price'], 10).iloc[-1], 2)
-        sma20 = round(self.model.calculate_moving_average(pd['Close_Price'], 20).iloc[-1], 2)
+        sma1 = round(self.model.calculate_moving_average(pd['Close_Price'], 1).iloc[-1], 2)
         
         if df['Ratio_0.618'] is not None and df['Ratio_0.618'] is not empty:
             last_ratio_0_618 = round(df['Ratio_0.618'].iloc[-1], 2)
         else:
             last_ratio_0_618 = 'NA'
+                    
+        if sma1 < lastest_close_price:
+            sma1_singal_1 = 'O'
+        else:
+            sma1_singal_1 = 'X'
+            
+        if sma1 < last_ratio_0_618:
+            sma1_singal_2 = 'O'
+        else:
+            sma1_singal_2 = 'X'
 
         if sma3 < lastest_close_price:
             sma3_singal_1 = 'O'
@@ -182,116 +191,58 @@ class RealtimeMonitorView(tk.Frame):
             sma5_singal_2 = 'O'
         else:
             sma5_singal_2 = 'X'
-         
-        if sma7 < lastest_close_price:
-            sma7_singal_1 = 'O'
-        else:
-            sma7_singal_1 = 'X'
-            
-        if sma7 < last_ratio_0_618:
-            sma7_singal_2 = 'O'
-        else:
-            sma7_singal_2 = 'X'
-            
-        if sma10 < lastest_close_price:
-            sma10_singal_1 = 'O'
-        else:
-            sma10_singal_1 = 'X'
-            
-        if sma10 < last_ratio_0_618:
-            sma10_singal_2 = 'O'
-        else:
-            sma10_singal_2 = 'X'
-        
-        if sma20 < lastest_close_price:
-            sma20_singal_1 = 'O'
-        else:
-            sma20_singal_1 = 'X'
-            
-        if sma20 < last_ratio_0_618:
-            sma20_singal_2 = 'O'
-        else:
-            sma20_singal_2 = 'X'
         
         self.update_tkintertable_data("分均線", {
+            'SMA1': {'指標':'SMA1', '價格': str(sma1), '收': str(lastest_close_price), '訊號1': sma1_singal_1, '買點': str(last_ratio_0_618), '訊號2': sma1_singal_2},
             'SMA3': {'指標':'SMA3', '價格': str(sma3), '收': str(lastest_close_price), '訊號1': sma3_singal_1, '買點': str(last_ratio_0_618), '訊號2': sma3_singal_2},
-            'SMA5': {'指標':'SMA5', '價格':str(sma5), '收': str(lastest_close_price), '訊號1': sma5_singal_1, '買點': str(last_ratio_0_618), '訊號2': sma5_singal_2},
-            'SMA7': {'指標':'SMA7', '價格': str(sma7), '收': str(lastest_close_price), '訊號1': sma7_singal_1, '買點': str(last_ratio_0_618), '訊號2': sma7_singal_2},
-            'SMA10': {'指標':'SMA10', '價格': str(sma10), '收': str(lastest_close_price), '訊號1': sma10_singal_1, '買點': str(last_ratio_0_618), '訊號2': sma10_singal_2},
-            'SMA20': {'指標':'SMA20', '價格': str(sma20), '收': str(lastest_close_price), '訊號1': sma20_singal_1, '買點': str(last_ratio_0_618), '訊號2': sma20_singal_2},
+            'SMA5': {'指標':'SMA5', '價格': str(sma5), '收': str(lastest_close_price), '訊號1': sma5_singal_1, '買點': str(last_ratio_0_618), '訊號2': sma5_singal_2},
         })
+                            
+        # if sma1 < lastest_close_price:
+        #     self.table.model.setColorAt(0, 3, 'green',  key='bg')
+        # elif sma1 >= lastest_close_price:
+        #     self.table.model.setColorAt(0, 3, 'red',  key='bg')
+        # else:
+        #     self.table.model.setColorAt(0, 3, 'white',  key='bg')
+            
+        # if sma1 < last_ratio_0_618:
+        #     self.table.model.setColorAt(0, 5, 'green',  key='bg')
+        # elif sma1 >= last_ratio_0_618:
+        #     self.table.model.setColorAt(0, 5, 'red',  key='bg')
+        # else:
+        #     self.table.model.setColorAt(0, 5, 'white',  key='bg')
         
-        if sma3 < lastest_close_price:
-            self.table.model.setColorAt(0, 3, 'green',  key='bg')
-        elif sma3 >= lastest_close_price:
-            self.table.model.setColorAt(0, 3, 'red',  key='bg')
-        else:
-            self.table.model.setColorAt(0, 3, 'white',  key='bg')
+        # if sma3 < lastest_close_price:
+        #     self.table.model.setColorAt(1, 3, 'green',  key='bg')
+        # elif sma3 >= lastest_close_price:
+        #     self.table.model.setColorAt(1, 3, 'red',  key='bg')
+        # else:
+        #     self.table.model.setColorAt(1, 3, 'white',  key='bg')
             
-        if sma3 < last_ratio_0_618:
-            self.table.model.setColorAt(0, 5, 'green',  key='bg')
-        elif sma3 >= last_ratio_0_618:
-            self.table.model.setColorAt(0, 5, 'red',  key='bg')
-        else:
-            self.table.model.setColorAt(0, 5, 'white',  key='bg')
+        # if sma3 < last_ratio_0_618:
+        #     self.table.model.setColorAt(1, 5, 'green',  key='bg')
+        # elif sma3 >= last_ratio_0_618:
+        #     self.table.model.setColorAt(1, 5, 'red',  key='bg')
+        # else:
+        #     self.table.model.setColorAt(1, 5, 'white',  key='bg')
             
-        if sma5 < lastest_close_price:
-            self.table.model.setColorAt(1, 3, 'green',  key='bg')
-        elif sma5 >= lastest_close_price:
-            self.table.model.setColorAt(1, 3, 'red',  key='bg')
-        else:
-            self.table.model.setColorAt(1, 3, 'white',  key='bg')
+        # if sma5 < lastest_close_price:
+        #     self.table.model.setColorAt(2, 3, 'green',  key='bg')
+        # elif sma5 >= lastest_close_price:
+        #     self.table.model.setColorAt(2, 3, 'red',  key='bg')
+        # else:
+        #     self.table.model.setColorAt(2, 3, 'white',  key='bg')
             
-        if sma5 < last_ratio_0_618:
-            self.table.model.setColorAt(1, 5, 'green',  key='bg')
-        elif sma5 >= last_ratio_0_618:
-            self.table.model.setColorAt(1, 5, 'red',  key='bg')
-        else:
-            self.table.model.setColorAt(1, 5, 'white',  key='bg')
-            
-        if sma7 < lastest_close_price:
-            self.table.model.setColorAt(2, 3, 'green',  key='bg')
-        elif sma7 >= lastest_close_price:
-            self.table.model.setColorAt(2, 3, 'red',  key='bg')
-        else:
-            self.table.model.setColorAt(2, 3, 'white',  key='bg')
-            
-        if sma7 < last_ratio_0_618:
-            self.table.model.setColorAt(2, 5, 'green',  key='bg')
-        elif sma7 >= last_ratio_0_618:
-            self.table.model.setColorAt(2, 5, 'red',  key='bg')
-        else:
-            self.table.model.setColorAt(2, 5, 'white',  key='bg')
-            
-        if sma10 < lastest_close_price:
-            self.table.model.setColorAt(3, 3, 'green',  key='bg')
-        elif sma10 >= lastest_close_price:
-            self.table.model.setColorAt(3, 3, 'red',  key='bg')
-        else:
-            self.table.model.setColorAt(3, 3, 'white',  key='bg')
-            
-        if sma10 < last_ratio_0_618:
-            self.table.model.setColorAt(3, 5, 'green',  key='bg')
-        elif sma10 >= last_ratio_0_618:
-            self.table.model.setColorAt(3, 5, 'red',  key='bg')
-        else:
-            self.table.model.setColorAt(3, 5, 'white',  key='bg')
-            
-        if sma20 < lastest_close_price:
-            self.table.model.setColorAt(4, 3, 'green',  key='bg')
-        elif sma20 >= lastest_close_price:
-            self.table.model.setColorAt(4, 3, 'red',  key='bg')
-        else:
-            self.table.model.setColorAt(4, 3, 'white',  key='bg')
-            
-        if sma20 < last_ratio_0_618:
-            self.table.model.setColorAt(4, 5, 'green',  key='bg')
-        elif sma20 >= last_ratio_0_618:
-            self.table.model.setColorAt(4, 5, 'red',  key='bg')
-        else:
-            self.table.model.setColorAt(4, 5, 'white',  key='bg')
+        # if sma5 < last_ratio_0_618:
+        #     self.table.model.setColorAt(2, 5, 'green',  key='bg')
+        # elif sma5 >= last_ratio_0_618:
+        #     self.table.model.setColorAt(2, 5, 'red',  key='bg')
+        # else:
+        #     self.table.model.setColorAt(2, 5, 'white',  key='bg')
             
         self.table.redrawTable()
+        
+        self.init_moving_average(stock_id)
         # self.update_tkintertable_data("日均線", {
         #     'SMA5': {'指標':'SMA5', '價格': '31.82', '收': '34.5', '訊號1': 'O', '買點': '36.54', '訊號2': 'O'},
         #     'SMA10': {'指標':'SMA10', '價格': '31.82', '收': '34.5', '訊號1': 'O', '買點': '36.54', '訊號2': 'O'},
@@ -326,4 +277,95 @@ class RealtimeMonitorView(tk.Frame):
             tv.move(k, '', index)
         
         tv.heading(col, command=lambda _col=col: self.treeview_sort_column(tv, _col, not reverse))
+        
+    def init_moving_average(self, stock_id):
+        # 獲取每日收盤價
+        close_prices = self.model.get_daily_close_prices_from_db(stock_id, 120)
+        
+        self.update_one_min_k_ma(close_prices)
+        self.update_three_min_k_ma(close_prices)
+        self.update_five_min_k_ma(close_prices)
+    
+        # # 計算日均線的移動平均
+        # sma_values = [
+        #     round(self.model.calculate_moving_average(close_prices, 5).iloc[-1], 2),
+        #     round(self.model.calculate_moving_average(close_prices, 10).iloc[-1], 2),
+        #     round(self.model.calculate_moving_average(close_prices, 20).iloc[-1], 2),
+        #     round(self.model.calculate_moving_average(close_prices, 60).iloc[-1], 2),
+        #     round(self.model.calculate_moving_average(close_prices, 120).iloc[-1], 2),
+        # ]
+        
+        # self.update_tkintertable_data("一分K均線", {
+        #     '5T': {'指標':'5T', '價格': str(sma_values[0]), '收': '34.5', '訊號1': 'O', '買點': '36.54', '訊號2': 'O'},
+        #     '7T': {'指標':'7T', '價格': str(sma_values[1]), '收': '34.5', '訊號1': 'O', '買點': '36.54', '訊號2': 'O'},
+        #     '10T': {'指標':'10T', '價格': str(sma_values[2]), '收': '34.5', '訊號1': 'O', '買點': '36.54', '訊號2': 'O'},
+        #     '20T': {'指標':'20T', '價格': str(sma_values[3]), '收': '34.5', '訊號1': 'O', '買點': '36.54', '訊號2': 'O'},
+        #     '60T': {'指標':'60T', '價格': str(sma_values[4]), '收': '34.5', '訊號1': 'O', '買點': '36.54', '訊號2': 'O'},
+        # })
+
+        # # 計算周均線的移動平均
+        # weekly_sma_values = [
+        #     round(self.model.calculate_weekly_average(close_prices, 5).iloc[-1], 2),
+        #     round(self.model.calculate_weekly_average(close_prices, 10).iloc[-1], 2),
+        #     round(self.model.calculate_weekly_average(close_prices, 20).iloc[-1], 2),
+        #     round(self.model.calculate_weekly_average(close_prices, 60).iloc[-1], 2),
+        #     round(self.model.calculate_weekly_average(close_prices, 120).iloc[-1], 2),
+        # ]
+
+        # self.update_tkintertable_data("周均線", {
+        #     'SMA5': {'指標':'SMA5', '價格': str(weekly_sma_values[0]), '收': '34.5', '訊號1': 'O', '買點': '36.54', '訊號2': 'O'},
+        #     'SMA10': {'指標':'SMA10', '價格': str(weekly_sma_values[1]), '收': '34.5', '訊號1': 'O', '買點': '36.54', '訊號2': 'O'},
+        #     'SMA20': {'指標':'SMA20', '價格': str(weekly_sma_values[2]), '收': '34.5', '訊號1': 'O', '買點': '36.54', '訊號2': 'O'},
+        #     'SMA60': {'指標':'SMA60', '價格': str(weekly_sma_values[3]), '收': '34.5', '訊號1': 'O', '買點': '36.54', '訊號2': 'O'},
+        #     'SMA120': {'指標':'SMA120', '價格': str(weekly_sma_values[4]), '收': '34.5', '訊號1': 'O', '買點': '36.54', '訊號2': 'O'},
+        # })
+
+        # # 計算月均線的移動平均
+        # monthly_sma_values = [
+        #     round(self.model.calculate_monthly_average(close_prices, 5).iloc[-1], 2),
+        #     round(self.model.calculate_monthly_average(close_prices, 10).iloc[-1], 2),
+        #     round(self.model.calculate_monthly_average(close_prices, 20).iloc[-1], 2),
+        #     round(self.model.calculate_monthly_average(close_prices, 60).iloc[-1], 2),
+        #     round(self.model.calculate_monthly_average(close_prices, 120).iloc[-1], 2),
+        # ]
+        
+        # self.update_tkintertable_data("月均線", {
+        #     'SMA5': {'指標':'SMA5', '價格': str(monthly_sma_values[0]), '收': '34.5', '訊號1': 'O', '買點': '36.54', '訊號2': 'O'},
+        #     'SMA10': {'指標':'SMA10', '價格': str(monthly_sma_values[1]), '收': '34.5', '訊號1': 'O', '買點': '36.54', '訊號2': 'O'},
+        #     'SMA20': {'指標':'SMA20', '價格': str(monthly_sma_values[2]), '收': '34.5', '訊號1': 'O', '買點': '36.54', '訊號2': 'O'},
+        #     'SMA60': {'指標':'SMA60', '價格': str(monthly_sma_values[3]), '收': '34.5', '訊號1': 'O', '買點': '36.54', '訊號2': 'O'},
+        #     'SMA120': {'指標':'SMA120', '價格': str(monthly_sma_values[4]), '收': '34.5', '訊號1': 'O', '買點': '36.54', '訊號2': 'O'},
+        # })
+
+    def update_one_min_k_ma(self, df):
+        ma_5t, ma_7t, ma_10t, ma_20t, ma_60t = self.model.calculate_ma_values(df, k_type='1min')
+        self.update_tkintertable_data("一分K均線", {
+            '5T': {'指標':'5T', '價格': str(ma_5t), '收': 'N/A', '訊號1': 'N/A', '買點': 'N/A', '訊號2': 'N/A'},
+            '7T': {'指標':'7T', '價格': str(ma_7t), '收': 'N/A', '訊號1': 'N/A', '買點': 'N/A', '訊號2': 'N/A'},
+            '10T': {'指標':'10T', '價格': str(ma_10t), '收': 'N/A', '訊號1': 'N/A', '買點': 'N/A', '訊號2': 'N/A'},
+            '20T': {'指標':'20T', '價格': str(ma_20t), '收': 'N/A', '訊號1': 'N/A', '買點': 'N/A', '訊號2': 'N/A'},
+            '60T': {'指標':'60T', '價格': str(ma_60t), '收': 'N/A', '訊號1': 'N/A', '買點': 'N/A', '訊號2': 'N/A'},
+        })
+
+    def update_three_min_k_ma(self, df):
+        ma_5t, ma_7t, ma_10t, ma_20t, ma_60t = self.model.calculate_ma_values(df, k_type='3min')
+        self.update_tkintertable_data("三分K均線", {
+            '5T': {'指標':'5T', '價格': str(ma_5t), '收': 'N/A', '訊號1': 'N/A', '買點': 'N/A', '訊號2': 'N/A'},
+            '7T': {'指標':'7T', '價格': str(ma_7t), '收': 'N/A', '訊號1': 'N/A', '買點': 'N/A', '訊號2': 'N/A'},
+            '10T': {'指標':'10T', '價格': str(ma_10t), '收': 'N/A', '訊號1': 'N/A', '買點': 'N/A', '訊號2': 'N/A'},
+            '20T': {'指標':'20T', '價格': str(ma_20t), '收': 'N/A', '訊號1': 'N/A', '買點': 'N/A', '訊號2': 'N/A'},
+            '60T': {'指標':'60T', '價格': str(ma_60t), '收': 'N/A', '訊號1': 'N/A', '買點': 'N/A', '訊號2': 'N/A'},
+        })
+
+    def update_five_min_k_ma(self, df):
+        ma_5t, ma_7t, ma_10t, ma_20t, ma_60t = self.model.calculate_ma_values(df, k_type='5min')
+        self.update_tkintertable_data("五分K均線", {
+            '5T': {'指標':'5T', '價格': str(ma_5t), '收': 'N/A', '訊號1': 'N/A', '買點': 'N/A', '訊號2': 'N/A'},
+            '7T': {'指標':'7T', '價格': str(ma_7t), '收': 'N/A', '訊號1': 'N/A', '買點': 'N/A', '訊號2': 'N/A'},
+            '10T': {'指標':'10T', '價格': str(ma_10t), '收': 'N/A', '訊號1': 'N/A', '買點': 'N/A', '訊號2': 'N/A'},
+            '20T': {'指標':'20T', '價格': str(ma_20t), '收': 'N/A', '訊號1': 'N/A', '買點': 'N/A', '訊號2': 'N/A'},
+            '60T': {'指標':'60T', '價格': str(ma_60t), '收': 'N/A', '訊號1': 'N/A', '買點': 'N/A', '訊號2': 'N/A'},
+        })
+
+
 
