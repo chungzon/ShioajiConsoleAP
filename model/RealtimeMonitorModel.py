@@ -139,7 +139,7 @@ class RealtimeMonitorModel:
         WHERE sub.rn = 1
         ORDER BY date DESC
         OFFSET 0 ROWS
-        FETCH NEXT {days + 120} ROWS ONLY
+        FETCH NEXT 266 ROWS ONLY
         """
         df = pd.read_sql(query, conn)
         df['date'] = pd.to_datetime(df['date'])

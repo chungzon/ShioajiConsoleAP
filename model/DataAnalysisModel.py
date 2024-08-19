@@ -118,13 +118,13 @@ class DataAnalysisModel:
         FROM (
             SELECT *,
                    ROW_NUMBER() OVER (PARTITION BY CONVERT(date, ts) ORDER BY ts DESC) AS rn
-            FROM Ticks
+            FROM KBars
             WHERE stock_id = '{stock_code}'
         ) AS sub
         WHERE sub.rn = 1
         ORDER BY date DESC
         OFFSET 0 ROWS
-        FETCH NEXT {days + 3650} ROWS ONLY
+        FETCH NEXT {days + 365} ROWS ONLY
         """
         df = pd.read_sql(query, conn)
         df['date'] = pd.to_datetime(df['date'])

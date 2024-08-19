@@ -45,7 +45,7 @@ class DataDownloadController:
             dates = [start_date + timedelta(days=i) for i in range((end_date - start_date).days + 1)]
             total_start_time = time.time()  # 紀錄總開始時間
             self.view.set_progress_config(len(dates))
-            with ThreadPoolExecutor(max_workers=5) as executor:
+            with ThreadPoolExecutor(max_workers=1) as executor:
                 futures = {executor.submit(self.process_data_update, stock_id, date): date for date in dates}
                 completed_tasks = 0
                 for future in as_completed(futures):
