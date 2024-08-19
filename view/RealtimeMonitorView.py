@@ -163,21 +163,15 @@ class RealtimeMonitorView(tk.Frame):
                 self.ax2.set_ylabel('Value', fontproperties=zh_font)
                 self.ax2.legend(prop=zh_font)
                 self.canvas2.draw()
+                
+                self.table.redrawTable()
+                self.init_moving_average(stock_id, data['Close_Price'])
 
                 # 延遲1秒鐘
                 time.sleep(1)
 
         # 啟動新執行緒來更新UI，防止卡住
         threading.Thread(target=update_ui).start()
-
-        
-              
-
- 
-            
-        # self.table.redrawTable()
-        
-        # self.init_moving_average(stock_id, lastest_close_price)
  
     def treeview_sort_column(self, tv, col, reverse):
         l = [(tv.set(k, col), k) for k in tv.get_children('')]
