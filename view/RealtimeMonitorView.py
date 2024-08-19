@@ -11,6 +11,7 @@ import time
 from datetime import datetime, timedelta
 from matplotlib import font_manager
 from tkintertable import TableCanvas, TableModel
+import threading
 
 font_path = 'C:/Windows/Fonts/msjh.ttc'  # 微軟正黑體字體路徑
 zh_font = font_manager.FontProperties(fname=font_path)
@@ -88,68 +89,95 @@ class RealtimeMonitorView(tk.Frame):
         start_date = '2024-03-29'
         end_date = '2024-03-29'
         
-        self.pd = self.model.get_stock_kbar_from_db(stock_id, start_date, end_date)
-        lastest_close_price = self.model.get_latest_close_price(stock_id)
-        self.df = self.model.find_peaks_troughs_v34(self.pd, stock_id, lastest_close_price)      
+        sim_pd = self.model.get_stock_kbar_from_db(stock_id, start_date, end_date) #讀取模擬資料KBar
+        
+        #lastest_close_price = self.model.get_latest_close_price(stock_id)
+        #當有新的一筆分K資料，重新計算數據，更新圖表和表格
+        self.process_data(sim_pd, stock_id)
 
-        # 添加排序後的欄位
-        self.df['現價-0.618(sorted)'] = self.df['現價-0.618'].sort_values(ascending=True).values
-        self.df['Head(sorted)'] = self.df['Head'].sort_values(ascending=True).values
-        self.df['頸線(sorted)'] = self.df['頸線'].sort_values(ascending=True).values
-        self.df['Ratio_0.618(sorted)'] = self.df['Ratio_0.618'].sort_values(ascending=True).values
-        self.df['Ratio_1(sorted)'] = self.df['Ratio_1'].sort_values(ascending=True).values
-        self.df['Max_Value(sorted)'] = self.df['Max_Value'].sort_values(ascending=True).values
-        
-        for col in self.df.columns:
-            if col not in ['Ratio_0.618(sorted)', 'Ratio_1(sorted)', 'Max_Value(sorted)']:
-                self.tree.heading(col, text=col)
-                self.tree.column(col, width=100, anchor='center')
-        
-        for i, row in self.df.iterrows():
-            self.tree.insert('', 'end', values=list(row))
-        
-        # 繪製第一個圖表
-        self.ax1.clear()
-        self.ax1.plot(self.df['Max_Date'], self.df['現價-0.618'], label='現價-0.618', linestyle='-', color='blue')
-        self.ax1.scatter(self.df['Max_Date'], self.df['Head'], label='Head', color='red', marker='o')
-        self.ax1.scatter(self.df['Max_Date'], self.df['頸線'], label='頸線', color='green', marker='x')
-        
-        for i in range(len(self.df)):
-            self.ax1.text(self.df['Max_Date'][i], self.df['現價-0.618'][i], f'{self.df["Ratio_0.618"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
-            self.ax1.text(self.df['Max_Date'][i], self.df['Head'][i], f'{self.df["Max_Value"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
-            self.ax1.text(self.df['Max_Date'][i], self.df['頸線'][i], f'{self.df["Ratio_1"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
-        
-        self.ax1.set_title('Stock Trends', fontproperties=zh_font)
-        self.ax1.set_xlabel('Date', fontproperties=zh_font)
-        self.ax1.set_ylabel('Value', fontproperties=zh_font)
-        self.ax1.legend(prop=zh_font)
-        self.canvas1.draw()
-        
-        # 排序數據
-        sorted_df = self.df.sort_values(by=['現價-0.618(sorted)'])
-        head_sorted = self.df.sort_values(by=['Head(sorted)'])
-        neck_sorted = self.df.sort_values(by=['頸線(sorted)'])
+    def process_data(self, sim_pd, stock_id):
+        def update_ui():
+            self.pd = pd.DataFrame(columns=['ts', 'Open_Price', 'High', 'Low', 'Close_Price', 'Volume', 'id', 'stock_id'])
 
-        # 繪製第二個圖表
-        self.ax2.clear()
-        self.ax2.plot(self.df['Max_Date'], self.df['現價-0.618(sorted)'], label='現價-0.618(sorted)', linestyle='-', color='blue')
-        self.ax2.scatter(self.df['Max_Date'], self.df['Head(sorted)'], label='Head(sorted)', color='red', marker='o')
-        self.ax2.scatter(self.df['Max_Date'], self.df['頸線(sorted)'], label='頸線(sorted)', color='green', marker='x')
+            for index, data in sim_pd.iterrows():
+                data_dict = data.to_dict()
+                # 使用 from_records 方法创建 DataFrame
+                new_row = pd.DataFrame.from_records([data_dict])
+                self.pd = pd.concat([self.pd, new_row], ignore_index=True)
+                self.df = self.model.find_peaks_troughs_v34(self.pd, stock_id, data['Close_Price'])
         
-        for i in range(len(self.df)):
-            self.ax2.text(self.df['Max_Date'][i], self.df['現價-0.618(sorted)'][i], f'{sorted_df["Ratio_0.618(sorted)"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
-            self.ax2.text(self.df['Max_Date'][i], self.df['Head(sorted)'][i], f'{head_sorted["Max_Value(sorted)"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
-            self.ax2.text(self.df['Max_Date'][i], self.df['頸線(sorted)'][i], f'{neck_sorted["Ratio_1(sorted)"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
+                # 添加排序後的欄位
+                self.df['現價-0.618(sorted)'] = self.df['現價-0.618'].sort_values(ascending=True).values
+                self.df['Head(sorted)'] = self.df['Head'].sort_values(ascending=True).values
+                self.df['頸線(sorted)'] = self.df['頸線'].sort_values(ascending=True).values
+                self.df['Ratio_0.618(sorted)'] = self.df['Ratio_0.618'].sort_values(ascending=True).values
+                self.df['Ratio_1(sorted)'] = self.df['Ratio_1'].sort_values(ascending=True).values
+                self.df['Max_Value(sorted)'] = self.df['Max_Value'].sort_values(ascending=True).values
+
+                for col in self.df.columns:
+                    if col not in ['Ratio_0.618(sorted)', 'Ratio_1(sorted)', 'Max_Value(sorted)']:
+                        self.tree.heading(col, text=col)
+                        self.tree.column(col, width=100, anchor='center')
+                        
+                for item in self.tree.get_children():
+                    self.tree.delete(item)
+
+                for i, row in self.df.iterrows():
+                    self.tree.insert('', 'end', values=list(row))
+
+                # 繪製第一個圖表
+                self.ax1.clear()
+                self.ax1.plot(self.df['Max_Date'], self.df['現價-0.618'], label='現價-0.618', linestyle='-', color='blue')
+                self.ax1.scatter(self.df['Max_Date'], self.df['Head'], label='Head', color='red', marker='o')
+                self.ax1.scatter(self.df['Max_Date'], self.df['頸線'], label='頸線', color='green', marker='x')
+
+                for i in range(len(self.df)):
+                    self.ax1.text(self.df['Max_Date'][i], self.df['現價-0.618'][i], f'{self.df["Ratio_0.618"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
+                    self.ax1.text(self.df['Max_Date'][i], self.df['Head'][i], f'{self.df["Max_Value"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
+                    self.ax1.text(self.df['Max_Date'][i], self.df['頸線'][i], f'{self.df["Ratio_1"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
+
+                self.ax1.set_title('Stock Trends', fontproperties=zh_font)
+                self.ax1.set_xlabel('Date', fontproperties=zh_font)
+                self.ax1.set_ylabel('Value', fontproperties=zh_font)
+                self.ax1.legend(prop=zh_font)
+                self.canvas1.draw()
+
+                # 排序數據
+                sorted_df = self.df.sort_values(by=['現價-0.618(sorted)'])
+                head_sorted = self.df.sort_values(by=['Head(sorted)'])
+                neck_sorted = self.df.sort_values(by=['頸線(sorted)'])
+
+                # 繪製第二個圖表
+                self.ax2.clear()
+                self.ax2.plot(self.df['Max_Date'], self.df['現價-0.618(sorted)'], label='現價-0.618(sorted)', linestyle='-', color='blue')
+                self.ax2.scatter(self.df['Max_Date'], self.df['Head(sorted)'], label='Head(sorted)', color='red', marker='o')
+                self.ax2.scatter(self.df['Max_Date'], self.df['頸線(sorted)'], label='頸線(sorted)', color='green', marker='x')
+
+                for i in range(len(self.df)):
+                    self.ax2.text(self.df['Max_Date'][i], self.df['現價-0.618(sorted)'][i], f'{sorted_df["Ratio_0.618(sorted)"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
+                    self.ax2.text(self.df['Max_Date'][i], self.df['Head(sorted)'][i], f'{head_sorted["Max_Value(sorted)"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
+                    self.ax2.text(self.df['Max_Date'][i], self.df['頸線(sorted)'][i], f'{neck_sorted["Ratio_1(sorted)"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
+
+                self.ax2.set_title('Sorted Stock Trends', fontproperties=zh_font)
+                self.ax2.set_xlabel('Date', fontproperties=zh_font)
+                self.ax2.set_ylabel('Value', fontproperties=zh_font)
+                self.ax2.legend(prop=zh_font)
+                self.canvas2.draw()
+
+                # 延遲1秒鐘
+                time.sleep(1)
+
+        # 啟動新執行緒來更新UI，防止卡住
+        threading.Thread(target=update_ui).start()
+
         
-        self.ax2.set_title('Sorted Stock Trends', fontproperties=zh_font)
-        self.ax2.set_xlabel('Date', fontproperties=zh_font)
-        self.ax2.set_ylabel('Value', fontproperties=zh_font)
-        self.ax2.legend(prop=zh_font)
-        self.canvas2.draw()
+              
+
+ 
             
-        self.table.redrawTable()
+        # self.table.redrawTable()
         
-        self.init_moving_average(stock_id, lastest_close_price)
+        # self.init_moving_average(stock_id, lastest_close_price)
  
     def treeview_sort_column(self, tv, col, reverse):
         l = [(tv.set(k, col), k) for k in tv.get_children('')]
