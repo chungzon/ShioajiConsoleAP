@@ -33,10 +33,10 @@ class RealtimeMonitorView(tk.Frame):
         vsb = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
         hsb = ttk.Scrollbar(self, orient="horizontal", command=self.tree.xview)
         self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
-        
-        self.tree.grid(row=1, column=0, sticky='nsew')
-        vsb.grid(row=1, column=1, sticky='ns')
-        hsb.grid(row=2, column=0, sticky='ew')
+
+        self.tree.grid(row=1, column=0, columnspan=2, rowspan=2, sticky='nsew')
+        vsb.grid(row=2, column=2, sticky='ns')
+        hsb.grid(row=2, column=0, columnspan=2, rowspan=2, sticky='ew')
         
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
@@ -45,21 +45,21 @@ class RealtimeMonitorView(tk.Frame):
 
         # 使用 tkintertable 初始化下方表格，但暂时不填充数据
         self.table_frames = [
-            self.create_tkintertable_frame("分均線", {}).grid(row=2, column=0, columnspan=2, sticky='nsew', padx=5, pady=5),
-            self.create_tkintertable_frame("一分K均線", {}).grid(row=3, column=0, columnspan=2, sticky='nsew', padx=5, pady=5),
-            self.create_tkintertable_frame("三分K均線", {}).grid(row=4, column=0, columnspan=2, sticky='nsew', padx=5, pady=5),
-            self.create_tkintertable_frame("五分K均線", {}).grid(row=5, column=0, columnspan=2, sticky='nsew', padx=5, pady=5),
+            self.create_tkintertable_frame("分均線", {}).grid(row=1, column=2, columnspan=1, sticky='nsew', padx=5, pady=5),
+            self.create_tkintertable_frame("一分K均線", {}).grid(row=2, column=2, columnspan=1, sticky='nsew', padx=5, pady=5),
+            self.create_tkintertable_frame("三分K均線", {}).grid(row=3, column=2, columnspan=1, sticky='nsew', padx=5, pady=5),
+            self.create_tkintertable_frame("五分K均線", {}).grid(row=4, column=2, columnspan=1, sticky='nsew', padx=5, pady=5),
         ]
 
         # 第一個圖表
         self.fig1, self.ax1 = plt.subplots()
         self.canvas1 = FigureCanvasTkAgg(self.fig1, self)
-        self.canvas1.get_tk_widget().grid(row=0, column=2, rowspan=3, padx=10, pady=10, sticky='nsew')
+        self.canvas1.get_tk_widget().grid(row=3, column=0, rowspan=2, columnspan=1, padx=10, pady=10, sticky='nsew')
         
         # 第二個圖表
         self.fig2, self.ax2 = plt.subplots()
         self.canvas2 = FigureCanvasTkAgg(self.fig2, self)
-        self.canvas2.get_tk_widget().grid(row=4, column=2, rowspan=3, padx=10, pady=10, sticky='nsew')
+        self.canvas2.get_tk_widget().grid(row=3, column=1, rowspan=2, columnspan=1, padx=10, pady=10, sticky='nsew')
 
         # 均分图表和表格高度
         self.grid_rowconfigure(1, weight=1)
@@ -68,6 +68,12 @@ class RealtimeMonitorView(tk.Frame):
         self.grid_rowconfigure(4, weight=1)
         self.grid_rowconfigure(5, weight=1)
         self.grid_rowconfigure(6, weight=1)
+        self.grid_rowconfigure(7, weight=1)
+        self.grid_rowconfigure(8, weight=1)
+        self.grid_rowconfigure(9, weight=1)
+        self.grid_rowconfigure(10, weight=1)
+        self.grid_rowconfigure(11, weight=1)
+        self.grid_rowconfigure(12, weight=1)
 
     def create_tkintertable_frame(self, title, data):
         frame = ttk.LabelFrame(self, text=title)
