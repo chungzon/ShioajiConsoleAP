@@ -116,12 +116,12 @@ class RealtimeMonitorModel:
         multiplier = 1 if k_type == '1min' else 3 if k_type == '3min' else 5  # 根據K線類型決定倍數
     
         ma_5t = self.calculate_moving_average(close_prices, 5 * multiplier).iloc[-1]
-        ma_7t = self.calculate_moving_average(close_prices, 7 * multiplier).iloc[-1]
         ma_10t = self.calculate_moving_average(close_prices, 10 * multiplier).iloc[-1]
         ma_20t = self.calculate_moving_average(close_prices, 20 * multiplier).iloc[-1]
         ma_60t = self.calculate_moving_average(close_prices, 60 * multiplier).iloc[-1]
+        ma_120t = self.calculate_moving_average(close_prices, 120 * multiplier).iloc[-1]
 
-        return round(ma_5t, 2), round(ma_7t, 2), round(ma_10t, 2), round(ma_20t, 2), round(ma_60t, 2)
+        return round(ma_5t, 2), round(ma_10t, 2), round(ma_20t, 2), round(ma_60t, 2), round(ma_120t, 2)
 
 
     

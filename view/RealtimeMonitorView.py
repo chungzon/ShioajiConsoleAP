@@ -250,36 +250,36 @@ class RealtimeMonitorView(tk.Frame):
         self.update_five_min_k_ma(self.pd['Close_Price'], lastest_close_price)
  
     def update_one_min_k_ma(self, df, lastest_close_price):
-        ma_5t, ma_7t, ma_10t, ma_20t, ma_60t = self.model.calculate_ma_values(df, k_type='1min')
+        ma_5t, ma_10t, ma_20t, ma_60t, ma_120t= self.model.calculate_ma_values(df, k_type='1min')
         lastest_ratio_0618 = round(self.df['Ratio_0.618'].iloc[-1], 2);
         self.update_tkintertable_data("一分K均線", {
             '5T': {'指標':'5T', '價格': str(ma_5t), '收': str(lastest_close_price), '訊號1': 'O' if ma_5t < lastest_close_price else 'X', '買點': str(lastest_ratio_0618), '訊號2': 'O' if ma_5t < lastest_ratio_0618 else 'X'},
-            '7T': {'指標':'7T', '價格': str(ma_7t), '收': str(lastest_close_price), '訊號1': 'O' if ma_7t < lastest_close_price else 'X', '買點': str(lastest_ratio_0618), '訊號2': 'O' if ma_7t < lastest_ratio_0618 else 'X'},
             '10T': {'指標':'10T', '價格': str(ma_10t), '收': str(lastest_close_price), '訊號1': 'O' if ma_10t < lastest_close_price else 'X', '買點': str(lastest_ratio_0618), '訊號2': 'O' if ma_10t < lastest_ratio_0618 else 'X'},
             '20T': {'指標':'20T', '價格': str(ma_20t), '收': str(lastest_close_price), '訊號1': 'O' if ma_20t < lastest_close_price else 'X', '買點': str(lastest_ratio_0618), '訊號2': 'O' if ma_20t < lastest_ratio_0618 else 'X'},
             '60T': {'指標':'60T', '價格': str(ma_60t), '收': str(lastest_close_price), '訊號1': 'O' if ma_60t < lastest_close_price else 'X', '買點': str(lastest_ratio_0618), '訊號2': 'O' if ma_60t < lastest_ratio_0618 else 'X'},
+            '120T': {'指標':'120T', '價格': str(ma_120t), '收': str(lastest_close_price), '訊號1': 'O' if ma_120t < lastest_close_price else 'X', '買點': str(lastest_ratio_0618), '訊號2': 'O' if ma_120t < lastest_ratio_0618 else 'X'},
         })
 
     def update_three_min_k_ma(self, df, lastest_close_price):
-        ma_5t, ma_7t, ma_10t, ma_20t, ma_60t = self.model.calculate_ma_values(df, k_type='3min')
+        ma_5t, ma_10t, ma_20t, ma_60t, ma_120t = self.model.calculate_ma_values(df, k_type='3min')
         lastest_ratio_0618 = round(self.df['Ratio_0.618'].iloc[-1], 2);
         self.update_tkintertable_data("三分K均線", {
             '5T': {'指標':'5T', '價格': str(ma_5t), '收': str(lastest_close_price), '訊號1': 'O' if ma_5t < lastest_close_price else 'X', '買點': str(lastest_ratio_0618), '訊號2': 'O' if ma_5t < lastest_ratio_0618 else 'X'},
-            '7T': {'指標':'7T', '價格': str(ma_7t), '收': str(lastest_close_price), '訊號1': 'O' if ma_7t < lastest_close_price else 'X', '買點': str(lastest_ratio_0618), '訊號2': 'O' if ma_7t < lastest_ratio_0618 else 'X'},
             '10T': {'指標':'10T', '價格': str(ma_10t), '收': str(lastest_close_price), '訊號1': 'O' if ma_10t < lastest_close_price else 'X', '買點': str(lastest_ratio_0618), '訊號2': 'O' if ma_10t < lastest_ratio_0618 else 'X'},
             '20T': {'指標':'20T', '價格': str(ma_20t), '收': str(lastest_close_price), '訊號1': 'O' if ma_20t < lastest_close_price else 'X', '買點': str(lastest_ratio_0618), '訊號2': 'O' if ma_20t < lastest_ratio_0618 else 'X'},
             '60T': {'指標':'60T', '價格': str(ma_60t), '收': str(lastest_close_price), '訊號1': 'O' if ma_60t < lastest_close_price else 'X', '買點': str(lastest_ratio_0618), '訊號2': 'O' if ma_60t < lastest_ratio_0618 else 'X'},
+            '120T': {'指標':'120T', '價格': str(ma_120t), '收': str(lastest_close_price), '訊號1': 'O' if ma_120t < lastest_close_price else 'X', '買點': str(lastest_ratio_0618), '訊號2': 'O' if ma_120t < lastest_ratio_0618 else 'X'},
         })
 
     def update_five_min_k_ma(self, df, lastest_close_price):
-        ma_5t, ma_7t, ma_10t, ma_20t, ma_60t = self.model.calculate_ma_values(df, k_type='5min')
+        ma_5t, ma_10t, ma_20t, ma_60t, ma_120t = self.model.calculate_ma_values(df, k_type='5min')
         lastest_ratio_0618 = round(self.df['Ratio_0.618'].iloc[-1], 2);
         self.update_tkintertable_data("五分K均線", {
             '5T': {'指標':'5T', '價格': str(ma_5t), '收': str(lastest_close_price), '訊號1': 'O' if ma_5t < lastest_close_price else 'X', '買點': str(lastest_ratio_0618), '訊號2': 'O' if ma_5t < lastest_ratio_0618 else 'X'},
-            '7T': {'指標':'7T', '價格': str(ma_7t), '收': str(lastest_close_price), '訊號1': 'O' if ma_7t < lastest_close_price else 'X', '買點': str(lastest_ratio_0618), '訊號2': 'O' if ma_7t < lastest_ratio_0618 else 'X'},
             '10T': {'指標':'10T', '價格': str(ma_10t), '收': str(lastest_close_price), '訊號1': 'O' if ma_10t < lastest_close_price else 'X', '買點': str(lastest_ratio_0618), '訊號2': 'O' if ma_10t < lastest_ratio_0618 else 'X'},
             '20T': {'指標':'20T', '價格': str(ma_20t), '收': str(lastest_close_price), '訊號1': 'O' if ma_20t < lastest_close_price else 'X', '買點': str(lastest_ratio_0618), '訊號2': 'O' if ma_20t < lastest_ratio_0618 else 'X'},
             '60T': {'指標':'60T', '價格': str(ma_60t), '收': str(lastest_close_price), '訊號1': 'O' if ma_60t < lastest_close_price else 'X', '買點': str(lastest_ratio_0618), '訊號2': 'O' if ma_60t < lastest_ratio_0618 else 'X'},
+            '120T': {'指標':'120T', '價格': str(ma_120t), '收': str(lastest_close_price), '訊號1': 'O' if ma_120t < lastest_close_price else 'X', '買點': str(lastest_ratio_0618), '訊號2': 'O' if ma_120t < lastest_ratio_0618 else 'X'},
         })
 
 
