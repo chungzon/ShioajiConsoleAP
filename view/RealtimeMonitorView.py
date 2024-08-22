@@ -22,6 +22,13 @@ class RealtimeMonitorView(tk.Frame):
         self.controller = controller
         self.model = model
         self.init_ui()
+        
+        #回測使用
+        self.total_profit = 0
+        self.trades = 0  # 計算交易次數
+        self.holding = False
+        self.total_profit = 0
+        self.max_price = -9999
 
     def init_ui(self):
         # 左側主表格
@@ -34,32 +41,43 @@ class RealtimeMonitorView(tk.Frame):
         hsb = ttk.Scrollbar(self, orient="horizontal", command=self.tree.xview)
         self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
 
-        self.tree.grid(row=1, column=0, columnspan=2, rowspan=2, sticky='nsew')
-        vsb.grid(row=2, column=2, sticky='ns')
-        hsb.grid(row=2, column=0, columnspan=2, rowspan=2, sticky='ew')
+        self.tree.grid(row=1, column=0, columnspan=4, rowspan=2, sticky='nsew')
+        vsb.grid(row=2, column=4, sticky='ns')
+        hsb.grid(row=2, column=0, columnspan=4, rowspan=2, sticky='ew')
         
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
         
-        ttk.Button(self, text="分析資料", command=self.print_message).grid(row=0, column=0, columnspan=3, pady=20)
+        ttk.Label(self, text="股票代碼:").grid(row=0, column=0, padx=10, pady=5, sticky='e')
+        self.stock_id_entry = ttk.Entry(self)
+        self.stock_id_entry.grid(row=0, column=1, padx=10, pady=5, sticky='e')
 
+        ttk.Label(self, text="開始日期 (YYYY-MM-DD):").grid(row=0, column=2, padx=10, pady=5, sticky='e')
+        self.start_date_ticks_entry = DateEntry(self, background='white', foreground='black', borderwidth=2, date_pattern='yyyy-mm-dd', locale='zh_TW')
+        self.start_date_ticks_entry.grid(row=0, column=3, padx=10, pady=5, sticky='w')
+
+        ttk.Label(self, text="結束日期 (YYYY-MM-DD):").grid(row=0, column=4, padx=10, pady=5, sticky='e')
+        self.end_date_ticks_entry = DateEntry(self, background='white', foreground='black', borderwidth=2, date_pattern='yyyy-mm-dd', locale='zh_TW')
+        self.end_date_ticks_entry.grid(row=0, column=5, padx=10, pady=5, sticky='w')
+        ttk.Button(self, text="分析資料", command=self.print_message).grid(row=0, column=6, pady=20)
+        
         # 使用 tkintertable 初始化下方表格，但暂时不填充数据
         self.table_frames = [
-            self.create_tkintertable_frame("分均線", {}).grid(row=1, column=2, columnspan=1, sticky='nsew', padx=5, pady=5),
-            self.create_tkintertable_frame("一分K均線", {}).grid(row=2, column=2, columnspan=1, sticky='nsew', padx=5, pady=5),
-            self.create_tkintertable_frame("三分K均線", {}).grid(row=3, column=2, columnspan=1, sticky='nsew', padx=5, pady=5),
-            self.create_tkintertable_frame("五分K均線", {}).grid(row=4, column=2, columnspan=1, sticky='nsew', padx=5, pady=5),
+            self.create_tkintertable_frame("分均線", {}).grid(row=1, column=4, columnspan=3, sticky='nsew', padx=5, pady=5),
+            self.create_tkintertable_frame("一分K均線", {}).grid(row=2, column=4, columnspan=3, sticky='nsew', padx=5, pady=5),
+            self.create_tkintertable_frame("三分K均線", {}).grid(row=3, column=4, columnspan=3, sticky='nsew', padx=5, pady=5),
+            self.create_tkintertable_frame("五分K均線", {}).grid(row=4, column=4, columnspan=3, sticky='nsew', padx=5, pady=5),
         ]
 
         # 第一個圖表
         self.fig1, self.ax1 = plt.subplots()
         self.canvas1 = FigureCanvasTkAgg(self.fig1, self)
-        self.canvas1.get_tk_widget().grid(row=3, column=0, rowspan=2, columnspan=1, padx=10, pady=10, sticky='nsew')
+        self.canvas1.get_tk_widget().grid(row=3, column=0, rowspan=2, columnspan=2, padx=10, pady=10, sticky='nsew')
         
         # 第二個圖表
         self.fig2, self.ax2 = plt.subplots()
         self.canvas2 = FigureCanvasTkAgg(self.fig2, self)
-        self.canvas2.get_tk_widget().grid(row=3, column=1, rowspan=2, columnspan=1, padx=10, pady=10, sticky='nsew')
+        self.canvas2.get_tk_widget().grid(row=3, column=2, rowspan=2, columnspan=2, padx=10, pady=10, sticky='nsew')
 
         # 均分图表和表格高度
         self.grid_rowconfigure(1, weight=1)
@@ -91,15 +109,16 @@ class RealtimeMonitorView(tk.Frame):
         table.redraw()
 
     def print_message(self):
-        stock_id = "2618"
-        start_date = '2024-03-29'
-        end_date = '2024-03-29'
+        stock_id = self.stock_id_entry.get()
+        start_date = self.start_date_ticks_entry.get()
+        end_date = self.end_date_ticks_entry.get()
         
         sim_pd = self.model.get_stock_kbar_from_db(stock_id, start_date, end_date) #讀取模擬資料KBar
         
         #lastest_close_price = self.model.get_latest_close_price(stock_id)
         #當有新的一筆分K資料，重新計算數據，更新圖表和表格
         self.process_data(sim_pd, stock_id)
+
 
     def process_data(self, sim_pd, stock_id):
         def update_ui():
@@ -111,6 +130,11 @@ class RealtimeMonitorView(tk.Frame):
                 new_row = pd.DataFrame.from_records([data_dict])
                 self.pd = pd.concat([self.pd, new_row], ignore_index=True)
                 self.df = self.model.find_peaks_troughs_v34(self.pd, stock_id, data['Close_Price'])
+                
+                # 執行回測
+                self.backtest_strategy(self.df['Ratio_0.618'].iloc[-1], data['Close_Price'], data['ts'])
+                        
+                print(f"======{data['ts']} 目前損益:{self.total_profit}======")
         
                 # 添加排序後的欄位
                 self.df['現價-0.618(sorted)'] = self.df['現價-0.618'].sort_values(ascending=True).values
@@ -281,6 +305,29 @@ class RealtimeMonitorView(tk.Frame):
             '60T': {'指標':'60T', '價格': str(ma_60t), '收': str(lastest_close_price), '訊號1': 'O' if ma_60t < lastest_close_price else 'X', '買點': str(lastest_ratio_0618), '訊號2': 'O' if ma_60t < lastest_ratio_0618 else 'X'},
             '120T': {'指標':'120T', '價格': str(ma_120t), '收': str(lastest_close_price), '訊號1': 'O' if ma_120t < lastest_close_price else 'X', '買點': str(lastest_ratio_0618), '訊號2': 'O' if ma_120t < lastest_ratio_0618 else 'X'},
         })
+        
+    def backtest_strategy(self, buy_price, now_price, date):
+        if pd.notnull:
+            tmp = self.pd['Close_Price'].sort_values(ascending=True)
+            self.max_price = round(tmp.iloc[-1], 2)
+            
+        cost = 0
+        profit = 0
+            
+        print(f"時間: {date}，現價: {now_price}，目前最高價: {self.max_price}")
+        if now_price >= buy_price and self.holding == False:
+            self.trades+=1
+            self.holding = True
+            cost += now_price * 1000
+            self.total_profit -= cost
+            print(f"買點為 {buy_price} 時間: {date}，買入成本 {cost}")
+        elif self.holding and now_price <= self.max_price * 0.98:
+            sell_price = now_price  
+            profit += sell_price * 1000
+            self.total_profit += profit
+            self.holding = False
+            print(f"賣在{sell_price} 時間: {date}，獲益 {profit}")
+
 
 
 
