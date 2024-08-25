@@ -498,5 +498,23 @@ class DataAnalysisModel:
             worksheet.insert_chart('S20', line_chart2)
 
         messagebox.showinfo("完成", f"波段資料及均線資料已儲存到: {output_file_path}")
+        
+    # Stock(
+    # exchange=<Exchange.TSE: 'TSE'>, 
+    # code='2890', 
+    # symbol='TSE2890', 
+    # name='永豐金', 
+    # category='17', 
+    # unit=1000, 
+    # limit_up=19.1, 
+    # limit_down=15.7, 
+    # reference=17.4, 
+    # update_date='2023/01/17', 
+    # day_trade=<DayTrade.Yes: 'Yes'>
+    # )
+    def get_stock_name(self, sotckid):
+        contract = self.api.Contracts.Stocks[sotckid]
+        return contract['name']
+    
 
 

@@ -29,6 +29,10 @@ class RealtimeMonitorView(tk.Frame):
         self.holding = False
         self.total_profit = 0
         self.max_price = -9999
+        self.limit_up = 0
+        self.limit_down = 0
+        self.buy_price = 0
+        self.sell_price = 0
 
     def init_ui(self):
         # 左側主表格
@@ -115,6 +119,8 @@ class RealtimeMonitorView(tk.Frame):
         
         sim_pd = self.model.get_stock_kbar_from_db(stock_id, start_date, end_date) #讀取模擬資料KBar
         
+        # 漲停價，跌停價
+        self.limit_up, self.limit_down = self.model.get_stock_limit_prices(stock_id)
         #lastest_close_price = self.model.get_latest_close_price(stock_id)
         #當有新的一筆分K資料，重新計算數據，更新圖表和表格
         self.process_data(sim_pd, stock_id)
@@ -198,7 +204,7 @@ class RealtimeMonitorView(tk.Frame):
                 self.init_moving_average(stock_id, data['Close_Price'])
 
                 # 延遲1秒鐘
-                time.sleep(1)
+                time.sleep(0.1)
 
         # 啟動新執行緒來更新UI，防止卡住
         threading.Thread(target=update_ui).start()
@@ -320,13 +326,27 @@ class RealtimeMonitorView(tk.Frame):
             self.holding = True
             cost += now_price * 1000
             self.total_profit -= cost
-            print(f"買點為 {buy_price} 時間: {date}，買入成本 {cost}")
-        elif self.holding and now_price <= self.max_price * 0.98:
+            self.sell_price = now_price * 1.015
+            print(f"買點為: {buy_price} 時間: {date}，買入成本: {cost}")
+        elif self.holding and now_price <= self.max_price / 1.02:
             sell_price = now_price  
             profit += sell_price * 1000
             self.total_profit += profit
             self.holding = False
-            print(f"賣在{sell_price} 時間: {date}，獲益 {profit}")
+            print(f"賣在: {sell_price} 時間: {date}，獲益: {profit}")
+        elif self.holding and now_price == self.limit_up:
+            sell_price = now_price  
+            profit += sell_price * 1000
+            self.total_profit += profit
+            self.holding = False
+            print(f"賣在漲停價: {sell_price} 時間: {date}，獲益: {profit}")
+        elif self.holding and self.sell_price > 0 and now_price <= self.sell_price:
+            sell_price = now_price
+            self.sell_price = 0
+            profit += sell_price * 1000
+            self.total_profit += profit
+            self.holding = False
+            print(f"賣在下跌買價1.5%: {sell_price} 時間: {date}，獲益: {profit}")
 
 
 

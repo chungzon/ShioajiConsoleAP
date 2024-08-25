@@ -155,8 +155,10 @@ class DataAnalysisController:
         # 設定儲存路徑和檔名
         if not os.path.exists(save_path):
             os.makedirs(save_path)
+            
+        stock_name = self.model.get_stock_name(stock_id)
     
-        file_name = f"{stock_id}_{start_date}_to_{end_date}.xlsx"
+        file_name = f"{stock_id}({stock_name})_{start_date}_to_{end_date}.xlsx"
         file_path = os.path.join(save_path, file_name)
         self.model.save_to_excel(peak_trough_df, sma_values, weekly_sma_values, monthly_sma_values, last_ratio_0_618, latest_close_price, file_path)
         self.view.set_status("資料分析完成並已儲存")

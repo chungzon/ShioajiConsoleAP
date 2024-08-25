@@ -156,3 +156,8 @@ class RealtimeMonitorModel:
     def calculate_monthly_average(self, prices, window):
         monthly_prices = prices.resample('M').last()
         return self.calculate_moving_average(monthly_prices, window)
+    
+    # 漲停價、跌停價
+    def get_stock_limit_prices(self, sotckid):
+        contract = self.api.Contracts.Stocks[sotckid]
+        return contract['limit_up'], contract['limit_down']
