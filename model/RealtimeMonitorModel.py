@@ -101,6 +101,51 @@ class RealtimeMonitorModel:
     
         return pd.DataFrame(segments, columns=['Max_Date', 'Max_Value', 'Min_Date', 'Min_Value'] + columns)
     
+    def find_peaks_troughs_v34_real(self, df, stock_id, lastest_close_price):
+        segments = []
+        ratios = [0.618, 1]
+        columns = [f'Ratio_0.618', f'現價-0.618', f'Ratio_1', f'頸線', f'Head']
+    
+        i = 0
+        while i < len(df):
+            max_value = df['High'].iloc[i]
+            max_date = df['date'].iloc[i]
+        
+            j = i + 1
+            while j < len(df) and df['High'].iloc[j] >= max_value:
+                max_value = df['High'].iloc[j]
+                max_date = df['date'].iloc[j]
+                j += 1
+        
+            if j < len(df):
+                min_value = df['Low'].iloc[j]
+                min_date = df['date'].iloc[j]
+            else:
+                min_value = df['Low'].iloc[j-1]
+                min_date = df['date'].iloc[j-1]
+        
+            k = j
+            while k < len(df) and df['Low'].iloc[k] <= min_value:
+                min_value = df['Low'].iloc[k]
+                min_date = df['date'].iloc[k]
+                k += 1
+        
+            if max_value[0] > min_value[0]:
+                segment = [max_date, max_value, min_date, min_value]
+                for ratio in ratios:
+                    value = round(((max_value[0] - min_value[0]) / 2 * ratio + min_value[0]), 2);
+                    segment.append(value)
+                    result = (value-lastest_close_price).round(2)
+                    segment.append(result)
+                head = (max_value[0] - lastest_close_price).round(2)
+                segment.append(head)
+                segments.append(segment)
+                
+        
+            i = k
+    
+        return pd.DataFrame(segments, columns=['Max_Date', 'Max_Value', 'Min_Date', 'Min_Value'] + columns)
+    
      # 獲取最新收盤價
     def get_latest_close_price(self, stock_code):
         contract = self.api.Contracts.Stocks[stock_code]
@@ -161,3 +206,36 @@ class RealtimeMonitorModel:
     def get_stock_limit_prices(self, sotckid):
         contract = self.api.Contracts.Stocks[sotckid]
         return contract['limit_up'], contract['limit_down']
+
+    def get_realtime_snapshot(self, stock_id):
+        contracts = [self.api.Contracts.Stocks[stock_id]]
+        snapshots = self.api.snapshots(contracts)
+        return snapshots
+    
+    def snapshots_to_dataframe(self, snapshots):
+        data = []
+        # 官方寫法
+        # df = pd.DataFrame(s.__dict__ for s in snapshots)
+        # df.ts = pd.to_datetime(df.ts)
+        for snap in snapshots:
+            data.append({
+                'date': pd.to_datetime(snap.ts).strftime('%H:%M:%S'),  # 將 nanosecond timestamp 轉換為 datetime
+                'Open_Price': snap.open,
+                'High': snap.high,
+                'Low': snap.low,
+                'Close_Price': snap.close,
+                'Volume': snap.volume,
+                'Total_Volume': snap.total_volume,
+                'Amount': snap.amount,
+                'Total_Amount': snap.total_amount,
+                'Buy_Price': snap.buy_price,
+                'Buy_Volume': snap.buy_volume,
+                'Sell_Price': snap.sell_price,
+                'Sell_Volume': snap.sell_volume,
+                'Stock_ID': snap.code,
+                'Exchange': snap.exchange,
+                'ts': pd.to_datetime(snap.ts).strftime('%H:%M:%S'),
+            })
+
+        df = pd.DataFrame(data)
+        return df
