@@ -21,6 +21,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="controller\BacktestController.py" />
     <Compile Include="controller\DataAnalysisController.py" />
     <Compile Include="controller\RealtimeMonitorController.py" />
     <Compile Include="controller\DataDownloadController.py" />
@@ -32,6 +33,9 @@
     <Compile Include="goldline.py" />
     <Compile Include="Integrated.py" />
     <Compile Include="Main.py" />
+    <Compile Include="model\BacktestModel.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="model\DataAnalysisModel.py" />
     <Compile Include="model\RealtimeMonitorModel.py" />
     <Compile Include="model\DataDownloadModel.py" />
@@ -39,6 +43,9 @@
     <Compile Include="StockController.py" />
     <Compile Include="StockModel.py" />
     <Compile Include="StockView.py" />
+    <Compile Include="view\BacktestView.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="view\DataAnalysisView.py" />
     <Compile Include="view\DataDownloadView.py" />
     <Compile Include="view\RealtimeMonitorView.py" />
