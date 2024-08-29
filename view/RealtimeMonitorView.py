@@ -120,23 +120,25 @@ class RealtimeMonitorView(tk.Frame):
         return datetime.utcfromtimestamp(ts / 1e9).strftime('%H:%M:%S')
 
     def print_message(self):
-        def process():
+        # def process():
             stock_id = self.stock_id_entry.get()
             start_date = self.start_date_ticks_entry.get()
             end_date = self.end_date_ticks_entry.get()
         
             # 漲停價，跌停價
             self.limit_up, self.limit_down = self.model.get_stock_limit_prices(stock_id)
-
-            for i in range(0,4):
-                snapshots = self.model.get_realtime_snapshot(stock_id)
-                pd = self.model.snapshots_to_dataframe(snapshots)
-                for index, data in pd.iterrows():
-                    self.process_data(data, stock_id)
-                    print(f"------->{datetime.now()}")
-                time.sleep(60)
+            self.process_data(stock_id)
+        #     self.pd = pd.DataFrame(columns=['ts', 'Open_Price', 'High', 'Low', 'Close_Price', 'Volume', 'id', 'stock_id'])
+        #     for i in range(0,4):
                 
-        threading.Thread(target=process).start()
+        #         snapshots = self.model.get_realtime_snapshot(stock_id)
+        #         df = self.model.snapshots_to_dataframe(snapshots)
+        #         for index, data in df.iterrows():
+        #             self.process_data(data, stock_id)
+        #             print(f"------->{datetime.now()}")
+        #         time.sleep(10)
+                
+        # threading.Thread(target=process).start()
     
         
         #lastest_close_price = self.model.get_latest_close_price(stock_id)
@@ -144,84 +146,89 @@ class RealtimeMonitorView(tk.Frame):
         
 
 
-    def process_data(self, data, stock_id):
+    def process_data(self, stock_id):
         def update_ui():
             self.pd = pd.DataFrame(columns=['ts', 'Open_Price', 'High', 'Low', 'Close_Price', 'Volume', 'id', 'stock_id'])
-            data_dict = data.to_dict()
-            # 使用 from_records 方法创建 DataFrame
-            new_row = pd.DataFrame.from_records([data_dict])
-            self.pd = pd.concat([self.pd, new_row], ignore_index=True)
-            self.df = self.model.find_peaks_troughs_v34(self.pd, stock_id, data['Close_Price'])
+            for i in range(0,4):
+                snapshots = self.model.get_realtime_snapshot(stock_id)
+                datas = self.model.snapshots_to_dataframe(snapshots)
+                print(f"------->{datetime.now()}")
+                for index, data in datas.iterrows():
+                    data_dict = data.to_dict()
+                    # 使用 from_records 方法创建 DataFrame
+                    new_row = pd.DataFrame.from_records([data_dict])
+                    self.pd = pd.concat([self.pd, new_row], ignore_index=False)
+                    self.df = self.model.find_peaks_troughs_v34(self.pd, stock_id, data['Close_Price'])
                 
-            # 執行回測
-            self.now_price = data['Close_Price']
-            self.backtest_strategy(self.df['Ratio_0.618'].iloc[-1], data['Close_Price'], data['ts'], self.df['Max_Value'].iloc[-1], self.df['Min_Value'].iloc[-1])
+                    # 執行回測
+                    self.now_price = data['Close_Price']
+                    self.backtest_strategy(self.df['Ratio_0.618'].iloc[-1], data['Close_Price'], data['ts'], self.df['Max_Value'].iloc[-1], self.df['Min_Value'].iloc[-1])
                         
-            print(f"======{data['ts']} 目前損益:{self.total_profit}======")
+                    print(f"======{data['ts']} 目前損益:{self.total_profit}======")
         
-            # 添加排序後的欄位
-            self.df['現價-0.618(sorted)'] = self.df['現價-0.618'].sort_values(ascending=True).values
-            self.df['Head(sorted)'] = self.df['Head'].sort_values(ascending=True).values
-            self.df['頸線(sorted)'] = self.df['頸線'].sort_values(ascending=True).values
-            self.df['Ratio_0.618(sorted)'] = self.df['Ratio_0.618'].sort_values(ascending=True).values
-            self.df['Ratio_1(sorted)'] = self.df['Ratio_1'].sort_values(ascending=True).values
-            self.df['Max_Value(sorted)'] = self.df['Max_Value'].sort_values(ascending=True).values
+                    # 添加排序後的欄位
+                    self.df['現價-0.618(sorted)'] = self.df['現價-0.618'].sort_values(ascending=True).values
+                    self.df['Head(sorted)'] = self.df['Head'].sort_values(ascending=True).values
+                    self.df['頸線(sorted)'] = self.df['頸線'].sort_values(ascending=True).values
+                    self.df['Ratio_0.618(sorted)'] = self.df['Ratio_0.618'].sort_values(ascending=True).values
+                    self.df['Ratio_1(sorted)'] = self.df['Ratio_1'].sort_values(ascending=True).values
+                    self.df['Max_Value(sorted)'] = self.df['Max_Value'].sort_values(ascending=True).values
 
-            for col in self.df.columns:
-                if col not in ['Ratio_0.618(sorted)', 'Ratio_1(sorted)', 'Max_Value(sorted)']:
-                    self.tree.heading(col, text=col)
-                    self.tree.column(col, width=100, anchor='center')
+                    for col in self.df.columns:
+                        if col not in ['Ratio_0.618(sorted)', 'Ratio_1(sorted)', 'Max_Value(sorted)']:
+                            self.tree.heading(col, text=col)
+                            self.tree.column(col, width=100, anchor='center')
                         
-            for item in self.tree.get_children():
-                self.tree.delete(item)
+                    for item in self.tree.get_children():
+                        self.tree.delete(item)
 
-            for i, row in self.df.iterrows():
-                self.tree.insert('', 'end', values=list(row))
+                    for i, row in self.df.iterrows():
+                        self.tree.insert('', 'end', values=list(row))
 
-            # 繪製第一個圖表
-            self.ax1.clear()
-            self.ax1.plot(self.df['Max_Date'], self.df['現價-0.618'], label='現價-0.618', linestyle='-', color='blue')
-            self.ax1.scatter(self.df['Max_Date'], self.df['Head'], label='Head', color='red', marker='o')
-            self.ax1.scatter(self.df['Max_Date'], self.df['頸線'], label='頸線', color='green', marker='x')
+                    # 繪製第一個圖表
+                    self.ax1.clear()
+                    self.ax1.plot(self.df['Max_Date'], self.df['現價-0.618'], label='現價-0.618', linestyle='-', color='blue')
+                    self.ax1.scatter(self.df['Max_Date'], self.df['Head'], label='Head', color='red', marker='o')
+                    self.ax1.scatter(self.df['Max_Date'], self.df['頸線'], label='頸線', color='green', marker='x')
 
-            for i in range(len(self.df)):
-                self.ax1.text(self.df['Max_Date'][i], self.df['現價-0.618'][i], f'{self.df["Ratio_0.618"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
-                self.ax1.text(self.df['Max_Date'][i], self.df['Head'][i], f'{self.df["Max_Value"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
-                self.ax1.text(self.df['Max_Date'][i], self.df['頸線'][i], f'{self.df["Ratio_1"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
+                    for i in range(len(self.df)):
+                        self.ax1.text(self.df['Max_Date'][i], self.df['現價-0.618'][i], f'{self.df["Ratio_0.618"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
+                        self.ax1.text(self.df['Max_Date'][i], self.df['Head'][i], f'{self.df["Max_Value"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
+                        self.ax1.text(self.df['Max_Date'][i], self.df['頸線'][i], f'{self.df["Ratio_1"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
 
-            self.ax1.set_title('Stock Trends', fontproperties=zh_font)
-            self.ax1.set_xlabel('Date', fontproperties=zh_font)
-            self.ax1.set_ylabel('Value', fontproperties=zh_font)
-            self.ax1.legend(prop=zh_font)
-            self.canvas1.draw()
+                    self.ax1.set_title('Stock Trends', fontproperties=zh_font)
+                    self.ax1.set_xlabel('Date', fontproperties=zh_font)
+                    self.ax1.set_ylabel('Value', fontproperties=zh_font)
+                    self.ax1.legend(prop=zh_font)
+                    self.canvas1.draw()
 
-            # 排序數據
-            sorted_df = self.df.sort_values(by=['現價-0.618(sorted)'])
-            head_sorted = self.df.sort_values(by=['Head(sorted)'])
-            neck_sorted = self.df.sort_values(by=['頸線(sorted)'])
+                    # 排序數據
+                    sorted_df = self.df.sort_values(by=['現價-0.618(sorted)'])
+                    head_sorted = self.df.sort_values(by=['Head(sorted)'])
+                    neck_sorted = self.df.sort_values(by=['頸線(sorted)'])
 
-            # 繪製第二個圖表
-            self.ax2.clear()
-            self.ax2.plot(self.df['Max_Date'], self.df['現價-0.618(sorted)'], label='現價-0.618(sorted)', linestyle='-', color='blue')
-            self.ax2.scatter(self.df['Max_Date'], self.df['Head(sorted)'], label='Head(sorted)', color='red', marker='o')
-            self.ax2.scatter(self.df['Max_Date'], self.df['頸線(sorted)'], label='頸線(sorted)', color='green', marker='x')
+                    # 繪製第二個圖表
+                    self.ax2.clear()
+                    self.ax2.plot(self.df['Max_Date'], self.df['現價-0.618(sorted)'], label='現價-0.618(sorted)', linestyle='-', color='blue')
+                    self.ax2.scatter(self.df['Max_Date'], self.df['Head(sorted)'], label='Head(sorted)', color='red', marker='o')
+                    self.ax2.scatter(self.df['Max_Date'], self.df['頸線(sorted)'], label='頸線(sorted)', color='green', marker='x')
 
-            for i in range(len(self.df)):
-                self.ax2.text(self.df['Max_Date'][i], self.df['現價-0.618(sorted)'][i], f'{sorted_df["Ratio_0.618(sorted)"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
-                self.ax2.text(self.df['Max_Date'][i], self.df['Head(sorted)'][i], f'{head_sorted["Max_Value(sorted)"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
-                self.ax2.text(self.df['Max_Date'][i], self.df['頸線(sorted)'][i], f'{neck_sorted["Ratio_1(sorted)"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
+                    for i in range(len(self.df)):
+                        self.ax2.text(self.df['Max_Date'][i], self.df['現價-0.618(sorted)'][i], f'{sorted_df["Ratio_0.618(sorted)"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
+                        self.ax2.text(self.df['Max_Date'][i], self.df['Head(sorted)'][i], f'{head_sorted["Max_Value(sorted)"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
+                        self.ax2.text(self.df['Max_Date'][i], self.df['頸線(sorted)'][i], f'{neck_sorted["Ratio_1(sorted)"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
 
-            self.ax2.set_title('Sorted Stock Trends', fontproperties=zh_font)
-            self.ax2.set_xlabel('Date', fontproperties=zh_font)
-            self.ax2.set_ylabel('Value', fontproperties=zh_font)
-            self.ax2.legend(prop=zh_font)
-            self.canvas2.draw()
+                    self.ax2.set_title('Sorted Stock Trends', fontproperties=zh_font)
+                    self.ax2.set_xlabel('Date', fontproperties=zh_font)
+                    self.ax2.set_ylabel('Value', fontproperties=zh_font)
+                    self.ax2.legend(prop=zh_font)
+                    self.canvas2.draw()
                 
-            self.table.redrawTable()
-            self.init_moving_average(stock_id, data['Close_Price'])
+                    self.table.redrawTable()
+                    self.init_moving_average(stock_id, data['Close_Price'])
 
-            # 延遲1秒鐘
-            time.sleep(0.1)
+                    # 延遲1秒鐘
+            time.sleep(5)
             
         # 啟動新執行緒來更新UI，防止卡住
         threading.Thread(target=update_ui).start()

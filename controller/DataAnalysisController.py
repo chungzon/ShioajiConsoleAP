@@ -1,4 +1,5 @@
-﻿from datetime import datetime, timedelta
+﻿from asyncio.windows_events import NULL
+from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 from tkinter import filedialog, messagebox
@@ -157,6 +158,8 @@ class DataAnalysisController:
             os.makedirs(save_path)
             
         stock_name = self.model.get_stock_name(stock_id)
+        if stock_name is not NULL:
+            stock_name = stock_name.replace('*', '-')
     
         file_name = f"{stock_id}({stock_name})_{start_date}_to_{end_date}.xlsx"
         file_path = os.path.join(save_path, file_name)
