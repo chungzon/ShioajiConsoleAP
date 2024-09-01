@@ -163,7 +163,7 @@ class RealtimeMonitorView(tk.Frame):
                 
             # 執行回測
             self.now_price = data['close']
-            # self.backtest_strategy(self.df['Ratio_0.618'].iloc[-1], data['Close_Price'], data['ts'], self.df['Max_Value'].iloc[-1], self.df['Min_Value'].iloc[-1])
+            self.backtest_strategy(self.df['Ratio_0.618'].iloc[-1], data['close'], data['ts'], self.df['Max_Value'].iloc[-1], self.df['Min_Value'].iloc[-1])
                         
             print(f"======{data['ts']} 目前損益:{self.total_profit}======")
         
@@ -350,7 +350,7 @@ class RealtimeMonitorView(tk.Frame):
         
     def backtest_strategy(self, buy_price, now_price, date, max_val, min_val):
         if self.pds is not None:
-            tmp = self.pds['Close_Price'].sort_values(ascending=True)
+            tmp = self.pds['close'].sort_values(ascending=True)
             if tmp.size > 1:        
                 self.max_price = round(tmp.iloc[-1], 2)
             
