@@ -63,26 +63,26 @@ class RealtimeMonitorModel:
     
         i = 0
         while i < len(df):
-            max_value = df['High'].iloc[i]
-            max_date = df['date'].iloc[i]
+            max_value = df['high'].iloc[i]
+            max_date =  pd.to_datetime(df['ts'].iloc[i]).strftime('%H:%M:%S')
         
             j = i + 1
-            while j < len(df) and df['High'].iloc[j] >= max_value:
-                max_value = df['High'].iloc[j]
-                max_date = df['date'].iloc[j]
+            while j < len(df) and df['high'].iloc[j] >= max_value:
+                max_value = df['high'].iloc[j]
+                max_date = pd.to_datetime(df['ts'].iloc[j]).strftime('%H:%M:%S')
                 j += 1
         
             if j < len(df):
-                min_value = df['Low'].iloc[j]
-                min_date = df['date'].iloc[j]
+                min_value = df['low'].iloc[j]
+                min_date = pd.to_datetime(df['ts'].iloc[j]).strftime('%H:%M:%S')
             else:
-                min_value = df['Low'].iloc[j-1]
-                min_date = df['date'].iloc[j-1]
+                min_value = df['low'].iloc[j-1]
+                min_date = pd.to_datetime(df['ts'].iloc[j-1]).strftime('%H:%M:%S')
         
             k = j
-            while k < len(df) and df['Low'].iloc[k] <= min_value:
-                min_value = df['Low'].iloc[k]
-                min_date = df['date'].iloc[k]
+            while k < len(df) and df['low'].iloc[k] <= min_value:
+                min_value = df['low'].iloc[k]
+                min_date = pd.to_datetime(df['ts'].iloc[k]).strftime('%H:%M:%S')
                 k += 1
         
             if max_value > min_value:
@@ -96,7 +96,6 @@ class RealtimeMonitorModel:
                 segment.append(head)
                 segments.append(segment)
                 
-        
             i = k
     
         return pd.DataFrame(segments, columns=['Max_Date', 'Max_Value', 'Min_Date', 'Min_Value'] + columns)
@@ -109,25 +108,25 @@ class RealtimeMonitorModel:
         i = 0
         while i < len(df):
             max_value = df['High'].iloc[i]
-            max_date = df['date'].iloc[i]
+            max_date = df['ts'].iloc[i]
         
             j = i + 1
             while j < len(df) and df['High'].iloc[j] >= max_value:
                 max_value = df['High'].iloc[j]
-                max_date = df['date'].iloc[j]
+                max_date = df['ts'].iloc[j]
                 j += 1
         
             if j < len(df):
                 min_value = df['Low'].iloc[j]
-                min_date = df['date'].iloc[j]
+                min_date = df['ts'].iloc[j]
             else:
                 min_value = df['Low'].iloc[j-1]
-                min_date = df['date'].iloc[j-1]
+                min_date = df['ts'].iloc[j-1]
         
             k = j
             while k < len(df) and df['Low'].iloc[k] <= min_value:
                 min_value = df['Low'].iloc[k]
-                min_date = df['date'].iloc[k]
+                min_date = df['ts'].iloc[k]
                 k += 1
         
             if max_value[0] > min_value[0]:

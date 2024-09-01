@@ -120,25 +120,25 @@ class RealtimeMonitorView(tk.Frame):
         return datetime.utcfromtimestamp(ts / 1e9).strftime('%H:%M:%S')
 
     def print_message(self):
-        # def process():
+        def process():
             stock_id = self.stock_id_entry.get()
             start_date = self.start_date_ticks_entry.get()
             end_date = self.end_date_ticks_entry.get()
         
             # 漲停價，跌停價
             self.limit_up, self.limit_down = self.model.get_stock_limit_prices(stock_id)
-            self.process_data(stock_id)
-        #     self.pd = pd.DataFrame(columns=['ts', 'Open_Price', 'High', 'Low', 'Close_Price', 'Volume', 'id', 'stock_id'])
-        #     for i in range(0,4):
+            # self.process_data(stock_id)
+            self.pds = pd.DataFrame(columns=['ts', 'Open_Price', 'High', 'Low', 'Close_Price', 'Volume', 'id', 'stock_id'])
+            while True:
+                # self.pds = pd.DataFrame(columns=['ts', 'Open_Price', 'High', 'Low', 'Close_Price', 'Volume', 'id', 'stock_id'])
+                snapshots = self.model.get_realtime_snapshot(stock_id)
+                datas = pd.DataFrame(s.__dict__ for s in snapshots)
+                for index, data in datas.iterrows():
+                    self.process_data(data, stock_id)
+                    print(f"------->{datetime.now()}")
+                time.sleep(2)
                 
-        #         snapshots = self.model.get_realtime_snapshot(stock_id)
-        #         df = self.model.snapshots_to_dataframe(snapshots)
-        #         for index, data in df.iterrows():
-        #             self.process_data(data, stock_id)
-        #             print(f"------->{datetime.now()}")
-        #         time.sleep(10)
-                
-        # threading.Thread(target=process).start()
+        threading.Thread(target=process).start()
     
         
         #lastest_close_price = self.model.get_latest_close_price(stock_id)
@@ -146,92 +146,94 @@ class RealtimeMonitorView(tk.Frame):
         
 
 
-    def process_data(self, stock_id):
-        def update_ui():
-            self.pd = pd.DataFrame(columns=['ts', 'Open_Price', 'High', 'Low', 'Close_Price', 'Volume', 'id', 'stock_id'])
-            for i in range(0,4):
-                snapshots = self.model.get_realtime_snapshot(stock_id)
-                datas = self.model.snapshots_to_dataframe(snapshots)
-                print(f"------->{datetime.now()}")
-                for index, data in datas.iterrows():
-                    data_dict = data.to_dict()
+    def process_data(self, data, stock_id):
+        # def update_ui():
+            
+            # for i in range(0,4):
+                # snapshots = self.model.get_realtime_snapshot(stock_id)
+                # datas = pd.DataFrame(s.__dict__ for s in snapshots)
+                # datas = self.model.snapshots_to_dataframe(snapshots)
+                # print(f"------->{datetime.now()}")
+                # for index, data in datas.iterrows():
+            data_dict = data.to_dict()
                     # 使用 from_records 方法创建 DataFrame
-                    new_row = pd.DataFrame.from_records([data_dict])
-                    self.pd = pd.concat([self.pd, new_row], ignore_index=False)
-                    self.df = self.model.find_peaks_troughs_v34(self.pd, stock_id, data['Close_Price'])
+            new_row = pd.DataFrame.from_records([data_dict])
+            self.pds = pd.concat([self.pds, new_row], ignore_index=False)
+            self.df = self.model.find_peaks_troughs_v34(self.pds, stock_id, data['close'])
                 
-                    # 執行回測
-                    self.now_price = data['Close_Price']
-                    self.backtest_strategy(self.df['Ratio_0.618'].iloc[-1], data['Close_Price'], data['ts'], self.df['Max_Value'].iloc[-1], self.df['Min_Value'].iloc[-1])
+            # 執行回測
+            self.now_price = data['close']
+            # self.backtest_strategy(self.df['Ratio_0.618'].iloc[-1], data['Close_Price'], data['ts'], self.df['Max_Value'].iloc[-1], self.df['Min_Value'].iloc[-1])
                         
-                    print(f"======{data['ts']} 目前損益:{self.total_profit}======")
+            print(f"======{data['ts']} 目前損益:{self.total_profit}======")
         
-                    # 添加排序後的欄位
-                    self.df['現價-0.618(sorted)'] = self.df['現價-0.618'].sort_values(ascending=True).values
-                    self.df['Head(sorted)'] = self.df['Head'].sort_values(ascending=True).values
-                    self.df['頸線(sorted)'] = self.df['頸線'].sort_values(ascending=True).values
-                    self.df['Ratio_0.618(sorted)'] = self.df['Ratio_0.618'].sort_values(ascending=True).values
-                    self.df['Ratio_1(sorted)'] = self.df['Ratio_1'].sort_values(ascending=True).values
-                    self.df['Max_Value(sorted)'] = self.df['Max_Value'].sort_values(ascending=True).values
+            # 添加排序後的欄位
+            self.df['現價-0.618(sorted)'] = self.df['現價-0.618'].sort_values(ascending=True).values
+            self.df['Head(sorted)'] = self.df['Head'].sort_values(ascending=True).values
+            self.df['頸線(sorted)'] = self.df['頸線'].sort_values(ascending=True).values
+            self.df['Ratio_0.618(sorted)'] = self.df['Ratio_0.618'].sort_values(ascending=True).values
+            self.df['Ratio_1(sorted)'] = self.df['Ratio_1'].sort_values(ascending=True).values
+            self.df['Max_Value(sorted)'] = self.df['Max_Value'].sort_values(ascending=True).values
 
-                    for col in self.df.columns:
-                        if col not in ['Ratio_0.618(sorted)', 'Ratio_1(sorted)', 'Max_Value(sorted)']:
-                            self.tree.heading(col, text=col)
-                            self.tree.column(col, width=100, anchor='center')
+            for col in self.df.columns:
+                if col not in ['Ratio_0.618(sorted)', 'Ratio_1(sorted)', 'Max_Value(sorted)']:
+                    self.tree.heading(col, text=col)
+                    self.tree.column(col, width=100, anchor='center')
                         
-                    for item in self.tree.get_children():
-                        self.tree.delete(item)
+            for item in self.tree.get_children():
+                self.tree.delete(item)
 
-                    for i, row in self.df.iterrows():
-                        self.tree.insert('', 'end', values=list(row))
+            for i, row in self.df.iterrows():
+                self.tree.insert('', 'end', values=list(row))
 
-                    # 繪製第一個圖表
-                    self.ax1.clear()
-                    self.ax1.plot(self.df['Max_Date'], self.df['現價-0.618'], label='現價-0.618', linestyle='-', color='blue')
-                    self.ax1.scatter(self.df['Max_Date'], self.df['Head'], label='Head', color='red', marker='o')
-                    self.ax1.scatter(self.df['Max_Date'], self.df['頸線'], label='頸線', color='green', marker='x')
+            # 繪製第一個圖表
+            self.ax1.clear()
+            self.ax1.plot(self.df['Max_Date'], self.df['現價-0.618'], label='現價-0.618', linestyle='-', color='blue')
+            self.ax1.scatter(self.df['Max_Date'], self.df['Head'], label='Head', color='red', marker='o')
+            self.ax1.scatter(self.df['Max_Date'], self.df['頸線'], label='頸線', color='green', marker='x')
 
-                    for i in range(len(self.df)):
-                        self.ax1.text(self.df['Max_Date'][i], self.df['現價-0.618'][i], f'{self.df["Ratio_0.618"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
-                        self.ax1.text(self.df['Max_Date'][i], self.df['Head'][i], f'{self.df["Max_Value"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
-                        self.ax1.text(self.df['Max_Date'][i], self.df['頸線'][i], f'{self.df["Ratio_1"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
+            for i in range(len(self.df)):
+                self.ax1.text(self.df['Max_Date'][i], self.df['現價-0.618'][i], f'{self.df["Ratio_0.618"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
+                self.ax1.text(self.df['Max_Date'][i], self.df['Head'][i], f'{self.df["Max_Value"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
+                self.ax1.text(self.df['Max_Date'][i], self.df['頸線'][i], f'{self.df["Ratio_1"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
 
-                    self.ax1.set_title('Stock Trends', fontproperties=zh_font)
-                    self.ax1.set_xlabel('Date', fontproperties=zh_font)
-                    self.ax1.set_ylabel('Value', fontproperties=zh_font)
-                    self.ax1.legend(prop=zh_font)
-                    self.canvas1.draw()
+            self.ax1.set_title('Stock Trends', fontproperties=zh_font)
+            self.ax1.set_xlabel('Date', fontproperties=zh_font)
+            self.ax1.set_ylabel('Value', fontproperties=zh_font)
+            self.ax1.legend(prop=zh_font)
+            self.canvas1.draw()
 
-                    # 排序數據
-                    sorted_df = self.df.sort_values(by=['現價-0.618(sorted)'])
-                    head_sorted = self.df.sort_values(by=['Head(sorted)'])
-                    neck_sorted = self.df.sort_values(by=['頸線(sorted)'])
+            # 排序數據
+            sorted_df = self.df.sort_values(by=['現價-0.618(sorted)'])
+            head_sorted = self.df.sort_values(by=['Head(sorted)'])
+            neck_sorted = self.df.sort_values(by=['頸線(sorted)'])
 
-                    # 繪製第二個圖表
-                    self.ax2.clear()
-                    self.ax2.plot(self.df['Max_Date'], self.df['現價-0.618(sorted)'], label='現價-0.618(sorted)', linestyle='-', color='blue')
-                    self.ax2.scatter(self.df['Max_Date'], self.df['Head(sorted)'], label='Head(sorted)', color='red', marker='o')
-                    self.ax2.scatter(self.df['Max_Date'], self.df['頸線(sorted)'], label='頸線(sorted)', color='green', marker='x')
+            # 繪製第二個圖表
+            self.ax2.clear()
+            self.ax2.plot(self.df['Max_Date'], self.df['現價-0.618(sorted)'], label='現價-0.618(sorted)', linestyle='-', color='blue')
+            self.ax2.scatter(self.df['Max_Date'], self.df['Head(sorted)'], label='Head(sorted)', color='red', marker='o')
+            self.ax2.scatter(self.df['Max_Date'], self.df['頸線(sorted)'], label='頸線(sorted)', color='green', marker='x')
 
-                    for i in range(len(self.df)):
-                        self.ax2.text(self.df['Max_Date'][i], self.df['現價-0.618(sorted)'][i], f'{sorted_df["Ratio_0.618(sorted)"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
-                        self.ax2.text(self.df['Max_Date'][i], self.df['Head(sorted)'][i], f'{head_sorted["Max_Value(sorted)"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
-                        self.ax2.text(self.df['Max_Date'][i], self.df['頸線(sorted)'][i], f'{neck_sorted["Ratio_1(sorted)"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
+            for i in range(len(self.df)):
+                self.ax2.text(self.df['Max_Date'][i], self.df['現價-0.618(sorted)'][i], f'{sorted_df["Ratio_0.618(sorted)"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
+                self.ax2.text(self.df['Max_Date'][i], self.df['Head(sorted)'][i], f'{head_sorted["Max_Value(sorted)"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
+                self.ax2.text(self.df['Max_Date'][i], self.df['頸線(sorted)'][i], f'{neck_sorted["Ratio_1(sorted)"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
 
-                    self.ax2.set_title('Sorted Stock Trends', fontproperties=zh_font)
-                    self.ax2.set_xlabel('Date', fontproperties=zh_font)
-                    self.ax2.set_ylabel('Value', fontproperties=zh_font)
-                    self.ax2.legend(prop=zh_font)
-                    self.canvas2.draw()
+            self.ax2.set_title('Sorted Stock Trends', fontproperties=zh_font)
+            self.ax2.set_xlabel('Date', fontproperties=zh_font)
+            self.ax2.set_ylabel('Value', fontproperties=zh_font)
+            self.ax2.legend(prop=zh_font)
+            self.canvas2.draw()
                 
-                    self.table.redrawTable()
-                    self.init_moving_average(stock_id, data['Close_Price'])
-
+            self.table.redrawTable()
+            self.init_moving_average(stock_id, data['close'])
+                    
+           
                     # 延遲1秒鐘
-            time.sleep(5)
+            # time.sleep(5)
             
         # 啟動新執行緒來更新UI，防止卡住
-        threading.Thread(target=update_ui).start()
+        # threading.Thread(target=update_ui).start()
  
     def treeview_sort_column(self, tv, col, reverse):
         l = [(tv.set(k, col), k) for k in tv.get_children('')]
@@ -250,9 +252,9 @@ class RealtimeMonitorView(tk.Frame):
             lastest_close_price = round(lastest_close_price, 2)
         # 更新下方表格的数据
         # 分均線
-        sma3 = round(self.model.calculate_moving_average(self.pd['Close_Price'], 3).iloc[-1], 2)
-        sma5 = round(self.model.calculate_moving_average(self.pd['Close_Price'], 5).iloc[-1], 2)
-        sma1 = round(self.model.calculate_moving_average(self.pd['Close_Price'], 1).iloc[-1], 2)
+        sma3 = round(self.model.calculate_moving_average(self.pds['Close_Price'], 3).iloc[-1], 2)
+        sma5 = round(self.model.calculate_moving_average(self.pds['Close_Price'], 5).iloc[-1], 2)
+        sma1 = round(self.model.calculate_moving_average(self.pds['Close_Price'], 1).iloc[-1], 2)
         
         if self.df['Ratio_0.618'] is not None and self.df['Ratio_0.618'] is not empty:
             last_ratio_0_618 = round(self.df['Ratio_0.618'].iloc[-1], 2)
@@ -299,9 +301,9 @@ class RealtimeMonitorView(tk.Frame):
         # 獲取每日收盤價
         close_prices = self.model.get_daily_close_prices_from_db(stock_id, 120)
         
-        self.update_one_min_k_ma(self.pd['Close_Price'], lastest_close_price)
-        self.update_three_min_k_ma(self.pd['Close_Price'], lastest_close_price)
-        self.update_five_min_k_ma(self.pd['Close_Price'], lastest_close_price)
+        self.update_one_min_k_ma(self.pds['close'], lastest_close_price)
+        self.update_three_min_k_ma(self.pds['close'], lastest_close_price)
+        self.update_five_min_k_ma(self.pds['close'], lastest_close_price)
  
     def update_one_min_k_ma(self, df, lastest_close_price):
         ma_5t, ma_10t, ma_20t, ma_60t, ma_120t= self.model.calculate_ma_values(df, k_type='1min')
@@ -347,9 +349,10 @@ class RealtimeMonitorView(tk.Frame):
         })
         
     def backtest_strategy(self, buy_price, now_price, date, max_val, min_val):
-        if pd.notnull:
-            tmp = self.pd['Close_Price'].sort_values(ascending=True)
-            self.max_price = round(tmp.iloc[-1], 2)
+        if self.pds is not None:
+            tmp = self.pds['Close_Price'].sort_values(ascending=True)
+            if tmp.size > 1:        
+                self.max_price = round(tmp.iloc[-1], 2)
             
         cost = 0
         profit = 0
