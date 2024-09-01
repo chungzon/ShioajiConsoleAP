@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from matplotlib import font_manager
 from tkintertable import TableCanvas, TableModel
 import threading
+import random
 
 font_path = 'C:/Windows/Fonts/msjh.ttc'  # 微軟正黑體字體路徑
 zh_font = font_manager.FontProperties(fname=font_path)
@@ -128,7 +129,9 @@ class RealtimeMonitorView(tk.Frame):
             # 漲停價，跌停價
             self.limit_up, self.limit_down = self.model.get_stock_limit_prices(stock_id)
             # self.process_data(stock_id)
-            self.pds = pd.DataFrame(columns=['ts', 'Open_Price', 'High', 'Low', 'Close_Price', 'Volume', 'id', 'stock_id'])
+            self.pds = pd.DataFrame(columns=['ts', 'open', 'high', 'low', 'close', 'volumn', 'id', 'stock_id'])
+            # snapshots = self.generate_waveform_snapshots('6877', num_records=100)
+            # datas = pd.DataFrame(snapshots)
             while True:
                 # self.pds = pd.DataFrame(columns=['ts', 'Open_Price', 'High', 'Low', 'Close_Price', 'Volume', 'id', 'stock_id'])
                 snapshots = self.model.get_realtime_snapshot(stock_id)
@@ -144,7 +147,36 @@ class RealtimeMonitorView(tk.Frame):
         #lastest_close_price = self.model.get_latest_close_price(stock_id)
         #當有新的一筆分K資料，重新計算數據，更新圖表和表格
         
+    def generate_waveform_snapshots(self, stock_id, num_records=100):
+        snapshots = []
+        base_time = datetime.now()
+        base_price = 100
+        volumn = 5000
 
+        for i in range(num_records):
+            time = base_time + timedelta(seconds=i * 2)
+            price_change = random.uniform(-2, 2)  # 隨機價格波動
+            open_price = base_price + price_change
+            high_price = open_price + random.uniform(0, 1)
+            low_price = open_price - random.uniform(0, 1)
+            close_price = random.choice([high_price, low_price, open_price])
+            volumn += random.randint(-500, 500)
+
+            snapshot = {
+                'ts': time,
+                'open': round(open_price, 2),
+                'high': round(high_price, 2),
+                'low': round(low_price, 2),
+                'close': round(close_price, 2),
+                'volumn': max(volumn, 0),
+                'id': i,
+                'stock_id': stock_id
+            }
+
+            snapshots.append(snapshot)
+            base_price = close_price  # 下一筆數據以當前收盤價為基礎
+
+        return snapshots
 
     def process_data(self, data, stock_id):
         # def update_ui():
@@ -252,9 +284,9 @@ class RealtimeMonitorView(tk.Frame):
             lastest_close_price = round(lastest_close_price, 2)
         # 更新下方表格的数据
         # 分均線
-        sma3 = round(self.model.calculate_moving_average(self.pds['Close_Price'], 3).iloc[-1], 2)
-        sma5 = round(self.model.calculate_moving_average(self.pds['Close_Price'], 5).iloc[-1], 2)
-        sma1 = round(self.model.calculate_moving_average(self.pds['Close_Price'], 1).iloc[-1], 2)
+        sma3 = round(self.model.calculate_moving_average(self.pds['close'], 3).iloc[-1], 2)
+        sma5 = round(self.model.calculate_moving_average(self.pds['close'], 5).iloc[-1], 2)
+        sma1 = round(self.model.calculate_moving_average(self.pds['close'], 1).iloc[-1], 2)
         
         if self.df['Ratio_0.618'] is not None and self.df['Ratio_0.618'] is not empty:
             last_ratio_0_618 = round(self.df['Ratio_0.618'].iloc[-1], 2)
