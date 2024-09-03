@@ -168,9 +168,9 @@ class BacktestView(tk.Frame):
                 self.ax1.scatter(self.df['Max_Date'], self.df['頸線'], label='頸線', color='green', marker='x')
 
                 for i in range(len(self.df)):
-                    self.ax1.text(self.df['Max_Date'][i], self.df['現價-0.618'][i], f'{self.df["Ratio_0.618"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
-                    self.ax1.text(self.df['Max_Date'][i], self.df['Head'][i], f'{self.df["Max_Value"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
-                    self.ax1.text(self.df['Max_Date'][i], self.df['頸線'][i], f'{self.df["Ratio_1"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
+                    self.ax1.text(self.df['Max_Date'][i], self.df['現價-0.618'][i], f'{self.df["Ratio_0.618"][i]:.2f}', ha='center', va='bottom', color='blue', fontproperties=zh_font)
+                    self.ax1.text(self.df['Max_Date'][i], self.df['Head'][i], f'{self.df["Max_Value"][i]:.2f}', ha='right', va='top', color='red', fontproperties=zh_font)
+                    self.ax1.text(self.df['Max_Date'][i], self.df['頸線'][i], f'{self.df["Ratio_1"][i]:.2f}', ha='left', va='top', color='green', fontproperties=zh_font)
 
                 self.ax1.set_title('Stock Trends', fontproperties=zh_font)
                 self.ax1.set_xlabel('Date', fontproperties=zh_font)
@@ -190,9 +190,9 @@ class BacktestView(tk.Frame):
                 self.ax2.scatter(self.df['Max_Date'], self.df['頸線(sorted)'], label='頸線(sorted)', color='green', marker='x')
 
                 for i in range(len(self.df)):
-                    self.ax2.text(self.df['Max_Date'][i], self.df['現價-0.618(sorted)'][i], f'{sorted_df["Ratio_0.618(sorted)"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
-                    self.ax2.text(self.df['Max_Date'][i], self.df['Head(sorted)'][i], f'{head_sorted["Max_Value(sorted)"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
-                    self.ax2.text(self.df['Max_Date'][i], self.df['頸線(sorted)'][i], f'{neck_sorted["Ratio_1(sorted)"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
+                    self.ax2.text(self.df['Max_Date'][i], self.df['現價-0.618(sorted)'][i], f'{sorted_df["Ratio_0.618(sorted)"][i]:.2f}', ha='center', va='bottom', color='blue', fontproperties=zh_font)
+                    self.ax2.text(self.df['Max_Date'][i], self.df['Head(sorted)'][i], f'{head_sorted["Max_Value(sorted)"][i]:.2f}', ha='right', va='top', color='red',fontproperties=zh_font)
+                    self.ax2.text(self.df['Max_Date'][i], self.df['頸線(sorted)'][i], f'{neck_sorted["Ratio_1(sorted)"][i]:.2f}', ha='left', va='top', color='green',fontproperties=zh_font)
 
                 self.ax2.set_title('Sorted Stock Trends', fontproperties=zh_font)
                 self.ax2.set_xlabel('Date', fontproperties=zh_font)
