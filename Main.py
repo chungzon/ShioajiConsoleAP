@@ -13,6 +13,9 @@ from controller.RealtimeMonitorController import RealtimeMonitorController
 from view.BacktestView import BacktestView
 from model.BacktestModel import BacktestModel
 from controller.BacktestController import BacktestController
+from view.DailyClosePriceDownloadView import DailyClosePriceDownloadView
+from model.DailyClosePriceDownloadModel import DailyClosePriceDownloadModel
+from controller.DailyClosePriceDownloadController import DailyClosePriceDownloadController
 import shioaji as sj
 
 class MainApplication(tk.Tk):
@@ -52,10 +55,15 @@ class MainApplication(tk.Tk):
         self.backtest_view = BacktestView(self.tab_control, None, self.backtest_model)
         self.backtest_controller = BacktestController(self.backtest_model, self.backtest_view)
 
+        self.daily_close_model = DailyClosePriceDownloadModel(self.api)
+        self.daily_close_view = DailyClosePriceDownloadView(self.tab_control, None)
+        self.daily_close_controller = DailyClosePriceDownloadController(self.daily_close_model, self.daily_close_view)
+
         self.tab_control.add(self.data_analysis_view, text="資料分析")
         self.tab_control.add(self.data_download_view, text="資料下載")
         self.tab_control.add(self.realtime_monitor_view, text="即時監控")
         self.tab_control.add(self.backtest_view, text="資料回測")
+        self.tab_control.add(self.daily_close_view, text="年度交易量下載")
         self.tab_control.pack(expand=1, fill="both")
 
 if __name__ == "__main__":

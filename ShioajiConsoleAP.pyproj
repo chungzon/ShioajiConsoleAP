@@ -23,6 +23,7 @@
   <ItemGroup>
     <Compile Include="controller\BacktestController.py" />
     <Compile Include="controller\DataAnalysisController.py" />
+    <Compile Include="controller\DailyClosePriceDownloadController.py" />
     <Compile Include="controller\RealtimeMonitorController.py" />
     <Compile Include="controller\DataDownloadController.py" />
     <Compile Include="DailyAverage.py" />
@@ -37,6 +38,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="model\DataAnalysisModel.py" />
+    <Compile Include="model\DailyClosePriceDownloadModel.py" />
     <Compile Include="model\RealtimeMonitorModel.py" />
     <Compile Include="model\DataDownloadModel.py" />
     <Compile Include="ShioajiConsoleAP.py" />
@@ -47,13 +49,18 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="view\DataAnalysisView.py" />
+    <Compile Include="view\DailyClosePriceDownloadView.py" />
     <Compile Include="view\DataDownloadView.py" />
     <Compile Include="view\RealtimeMonitorView.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="model\" />
+    <Folder Include="resource\" />
     <Folder Include="view\" />
     <Folder Include="controller\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="resource\SSTK_VOL_FY_113.csv" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
