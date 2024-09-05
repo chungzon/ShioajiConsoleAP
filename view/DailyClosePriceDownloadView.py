@@ -47,10 +47,10 @@ class DailyClosePriceDownloadView(tk.Frame):
 
         # 重置進度條
         self.update_progress(0)
-        self.download_daily_close_price()
+        self.controller.download_daily_close_price(start_date, end_date)
 
-    def download_daily_close_price(self):
-        self.controller.download_daily_close_price()
+    def download_daily_close_price(self, start_date, end_date):
+        self.model.download_daily_close_top30_stock(start_date, end_date)
 
     def update_progress(self, value):
         self.progress_var.set(value)
