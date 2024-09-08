@@ -17,6 +17,22 @@ font_path = 'C:/Windows/Fonts/msjh.ttc'  # 微軟正黑體字體路徑
 zh_font = font_manager.FontProperties(fname=font_path)
 
 class BacktestView(tk.Frame):
+    # 依照證交所公式取價格
+    def format_price(self, price):
+        if price < 10:
+            return f'{price:.2f}'
+        elif 10 <= price < 50:
+            return f'{price:.2f}'
+        elif 50 <= price < 100:
+            return f'{price:.1f}'
+        elif 100 <= price < 500:
+            return f'{price:.1f}'
+        elif 500 <= price < 1000:
+            return f'{price:.0f}'
+        else:
+            return f'{price:.0f}'
+    
+
     def __init__(self, parent, controller, model):
         tk.Frame.__init__(self, parent)
         self.controller = controller
@@ -34,9 +50,10 @@ class BacktestView(tk.Frame):
         self.buy_price = 0
         self.sell_price = 0
 
+
     def init_ui(self):
         # 左側主表格
-        self.tree = ttk.Treeview(self, columns=['Max_Date', 'Max_Value', 'Min_Date', 'Min_Value', 'Ratio_0.618', '現價-0.618', 'Ratio_1', '頸線', 'Head', '現價-0.618(sorted)', 'Head(sorted)', '頸線(sorted)'], show='headings')
+        self.tree = ttk.Treeview(self, columns=['Max_Date', 'Max_Value', 'Min_Date', 'Min_Value', 'Ratio_0.618', '頸線', 'Head', '現價-0.618', 'Ratio_1', '現價-0.618(sorted)', 'Head(sorted)', '頸線(sorted)'], show='headings')
         
         for col in self.tree["columns"]:
             self.tree.heading(col, text=col, command=lambda _col=col: self.treeview_sort_column(self.tree, _col, False))
@@ -125,9 +142,17 @@ class BacktestView(tk.Frame):
         #當有新的一筆分K資料，重新計算數據，更新圖表和表格
         self.process_data(sim_pd, stock_id)
 
+ # 添加這個新方法
+    def price_formatter(self, x, p):
+        return f'{x:.2f}' if x < 50 else (f'{x:.1f}' if x < 500 else f'{x:.0f}')
 
     def process_data(self, sim_pd, stock_id):
         def update_ui():
+            head_xytext = (0, 10)  # 向上偏移10個點
+            ratio_618_xytext = (0, -10)  # 向下偏移10個點
+            head_va = 'bottom'
+            ratio_618_va = 'top'
+
             self.pd = pd.DataFrame(columns=['ts', 'Open_Price', 'High', 'Low', 'Close_Price', 'Volume', 'id', 'stock_id'])
 
             for index, data in sim_pd.iterrows():
@@ -150,27 +175,57 @@ class BacktestView(tk.Frame):
                 self.df['Ratio_1(sorted)'] = self.df['Ratio_1'].sort_values(ascending=True).values
                 self.df['Max_Value(sorted)'] = self.df['Max_Value'].sort_values(ascending=True).values
 
-                for col in self.df.columns:
-                    if col not in ['Ratio_0.618(sorted)', 'Ratio_1(sorted)', 'Max_Value(sorted)']:
-                        self.tree.heading(col, text=col)
-                        self.tree.column(col, width=100, anchor='center')
-                        
-                for item in self.tree.get_children():
-                    self.tree.delete(item)
+            # 更新 Treeview
+            for col in self.df.columns:
+                if col not in ['Ratio_0.618(sorted)', 'Ratio_1(sorted)', 'Max_Value(sorted)']:
+                    self.tree.heading(col, text=col)
+                    self.tree.column(col, width=100, anchor='center')
+                    
+            for item in self.tree.get_children():
+                self.tree.delete(item)
 
-                for i, row in self.df.iterrows():
-                    self.tree.insert('', 'end', values=list(row))
+            for i, row in self.df.iterrows():
+                formatted_row = []
+                for value in row:
+                    if isinstance(value, (int, float)):
+                        formatted_row.append(self.format_price(value))
+                    else:
+                        formatted_row.append(value)
+                self.tree.insert('', 'end', values=formatted_row)
 
                 # 繪製第一個圖表
                 self.ax1.clear()
-                self.ax1.plot(self.df['Max_Date'], self.df['現價-0.618'], label='現價-0.618', linestyle='-', color='blue')
+                self.ax1.plot(self.df['Max_Date'], self.df['現價-0.618'], label='現價-0.618', linestyle='-', color='blue', marker='+')
                 self.ax1.scatter(self.df['Max_Date'], self.df['Head'], label='Head', color='red', marker='o')
                 self.ax1.scatter(self.df['Max_Date'], self.df['頸線'], label='頸線', color='green', marker='x')
 
-                for i in range(len(self.df)):
-                    self.ax1.text(self.df['Max_Date'][i], self.df['現價-0.618'][i], f'{self.df["Ratio_0.618"][i]:.2f}', ha='center', va='bottom', color='blue', fontproperties=zh_font)
-                    self.ax1.text(self.df['Max_Date'][i], self.df['Head'][i], f'{self.df["Max_Value"][i]:.2f}', ha='right', va='top', color='red', fontproperties=zh_font)
-                    self.ax1.text(self.df['Max_Date'][i], self.df['頸線'][i], f'{self.df["Ratio_1"][i]:.2f}', ha='left', va='top', color='green', fontproperties=zh_font)
+
+
+                # 在 process_data 方法中修改標註部分
+                for i, row in self.df.iterrows():
+                    head_value = row['Head']
+                    ratio_618_value = row['現價-0.618']
+                    neck_value = row['頸線']
+
+
+                    # Head 的標註
+                    self.ax1.annotate(self.format_price(row["Max_Value"]), 
+                                    (row['Max_Date'], head_value),
+                                    xytext=head_xytext, textcoords='offset points',
+                                    ha='center', va=head_va, fontproperties=zh_font)
+
+                    # 現價-0.618 的標註
+                    self.ax1.annotate(self.format_price(row["Ratio_0.618"]), 
+                                    (row['Max_Date'], ratio_618_value),
+                                    xytext=ratio_618_xytext, textcoords='offset points',
+                                    ha='center', va=ratio_618_va, fontproperties=zh_font)
+
+                    # 頸線的標註
+                    self.ax1.annotate(self.format_price(row["Ratio_1"]), 
+                                    (row['Max_Date'], neck_value),
+                                    xytext=(10, 0), textcoords='offset points',
+                                    ha='center', va='center', fontproperties=zh_font)
+
 
                 self.ax1.set_title('Stock Trends', fontproperties=zh_font)
                 self.ax1.set_xlabel('Date', fontproperties=zh_font)
@@ -185,26 +240,49 @@ class BacktestView(tk.Frame):
 
                 # 繪製第二個圖表
                 self.ax2.clear()
-                self.ax2.plot(self.df['Max_Date'], self.df['現價-0.618(sorted)'], label='現價-0.618(sorted)', linestyle='-', color='blue')
+                self.ax2.plot(self.df['Max_Date'], self.df['現價-0.618(sorted)'], label='現價-0.618(sorted)', linestyle='-', color='blue', marker='+')
                 self.ax2.scatter(self.df['Max_Date'], self.df['Head(sorted)'], label='Head(sorted)', color='red', marker='o')
                 self.ax2.scatter(self.df['Max_Date'], self.df['頸線(sorted)'], label='頸線(sorted)', color='green', marker='x')
 
-                for i in range(len(self.df)):
-                    self.ax2.text(self.df['Max_Date'][i], self.df['現價-0.618(sorted)'][i], f'{sorted_df["Ratio_0.618(sorted)"][i]:.2f}', ha='center', va='bottom', color='blue', fontproperties=zh_font)
-                    self.ax2.text(self.df['Max_Date'][i], self.df['Head(sorted)'][i], f'{head_sorted["Max_Value(sorted)"][i]:.2f}', ha='right', va='top', color='red',fontproperties=zh_font)
-                    self.ax2.text(self.df['Max_Date'][i], self.df['頸線(sorted)'][i], f'{neck_sorted["Ratio_1(sorted)"][i]:.2f}', ha='left', va='top', color='green',fontproperties=zh_font)
+                for i, row in self.df.iterrows():
+                    # 現價-0.618(sorted) 的標註
+                    self.ax2.annotate(self.format_price(row["Ratio_0.618(sorted)"]), 
+                                    (row['Max_Date'], row['現價-0.618(sorted)']),
+                                    xytext=(0, -10), textcoords='offset points',
+                                    ha='center', va='top', color='blue', fontproperties=zh_font)
 
+                    # Head(sorted) 的標註
+                    self.ax2.annotate(self.format_price(row["Max_Value(sorted)"]), 
+                                    (row['Max_Date'], row['Head(sorted)']),
+                                    xytext=(0, 10), textcoords='offset points',
+                                    ha='center', va='bottom', color='red', fontproperties=zh_font)
+
+                    # 頸線(sorted) 的標註
+                    self.ax2.annotate(self.format_price(row["Ratio_1(sorted)"]), 
+                                    (row['Max_Date'], row['頸線(sorted)']),
+                                    xytext=(5, 0), textcoords='offset points',
+                                    ha='center', va='center', color='green', fontproperties=zh_font)
+
+
+                
                 self.ax2.set_title('Sorted Stock Trends', fontproperties=zh_font)
                 self.ax2.set_xlabel('Date', fontproperties=zh_font)
                 self.ax2.set_ylabel('Value', fontproperties=zh_font)
                 self.ax2.legend(prop=zh_font)
                 self.canvas2.draw()
-                
+             
                 self.table.redrawTable()
                 self.init_moving_average(stock_id, data['Close_Price'])
 
                 # 延遲1秒鐘
                 time.sleep(0.1)
+            # 添加 y 軸格式化
+            from matplotlib.ticker import FuncFormatter
+
+            def price_formatter(self, x, p):
+                return f'{x:.2f}' if x < 50 else (f'{x:.1f}' if x < 500 else f'{x:.0f}')
+
+  
 
         # 啟動新執行緒來更新UI，防止卡住
         threading.Thread(target=update_ui).start()

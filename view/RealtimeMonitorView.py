@@ -14,6 +14,7 @@ from matplotlib import font_manager
 from tkintertable import TableCanvas, TableModel
 import threading
 import random
+import matplotlib.dates as mdates
 
 font_path = 'C:/Windows/Fonts/msjh.ttc'  # 微軟正黑體字體路徑
 zh_font = font_manager.FontProperties(fname=font_path)
@@ -218,21 +219,54 @@ class RealtimeMonitorView(tk.Frame):
             for i, row in self.df.iterrows():
                 self.tree.insert('', 'end', values=list(row))
 
-            # 繪製第一個圖表
-            self.ax1.clear()
+                # 繪製第一個圖表
+            self.ax1.clear()  # 清除舊的圖表內容
             self.ax1.plot(self.df['Max_Date'], self.df['現價-0.618'], label='現價-0.618', linestyle='-', color='blue')
             self.ax1.scatter(self.df['Max_Date'], self.df['Head'], label='Head', color='red', marker='o')
             self.ax1.scatter(self.df['Max_Date'], self.df['頸線'], label='頸線', color='green', marker='x')
 
-            for i in range(len(self.df)):
-                self.ax1.text(self.df['Max_Date'][i], self.df['現價-0.618'][i], f'{self.df["Ratio_0.618"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
-                self.ax1.text(self.df['Max_Date'][i], self.df['Head'][i], f'{self.df["Max_Value"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
-                self.ax1.text(self.df['Max_Date'][i], self.df['頸線'][i], f'{self.df["Ratio_1"][i]:.2f}', ha='center', va='bottom', fontproperties=zh_font)
+            for i, row in self.df.iterrows():
+                head_value = row['Head']
+                ratio_618_value = row['現價-0.618']
+                neck_value = row['頸線']
+                
+                # 確定 Head 的標註位置
+                head_va = 'bottom' if head_value == max(head_value, ratio_618_value, neck_value) else 'top'
+                head_xytext = (0, 10) if head_va == 'bottom' else (0, -10)
+                
+                # 確定 現價-0.618 的標註位置
+                ratio_618_va = 'top' if ratio_618_value == min(head_value, ratio_618_value, neck_value) else 'bottom'
+                ratio_618_xytext = (0, -10) if ratio_618_va == 'top' else (0, 10)
+                
+                # Head 的標註
+                self.ax1.annotate(f'{row["Max_Value"]:.2f}', 
+                                (row['Max_Date'], head_value),
+                                xytext=head_xytext, textcoords='offset points',
+                                ha='center', va=head_va, fontproperties=zh_font)
+
+                # 現價-0.618 的標註
+                self.ax1.annotate(f'{row["Ratio_0.618"]:.2f}', 
+                                (row['Max_Date'], ratio_618_value),
+                                xytext=ratio_618_xytext, textcoords='offset points',
+                                ha='center', va=ratio_618_va, fontproperties=zh_font)
+
+                # 頸線的標註
+                self.ax1.annotate(f'{row["Ratio_1"]:.2f}', 
+                                (row['Max_Date'], neck_value),
+                                xytext=(10, 0), textcoords='offset points',
+                                ha='left', va='center', fontproperties=zh_font)
 
             self.ax1.set_title('Stock Trends', fontproperties=zh_font)
             self.ax1.set_xlabel('Date', fontproperties=zh_font)
             self.ax1.set_ylabel('Value', fontproperties=zh_font)
             self.ax1.legend(prop=zh_font)
+
+            # 調整 x 軸日期格式
+            self.ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+            self.ax1.xaxis.set_major_locator(mdates.AutoDateLocator())
+            plt.setp(self.ax1.xaxis.get_majorticklabels(), rotation=45, ha='right')
+
+            self.fig1.tight_layout()  # 自動調整佈局
             self.canvas1.draw()
 
             # 排序數據

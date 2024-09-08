@@ -33,9 +33,9 @@ class DailyClosePriceDownloadModel:
         
     def download_daily_close_top30_stock(self, view, start_date, end_date):
         # 讀取 Excel 檔案，取得交易量前30名的股票代碼
-        stock_df = pd.read_excel('D:/Project/ShioajiConsole/ShioajiConsoleAP/resource/stock_top.xlsx')
+        stock_df = pd.read_excel(f'C:/Projects/ShioajiConsoleAP/resource/stock_top.xlsx')
         print(stock_df.columns)  # 打印出列標題名稱
-        top_30_stocks = stock_df['股票代號'][:1]
+        top_30_stocks = stock_df['股票代號'][:50]
         
         conn = self.connect_db()
         cursor = conn.cursor()
