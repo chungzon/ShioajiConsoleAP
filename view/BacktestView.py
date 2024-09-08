@@ -72,22 +72,24 @@ class BacktestView(tk.Frame):
         ttk.Label(self, text="股票代碼:").grid(row=0, column=0, padx=10, pady=5, sticky='e')
         self.stock_id_entry = ttk.Entry(self)
         self.stock_id_entry.grid(row=0, column=1, padx=10, pady=5, sticky='e')
+        
+        ttk.Button(self, text="下載", command=self.download_kbars_data).grid(row=0, column=2, pady=20)
 
-        ttk.Label(self, text="開始日期 (YYYY-MM-DD):").grid(row=0, column=2, padx=10, pady=5, sticky='e')
+        ttk.Label(self, text="開始日期 (YYYY-MM-DD):").grid(row=0, column=3, padx=10, pady=5, sticky='e')
         self.start_date_ticks_entry = DateEntry(self, background='white', foreground='black', borderwidth=2, date_pattern='yyyy-mm-dd', locale='zh_TW')
-        self.start_date_ticks_entry.grid(row=0, column=3, padx=10, pady=5, sticky='w')
+        self.start_date_ticks_entry.grid(row=0, column=4, padx=10, pady=5, sticky='w')
 
-        ttk.Label(self, text="結束日期 (YYYY-MM-DD):").grid(row=0, column=4, padx=10, pady=5, sticky='e')
+        ttk.Label(self, text="結束日期 (YYYY-MM-DD):").grid(row=0, column=5, padx=10, pady=5, sticky='e')
         self.end_date_ticks_entry = DateEntry(self, background='white', foreground='black', borderwidth=2, date_pattern='yyyy-mm-dd', locale='zh_TW')
-        self.end_date_ticks_entry.grid(row=0, column=5, padx=10, pady=5, sticky='w')
-        ttk.Button(self, text="分析資料", command=self.print_message).grid(row=0, column=6, pady=20)
+        self.end_date_ticks_entry.grid(row=0, column=6, padx=10, pady=5, sticky='w')
+        ttk.Button(self, text="分析資料", command=self.print_message).grid(row=0, column=7, pady=20)
         
         # 使用 tkintertable 初始化下方表格，但暂时不填充数据
         self.table_frames = [
-            self.create_tkintertable_frame("分均線", {}).grid(row=1, column=4, columnspan=3, sticky='nsew', padx=5, pady=5),
-            self.create_tkintertable_frame("一分K均線", {}).grid(row=2, column=4, columnspan=3, sticky='nsew', padx=5, pady=5),
-            self.create_tkintertable_frame("三分K均線", {}).grid(row=3, column=4, columnspan=3, sticky='nsew', padx=5, pady=5),
-            self.create_tkintertable_frame("五分K均線", {}).grid(row=4, column=4, columnspan=3, sticky='nsew', padx=5, pady=5),
+            self.create_tkintertable_frame("分均線", {}).grid(row=1, column=4, columnspan=4, sticky='nsew', padx=5, pady=5),
+            self.create_tkintertable_frame("一分K均線", {}).grid(row=2, column=4, columnspan=4, sticky='nsew', padx=5, pady=5),
+            self.create_tkintertable_frame("三分K均線", {}).grid(row=3, column=4, columnspan=4, sticky='nsew', padx=5, pady=5),
+            self.create_tkintertable_frame("五分K均線", {}).grid(row=4, column=4, columnspan=4, sticky='nsew', padx=5, pady=5),
         ]
 
         # 第一個圖表
@@ -141,6 +143,12 @@ class BacktestView(tk.Frame):
         #lastest_close_price = self.model.get_latest_close_price(stock_id)
         #當有新的一筆分K資料，重新計算數據，更新圖表和表格
         self.process_data(sim_pd, stock_id)
+        
+    def download_kbars_data(self):
+        stock_id = self.stock_id_entry.get()
+        start_date = self.start_date_ticks_entry.get()
+        end_date = self.end_date_ticks_entry.get()
+        self.controller.download_kbars_data(stock_id, start_date, end_date)
 
  # 添加這個新方法
     def price_formatter(self, x, p):

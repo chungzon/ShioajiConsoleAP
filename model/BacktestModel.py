@@ -161,3 +161,26 @@ class BacktestModel:
     def get_stock_limit_prices(self, sotckid):
         contract = self.api.Contracts.Stocks[sotckid]
         return contract['limit_up'], contract['limit_down']
+    
+    def get_kbars_data(self, stock_id, date):
+        contract = self.api.Contracts.Stocks[stock_id]
+        kbars = self.api.kbars(
+            contract=contract,
+            start=date.strftime("%Y-%m-%d"),
+            end=date.strftime("%Y-%m-%d")
+        )
+        df = pd.DataFrame({**kbars})
+        df.ts = pd.to_datetime(df.ts)  # 將時間戳轉換為datetime
+        return df
+
+    def insert_kbars(self, kbars_df, stock_id):
+        conn = self.connect_db()
+        cursor = conn.cursor()
+        for _, row in kbars_df.iterrows():
+            cursor.execute("""
+                INSERT INTO Kbars (stock_id, ts, open_price, high, low, close_price, volume)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (stock_id, row['ts'], row['Open'], row['High'], row['Low'], row['Close'], row['Volume']))
+        conn.commit()
+        cursor.close()
+        conn.close()
