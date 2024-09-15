@@ -21,6 +21,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="controller\SelectStockController.py" />
     <Compile Include="controller\BacktestController.py" />
     <Compile Include="controller\DataAnalysisController.py" />
     <Compile Include="controller\DailyClosePriceDownloadController.py" />
@@ -34,13 +35,16 @@
     <Compile Include="goldline.py" />
     <Compile Include="Integrated.py" />
     <Compile Include="Main.py" />
+    <Compile Include="model\BacktestModel - Copy.py" />
     <Compile Include="model\BacktestModel.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="model\BaseModel.py" />
     <Compile Include="model\DataAnalysisModel.py" />
     <Compile Include="model\DailyClosePriceDownloadModel.py" />
     <Compile Include="model\RealtimeMonitorModel.py" />
     <Compile Include="model\DataDownloadModel.py" />
+    <Compile Include="model\SelectStockModel.py" />
     <Compile Include="ShioajiConsoleAP.py" />
     <Compile Include="StockController.py" />
     <Compile Include="StockModel.py" />
@@ -52,6 +56,7 @@
     <Compile Include="view\DailyClosePriceDownloadView.py" />
     <Compile Include="view\DataDownloadView.py" />
     <Compile Include="view\RealtimeMonitorView.py" />
+    <Compile Include="view\SelectStockView.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="model\" />
@@ -61,6 +66,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="resource\SSTK_VOL_FY_113.csv" />
+    <Content Include="Resource\StockTable.xls" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

@@ -629,53 +629,155 @@
 # if __name__ == "__main__":
 #     create_gui()
 
-import shioaji as sj
+# import shioaji as sj
+# import pandas as pd
+# from datetime import datetime, timedelta
+
+# def main():
+#     # 初始化 Shioaji API
+#     api = sj.Shioaji(simulation=True)
+#     api.login(
+#         api_key="6GWV7gnxYXaEomoyLuTFRe29BnoAyEohVpbSZQYHdY66",
+#         secret_key="F6PJrruho4pRpC9KefgKeqReFQ2nhLV34uXe2RmMZFow"
+#     )
+
+#  # 列出所有可用的指數合約
+#     print("Available index contracts:")
+#     # for index in api.Contracts.Indexs:
+#     #     print(index, api.Contracts.Indexs[index])
+
+#     # 假設加權指數代碼是 'TWSE01'
+#     contract = api.Contracts.Indexs["TSE"]["TSE001"]
+
+#     # 訂閱即時行情
+#     def quote_callback(exchange, quote):
+#         print(f"Exchange: {exchange}, Quote: {quote}")
+
+#     api.quote.set_on_tick_stk_v1_callback(quote_callback)
+#     api.quote.subscribe(
+#         contract,
+#         quote_type=sj.constant.QuoteType.Quote,
+#         version=sj.constant.QuoteVersion.v1
+#     )
+
+#     # 獲取 K 線圖資料
+#     start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+#     end_date = datetime.now().strftime('%Y-%m-%d')
+
+#     kbars = api.kbars(
+#         contract=contract,
+#         start=start_date,
+#         end=end_date
+#     )
+
+#     df = pd.DataFrame({**kbars})
+#     df.ts = pd.to_datetime(df.ts)
+#     print(df)
+
+#     # 登出
+#     api.logout()
+
+import re
 import pandas as pd
-from datetime import datetime, timedelta
+import pymssql
+
+# 清理股票名称中的特殊字符
+def clean_stock_name(stock_name):
+    return re.sub(r'[\*\#]', '', stock_name)
+
+# 连接数据库
+def connect_db():
+    conn = pymssql.connect(
+        server='127.0.0.1:1433',
+        user='TSE_USER',
+        password='fuckme',
+        database='TSE'
+    )
+    return conn
+
+# 处理 Excel 中的股票数据
+def process_stock_data(file_path):
+    try:
+        df = pd.read_excel(file_path, header=None)  # 没有标题行，直接读取
+        return df
+    except Exception as e:
+        print(f"讀取文件時發生錯誤: {e}")
+        return None
+
+# 解析并分类股票数据
+def parse_stock_data(df):
+    parsed_data = []
+    current_category = None
+    current_market = None
+
+    for _, row in df.iterrows():
+        if pd.isna(row[0]) and not pd.isna(row[1]):  # 市场类型 (上市/上柜)
+            current_market = row[1]
+        elif not pd.isna(row[0]):  # 类股种类
+            current_category = row[0]
+        else:  # 股票信息
+            stock_id = row[2]
+            stock_name = clean_stock_name(row[3])
+            parsed_data.append({
+                'id': stock_id,
+                'stock_name': stock_name,
+                'market_type': current_market,
+                'stock_category': current_category
+            })
+    
+    return pd.DataFrame(parsed_data)
+
+# 插入股票数据到数据库
+def insert_stock_data(conn, df):
+    cursor = conn.cursor()
+    for _, row in df.iterrows():
+        cursor.execute("""
+            INSERT INTO StockTable (id, stock_name, market_type, stock_category)
+            VALUES (%s, %s, %s, %s)
+        """, (row['id'], row['stock_name'], row['market_type'], row['stock_category']))
+    conn.commit()
+    cursor.close()
+
+# 创建或更新数据库表
+def create_or_update_table(conn):
+    cursor = conn.cursor()
+    cursor.execute("""
+        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='StockTable' AND xtype='U')
+        CREATE TABLE StockTable (
+            id VARCHAR(10) PRIMARY KEY,
+            stock_name NVARCHAR(100),
+            market_type NVARCHAR(10),
+            stock_category NVARCHAR(100)
+        )
+    """)
+    conn.commit()
+    cursor.close()
 
 def main():
-    # 初始化 Shioaji API
-    api = sj.Shioaji(simulation=True)
-    api.login(
-        api_key="6GWV7gnxYXaEomoyLuTFRe29BnoAyEohVpbSZQYHdY66",
-        secret_key="F6PJrruho4pRpC9KefgKeqReFQ2nhLV34uXe2RmMZFow"
-    )
-
- # 列出所有可用的指數合約
-    print("Available index contracts:")
-    # for index in api.Contracts.Indexs:
-    #     print(index, api.Contracts.Indexs[index])
-
-    # 假設加權指數代碼是 'TWSE01'
-    contract = api.Contracts.Indexs["TSE"]["TSE001"]
-
-    # 訂閱即時行情
-    def quote_callback(exchange, quote):
-        print(f"Exchange: {exchange}, Quote: {quote}")
-
-    api.quote.set_on_tick_stk_v1_callback(quote_callback)
-    api.quote.subscribe(
-        contract,
-        quote_type=sj.constant.QuoteType.Quote,
-        version=sj.constant.QuoteVersion.v1
-    )
-
-    # 獲取 K 線圖資料
-    start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
-    end_date = datetime.now().strftime('%Y-%m-%d')
-
-    kbars = api.kbars(
-        contract=contract,
-        start=start_date,
-        end=end_date
-    )
-
-    df = pd.DataFrame({**kbars})
-    df.ts = pd.to_datetime(df.ts)
-    print(df)
-
-    # 登出
-    api.logout()
+    file_path = r'D:\Project\ShioajiConsole\ShioajiConsoleAP\resource\StockTable2.xlsx'
+    conn = connect_db()
+    cursor = conn.cursor()
+    df = pd.read_excel(file_path, sheet_name='工作表1')
+    for index, row in df.iterrows():
+        # Split '有價證券代號及名稱' into id and stock_name
+        stock_id, stock_name = row['有價證券代號及名稱'].split('　')
+        
+        # Extract market_type and stock_category
+        market_type = row['市場別']
+        stock_category = row['產業別']
+        
+        # Insert data into StockTable
+        cursor.execute('''
+            INSERT INTO StockTable (id, stock_name, market_type, stock_category)
+            VALUES (%s, %s, %s, %s)
+        ''', (stock_id, stock_name, market_type, stock_category))
+    
+    # Commit the transaction
+    conn.commit()
+    
+    # Close the connection
+    conn.close()
 
 if __name__ == "__main__":
     main()
+
