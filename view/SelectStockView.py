@@ -35,7 +35,7 @@ class SelectStockView(tk.Frame):
         self.table_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=10, sticky="nsew")
 
         # 定義欄位名稱
-        columns = ['股票代碼', '股票名稱', '現價', '0618', 'Head', '價差比例']
+        columns = ['股票代碼', '股票名稱', '波段', '買點', '頸線', 'Head', 'Max_Date', 'Max_Value', 'Min_Date', 'Min_Value', '價差比例']
 
         # 設置 Treeview 並定義列
         self.tree = ttk.Treeview(self.table_frame, columns=columns, show='headings')
@@ -49,8 +49,8 @@ class SelectStockView(tk.Frame):
         self.tree.grid(row=0, column=0, sticky="nsew")
 
         # 插入測試數據
-        self.tree.insert('', 'end', values=('2330', '台積電', '600', '595', '610', '1.6%'))
-        self.tree.insert('', 'end', values=('2317', '鴻海', '110', '108', '115', '2.3%'))
+        # self.tree.insert('', 'end', values=('2330', '台積電', '600', '595', '610', '1.6%'))
+        # self.tree.insert('', 'end', values=('2317', '鴻海', '110', '108', '115', '2.3%'))
 
         # 添加垂直滾動條
         vsb = ttk.Scrollbar(self.table_frame, orient="vertical", command=self.tree.yview)
@@ -70,4 +70,57 @@ class SelectStockView(tk.Frame):
         
     def calculate(self):
         ratio = self.ratio_entry.get()
-        self.controller.calculate(ratio)
+
+        # 清空 TreeView 中的現有數據
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+            
+        all_wave_extremes = self.controller.calculate(ratio)
+        
+        for segment in all_wave_extremes:
+            stock_id = segment['stock_id']  # 假設 stock_id 已在 segments 中
+            stock_name = segment['name'] # 股票名稱
+            wave_type = segment['wave_type']
+            max_date = segment['Max_Date']
+            min_date = segment['Min_Date']
+            max_value = segment['Max_Value']
+            min_value = segment['Min_Value']
+            ratio_0618 = round(segment['Ratio_0.618'], 2)  # 買點
+            ratio_1 = round(segment['Ratio_1'], 2) # 頸線
+            spread_ratio = round(segment['spread_ratio'], 2)  # 價差比例
+            # 插入到 TreeView 中
+            self.tree.insert('', 'end', values=(stock_id, stock_name, wave_type, ratio_0618, ratio_1, max_value, max_date, max_value, min_date, min_value, spread_ratio))
+        
+            # 將結果插入到 TreeView 中
+        # if recent_segment is not None:
+        #     stock_id = recent_segment['stock_id']  # 假設 stock_id 已在 segments 中
+        #     stock_name = recent_segment['name'] # 股票名稱
+        #     wave_type = '最近波段'
+        #     max_date = recent_segment['Max_Date']
+        #     min_date = recent_segment['Min_Date']
+        #     max_value = recent_segment['Max_Value']
+        #     min_value = recent_segment['Min_Value']
+        #     ratio_0618 = recent_segment['Ratio_0.618']  # 買點
+        #     ratio_1 = recent_segment['Ratio_1'] # 頸線
+        #     spread_ratio = round(recent_segment['spread_ratio'], 2)  # 價差比例
+        #     # 插入到 TreeView 中
+        #     self.tree.insert('', 'end', values=(stock_id, stock_name, wave_type, ratio_0618, ratio_1, max_value, max_date, max_value, min_date, min_value, spread_ratio))
+        # else:
+        #     print("未找到符合條件的股票數據")
+        
+        # # 將結果插入到 TreeView 中
+        # if highest_segment is not None:
+        #     stock_id = highest_segment['stock_id']  # 假設 stock_id 已在 segments 中
+        #     stock_name = recent_segment['name'] # 股票名稱
+        #     wave_type = '最高波段'
+        #     max_date = highest_segment['Max_Date']
+        #     min_date = highest_segment['Min_Date']
+        #     max_value = highest_segment['Max_Value']
+        #     min_value = highest_segment['Min_Value']
+        #     ratio_0618 = highest_segment['Ratio_0.618']  # 買點
+        #     ratio_1 = highest_segment['Ratio_1'] # 頸線
+        #     spread_ratio = round(highest_segment['spread_ratio'], 2)  # 價差比例
+        #     # 插入到 TreeView 中
+        #     self.tree.insert('', 'end', values=(stock_id, stock_name, wave_type, ratio_0618, ratio_1, max_value, max_date, max_value, min_date, min_value, spread_ratio))
+        # else:
+        #     print("未找到符合條件的股票數據")

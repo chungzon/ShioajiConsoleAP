@@ -9,4 +9,5 @@ class SelectStockController:
         self.view.controller = self
 
     def calculate(self, ratio):
-        self.model.process_all_stocks(ratio)
+        all_wave_extremes = self.model.process_all_stocks(ratio)
+        return all_wave_extremes

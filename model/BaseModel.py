@@ -161,6 +161,11 @@ class BaseModel:
     def get_stock_limit_prices(self, sotckid):
         contract = self.api.Contracts.Stocks[sotckid]
         return contract['limit_up'], contract['limit_down']
+        
+    # 商品名稱
+    def get_stock_name(self, sotckid):
+        contract = self.api.Contracts.Stocks[str(sotckid)]
+        return contract['name']
     
     def get_kbars_data(self, stock_id, date):
         contract = self.api.Contracts.Stocks[stock_id]
@@ -184,3 +189,47 @@ class BaseModel:
         conn.commit()
         cursor.close()
         conn.close()
+
+    # 定義函數找出每個波段的最高價和最低價，並計算特定比例的價格
+    def find_peaks_troughs_v34_small(self, df):
+        segments = []
+        ratios = [0.618, 1]
+        ratio_columns = [f'Ratio_{ratio}' for ratio in ratios]
+        spr_columns =[f'spread_ratio']
+    
+        i = 0
+        while i < len(df):
+            max_value = df['high_price'].iloc[i]
+            max_date = df['date'].iloc[i]
+        
+            j = i + 1
+            while j < len(df) and df['high_price'].iloc[j] >= max_value:
+                max_value = df['high_price'].iloc[j]
+                max_date = df['date'].iloc[j]
+                j += 1
+        
+            if j < len(df):
+                min_value = df['low_price'].iloc[j]
+                min_date = df['date'].iloc[j]
+            else:
+                min_value = df['low_price'].iloc[j-1]
+                min_date = df['date'].iloc[j-1]
+        
+            k = j
+            while k < len(df) and df['low_price'].iloc[k] <= min_value:
+                min_value = df['low_price'].iloc[k]
+                min_date = df['date'].iloc[k]
+                k += 1
+        
+            if max_value > min_value:
+                segment = [max_date, max_value, min_date, min_value]
+                for ratio in ratios:
+                    segment.append((max_value - min_value) / 2 * ratio + min_value)
+                
+                segment.append((max_value - segment[4]) / segment[4])   # (Head - ratio_0.618) / ratio_0.618
+                segments.append(segment)
+        
+            i = k
+    
+        return pd.DataFrame(segments, columns=['Max_Date', 'Max_Value', 'Min_Date', 'Min_Value'] + ratio_columns + spr_columns)
+    
