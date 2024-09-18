@@ -20,6 +20,12 @@ class DailyClosePriceDownloadModel:
     def __init__(self, api):
         self.api = api
         self.log_filename = "logs/stock_download.log"
+        # 獲取當前文件的目錄
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # 構建相對路徑
+        resource_dir = os.path.join(current_dir, '..', 'resource')
+        self.stock_top_file = os.path.join(resource_dir, 'stock_top.xlsx')
   
 
     def write_log(self, message):
@@ -37,7 +43,7 @@ class DailyClosePriceDownloadModel:
         
     def download_daily_close_top30_stock(self, view, start_date, end_date):
         # 讀取 Excel 檔案，取得交易量前30名的股票代碼
-        stock_df = pd.read_excel(r'D:\Project\ShioajiConsole\ShioajiConsoleAP\resource\stock_top.xlsx')
+        stock_df = pd.read_excel(self.stock_top_file)
         print(stock_df.columns)  # 打印出列標題名稱
         top_30_stocks = stock_df['股票代號'][:5]
         

@@ -1,4 +1,4 @@
-﻿import pymssql
+﻿import os
 import pandas as pd
 import shioaji as sj
 import time
@@ -10,7 +10,12 @@ class SelectStockModel(BaseModel):
     
     def __init__(self, api):
         super().__init__(api)  # 繼承父類的初始化
-        self.file_path = r'D:\Project\ShioajiConsole\ShioajiConsoleAP\resource\stock_top.xlsx'
+                # 獲取當前文件的目錄
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # 構建相對路徑
+        resource_dir = os.path.join(current_dir, '..', 'resource')
+        self.file_path = os.path.join(resource_dir, 'stock_top.xlsx')
         
 
     def get_top_volumn_stocks(self):
