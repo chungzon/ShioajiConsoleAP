@@ -171,9 +171,9 @@ class BacktestView(tk.Frame):
                 self.df = self.model.find_peaks_troughs_v34(self.pd, stock_id, data['Close_Price'])
                 
                 # 執行回測
-                self.backtest_strategy(self.df['Ratio_0.618'].iloc[-1], data['Close_Price'], data['ts'])
+                # self.backtest_strategy(self.df['Ratio_0.618'].iloc[-1], data['Close_Price'], data['ts'])
                         
-                print(f"======{data['ts']} 目前損益:{self.total_profit}======")
+                # print(f"======{data['ts']} 目前損益:{self.total_profit}======")
         
                 # 添加排序後的欄位
                 self.df['現價-0.618(sorted)'] = self.df['現價-0.618'].sort_values(ascending=True).values

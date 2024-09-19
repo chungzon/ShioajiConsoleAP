@@ -48,7 +48,7 @@ class BacktestModel:
         query = f"""
         SELECT ts, Open_Price, High, Low, Close_Price, Volume
         FROM Kbars
-        WHERE stock_id = {stock_id} AND ts >= '{start_date}' AND ts <= DATEADD(day, 1, '{end_date}') ORDER BY ts ASC
+        WHERE stock_id = '{stock_id}' AND ts >= '{start_date}' AND ts <= DATEADD(day, 1, '{end_date}') ORDER BY ts ASC
         """
         df = pd.read_sql(query, conn)
         df['ts'] = pd.to_datetime(df['ts']).dt.strftime('%H:%M:%S')
