@@ -127,13 +127,25 @@ class SelectStockModel(BaseModel):
                     wave_extremes_df['name'] = self.get_stock_name(stock_id)
                     recent_segment, highest_segment = self.evaluate_segment(wave_extremes_df)
                     
+                    isRecent = False
+                    isHigh = False
                     if float(ratio) < recent_segment['spread_ratio']:
-                        recent_segment['wave_type'] = '最近波段'
-                        all_wave_extremes.append(recent_segment)
+                        if not isRecent:
+                            recent_segment['wave_type'] = '最近波段'
+                            all_wave_extremes.append(recent_segment)
+                            highest_segment['wave_type'] = '最高波段'
+                            all_wave_extremes.append(highest_segment)
+                            isRecent = True
+                            isHigh = True
                         
                     if float(ratio) < highest_segment['spread_ratio']:
-                        highest_segment['wave_type'] = '最高波段'
-                        all_wave_extremes.append(highest_segment)
+                        if not isHigh:
+                            recent_segment['wave_type'] = '最近波段'
+                            all_wave_extremes.append(recent_segment)
+                            highest_segment['wave_type'] = '最高波段'
+                            all_wave_extremes.append(highest_segment)
+                            isRecent = True
+                            isHigh = True
                         
             else:
                 print(f"無法獲取股票 {stock_id} 的數據")

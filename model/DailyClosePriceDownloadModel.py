@@ -135,7 +135,7 @@ class DailyClosePriceDownloadModel:
                 view.append_log(f"錯誤處理 {stock_id} - {current_date.strftime('%Y-%m')}: {e}")
 
             current_date += pd.DateOffset(months=1)  # 每次移動到下一個月的開始日期
-        time.sleep(30)  # 每支股票之間間隔30秒
+        time.sleep(5)  # 每支股票之間間隔30秒
 
     # 先將民國年轉換為西元年
     def convert_taiwan_date_to_gregorian(self, taiwan_date_str):
