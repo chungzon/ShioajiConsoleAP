@@ -25,7 +25,11 @@ class SelectStockView(tk.Frame):
         self.init_ui()
 
     def init_ui(self):
-  
+        style = ttk.Style()
+        style.configure('Treeview',
+                           background='white')
+        style.map('Treeview',
+                     background=[('selected', 'blue')])
         ttk.Label(self, text="0618與Head價差比例").grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
         self.ratio_entry = ttk.Entry(self)
         self.ratio_entry.grid(row=0, column=1, padx=10, pady=5, sticky=tk.W)
@@ -40,7 +44,8 @@ class SelectStockView(tk.Frame):
 
         # 設置 Treeview 並定義列
         self.tree = ttk.Treeview(self.table_frame, columns=columns, show='headings')
-
+        self.tree.tag_configure('Blue', background="lightblue")
+        self.tree.tag_configure('White', background="white")
 
         # 定義每個欄位的標題和寬度
         for col in columns:
@@ -86,5 +91,6 @@ class SelectStockView(tk.Frame):
             ratio_0618 = round(segment['Ratio_0.618'], 2)  # 買點
             ratio_1 = round(segment['Ratio_1'], 2) # 頸線
             spread_ratio = round(segment['spread_ratio'], 2)  # 價差比例
-            self.tree.insert('', 'end', values=(stock_id, stock_name, wave_type, ratio_0618, ratio_1, max_value, max_date, max_value, min_date, min_value, spread_ratio))
+            tag = 'Blue' if (index // 2) % 2 == 0 else 'White'
+            self.tree.insert('', 'end', values=(stock_id, stock_name, wave_type, ratio_0618, ratio_1, max_value, max_date, max_value, min_date, min_value, spread_ratio), tags=(tag))
         
