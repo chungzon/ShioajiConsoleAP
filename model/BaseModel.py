@@ -191,11 +191,11 @@ class BaseModel:
         conn.close()
 
     # 定義函數找出每個波段的最高價和最低價，並計算特定比例的價格
-    def find_peaks_troughs_v34_small(self, df):
+    def find_peaks_troughs_v34_small(self, df, latest_close_price):
         segments = []
         ratios = [0.618, 1]
         ratio_columns = [f'Ratio_{ratio}' for ratio in ratios]
-        spr_columns =[f'spread_ratio']
+        append_columns =[f'spread_ratio', f'latest_close_price']
     
         i = 0
         while i < len(df):
@@ -227,9 +227,10 @@ class BaseModel:
                     segment.append((max_value - min_value) / 2 * ratio + min_value)
                 
                 segment.append((max_value - segment[4]) / segment[4])   # (Head - ratio_0.618) / ratio_0.618
+                segment.append(latest_close_price)  # 現價
                 segments.append(segment)
         
             i = k
     
-        return pd.DataFrame(segments, columns=['Max_Date', 'Max_Value', 'Min_Date', 'Min_Value'] + ratio_columns + spr_columns)
+        return pd.DataFrame(segments, columns=['Max_Date', 'Max_Value', 'Min_Date', 'Min_Value'] + ratio_columns + append_columns)
     

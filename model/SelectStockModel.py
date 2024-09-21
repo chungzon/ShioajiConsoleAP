@@ -121,7 +121,8 @@ class SelectStockModel(BaseModel):
             print(f"正在處理股票: {stock_id}")
             stock_data_df = self.get_stock_data(stock_id)
             if stock_data_df is not None and not stock_data_df.empty:
-                wave_extremes_df = self.find_peaks_troughs_v34_small(stock_data_df)
+                latest_close_price = self.get_latest_close_price(stock_id)
+                wave_extremes_df = self.find_peaks_troughs_v34_small(stock_data_df, latest_close_price)
                 if wave_extremes_df is not None and not wave_extremes_df.empty:
                     wave_extremes_df['stock_id'] = stock_id  # 加入股票代號
                     wave_extremes_df['name'] = self.get_stock_name(stock_id)
