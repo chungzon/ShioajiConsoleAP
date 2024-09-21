@@ -195,9 +195,11 @@ class BaseModel:
         segments = []
         ratios = [0.618, 1]
         ratio_columns = [f'Ratio_{ratio}' for ratio in ratios]
-        append_columns =[f'spread_ratio', f'latest_close_price']
+        append_columns =[f'spread_ratio', f'latest_close_price', f'latest_close_price-0.618_ratio']
     
         i = 0
+
+
         while i < len(df):
             max_value = df['high_price'].iloc[i]
             max_date = df['date'].iloc[i]
@@ -228,8 +230,10 @@ class BaseModel:
                 
                 segment.append((max_value - segment[4]) / segment[4])   # (Head - ratio_0.618) / ratio_0.618
                 segment.append(latest_close_price)  # 現價
+                segment.append((latest_close_price - segment[4]) / segment[4])   # (現價 - ratio_0.618) / ratio_0.618
                 segments.append(segment)
         
+
             i = k
     
         return pd.DataFrame(segments, columns=['Max_Date', 'Max_Value', 'Min_Date', 'Min_Value'] + ratio_columns + append_columns)

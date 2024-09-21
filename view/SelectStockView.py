@@ -1,5 +1,5 @@
 ﻿import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from numpy import empty
 from tkcalendar import DateEntry
 import matplotlib.pyplot as plt
@@ -34,11 +34,13 @@ class SelectStockView(tk.Frame):
         frame.grid(row=0, column=0, sticky="w", padx=10, pady=5)
 
         ttk.Label(frame, text="0618與Head價差比例").pack(side=tk.LEFT, padx=(0,5))
+        ttk.Label(frame, text="±").pack(side=tk.LEFT)
         self.ratio_entry = ttk.Entry(frame)
-        self.ratio_entry.pack(side=tk.LEFT, padx=5)
+        self.ratio_entry.pack(side=tk.LEFT, padx=(0,5))
         ttk.Label(frame, text="現價-0618比例").pack(side=tk.LEFT, padx=5)
+        ttk.Label(frame, text="±").pack(side=tk.LEFT)
         self.ratio_entry2 = ttk.Entry(frame)
-        self.ratio_entry2.pack(side=tk.LEFT, padx=5)
+        self.ratio_entry2.pack(side=tk.LEFT, padx=(0,5))
         ttk.Button(frame, text="篩選", command=self.calculate).pack(side=tk.LEFT, padx=5)
 
         # 設置 LabelFrame 來包含 Treeview
@@ -46,7 +48,7 @@ class SelectStockView(tk.Frame):
         self.table_frame.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
 
         # 定義欄位名稱
-        columns = ['股票代碼', '股票名稱', '現價','波段', '買點', '頸線', 'Head', 'Max_Date', 'Max_Value', 'Min_Date', 'Min_Value', '價差比例']
+        columns = ['股票代碼', '股票名稱', '現價','波段', '買點', '頸線', 'Head', 'Max_Date', 'Max_Value', 'Min_Date', 'Min_Value', 'Head-0618價差比例', '現價-0618比例']
 
         # 設置 Treeview 並定義列
         self.tree = ttk.Treeview(self.table_frame, columns=columns, show='headings')
@@ -79,12 +81,22 @@ class SelectStockView(tk.Frame):
         
     def calculate(self):
         ratio = self.ratio_entry.get()
+        ratio2 = self.ratio_entry2.get()
+
+        # ratio為必要 
+        if ratio == '': 
+            messagebox.showerror("錯誤", "請輸入ratio")
+            return
+        # ratio2為選填
+        if ratio2 == '':
+            ratio2 = 0
 
         # 清空 TreeView 中的現有數據
         for item in self.tree.get_children():
+
             self.tree.delete(item)
             
-        all_wave_extremes = self.controller.calculate(ratio)
+        all_wave_extremes = self.controller.calculate(ratio, ratio2)
         
         for index, segment in enumerate(all_wave_extremes):
             stock_id = segment['stock_id']  # 假設 stock_id 已在 segments 中
@@ -98,6 +110,8 @@ class SelectStockView(tk.Frame):
             ratio_0618 = round(segment['Ratio_0.618'], 2)  # 買點
             ratio_1 = round(segment['Ratio_1'], 2) # 頸線
             spread_ratio = round(segment['spread_ratio'], 2)  # 價差比例
+            ratio_0618_ratio = round(segment['latest_close_price-0.618_ratio'], 2)
             tag = 'Blue' if (index // 2) % 2 == 0 else 'White'
-            self.tree.insert('', 'end', values=(stock_id, stock_name, latest_close_price, wave_type, ratio_0618, ratio_1, max_value, max_date, max_value, min_date, min_value, spread_ratio), tags=(tag))
+            self.tree.insert('', 'end', values=(stock_id, stock_name, latest_close_price, wave_type, ratio_0618, ratio_1, max_value, max_date, max_value, min_date, min_value, spread_ratio, ratio_0618_ratio), tags=(tag)) 
+
         

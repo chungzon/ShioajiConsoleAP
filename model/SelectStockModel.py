@@ -113,7 +113,7 @@ class SelectStockModel(BaseModel):
         else:
             return None    
 
-    def process_all_stocks(self, ratio):
+    def process_all_stocks(self, ratio, ratio2):
         top_50_stocks = self.get_top_volumn_stocks()
         all_wave_extremes = []
 
@@ -130,7 +130,7 @@ class SelectStockModel(BaseModel):
                     
                     isRecent = False
                     isHigh = False
-                    if float(ratio) < recent_segment['spread_ratio']:
+                    if (float(ratio) < recent_segment['spread_ratio'] or float(ratio) * -1 > recent_segment['spread_ratio']) and (float(ratio2) < recent_segment['latest_close_price-0.618_ratio'] or float(ratio2) * -1 > recent_segment['latest_close_price-0.618_ratio']):
                         if not isRecent:
                             recent_segment['wave_type'] = '最近波段'
                             all_wave_extremes.append(recent_segment)
@@ -138,10 +138,12 @@ class SelectStockModel(BaseModel):
                             all_wave_extremes.append(highest_segment)
                             isRecent = True
                             isHigh = True
-                        
-                    if float(ratio) < highest_segment['spread_ratio']:
+
+                                            
+                    if (float(ratio) < highest_segment['spread_ratio'] or float(ratio) * -1 > highest_segment['spread_ratio']) and (float(ratio2) < highest_segment['latest_close_price-0.618_ratio'] or float(ratio2) * -1 > highest_segment['latest_close_price-0.618_ratio']):
                         if not isHigh:
                             recent_segment['wave_type'] = '最近波段'
+
                             all_wave_extremes.append(recent_segment)
                             highest_segment['wave_type'] = '最高波段'
                             all_wave_extremes.append(highest_segment)
