@@ -30,14 +30,20 @@ class SelectStockView(tk.Frame):
                            background='white')
         style.map('Treeview',
                      background=[('selected', 'blue')])
-        ttk.Label(self, text="0618與Head價差比例").grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
-        self.ratio_entry = ttk.Entry(self)
-        self.ratio_entry.grid(row=0, column=1, padx=10, pady=5, sticky=tk.W)
-        ttk.Button(self, text="篩選", command=self.calculate).grid(row=0, column=2, pady=20, padx=10, sticky=tk.W)
+        frame = ttk.Frame(self)
+        frame.grid(row=0, column=0, sticky="w", padx=10, pady=5)
+
+        ttk.Label(frame, text="0618與Head價差比例").pack(side=tk.LEFT, padx=(0,5))
+        self.ratio_entry = ttk.Entry(frame)
+        self.ratio_entry.pack(side=tk.LEFT, padx=5)
+        ttk.Label(frame, text="現價-0618比例").pack(side=tk.LEFT, padx=5)
+        self.ratio_entry2 = ttk.Entry(frame)
+        self.ratio_entry2.pack(side=tk.LEFT, padx=5)
+        ttk.Button(frame, text="篩選", command=self.calculate).pack(side=tk.LEFT, padx=5)
 
         # 設置 LabelFrame 來包含 Treeview
         self.table_frame = ttk.LabelFrame(self, text="股票資訊")
-        self.table_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=10, sticky="nsew")
+        self.table_frame.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
 
         # 定義欄位名稱
         columns = ['股票代碼', '股票名稱', '現價','波段', '買點', '頸線', 'Head', 'Max_Date', 'Max_Value', 'Min_Date', 'Min_Value', '價差比例']
