@@ -18,16 +18,20 @@ class SelectStockModel(BaseModel):
         self.file_path = os.path.join(resource_dir, 'stock_top.xlsx')
         
 
-    def get_top_volumn_stocks(self):
+    def get_top_volumn_stocks(self, top_n):
         try:
             # 從 Excel 文件中讀取數據
             stock_df = pd.read_excel(self.file_path)
 
             # 確認列標題是否包含 '股票代號'
             if '股票代號' in stock_df.columns:
-                # 獲取前 50 筆的股票代號
-                top_50_stocks = stock_df['股票代號'][:5]
-                return top_50_stocks.tolist()  # 轉換為列表形式返回
+                top_n = int(top_n)  # 确保 top_n 是整数
+                available_stocks = len(stock_df['股票代號'])
+                if available_stocks < top_n:
+                    return f"錯誤：只有 {available_stocks} 筆資料可用，少於要求的 {top_n} 筆"
+                else:
+                    top_stocks = stock_df['股票代號'][:top_n]
+                    return top_stocks.tolist()
             else:
                 print("列標題中沒有 '股票代號'")
                 return []
@@ -113,60 +117,64 @@ class SelectStockModel(BaseModel):
         else:
             return None    
 
-    def process_all_stocks(self, ratio, ratio2):
-        top_50_stocks = self.get_top_volumn_stocks()
-        all_wave_extremes = []
+    def process_all_stocks(self, ratio, ratio2, top_n):
+        top_50_stocks = self.get_top_volumn_stocks(top_n)
+        if isinstance(top_50_stocks, str) and top_50_stocks.startswith("錯誤："):
+            return top_50_stocks
+        else:
+            # 處理正常的结果
+            all_wave_extremes = []
 
-        for stock_id in top_50_stocks:
-            print(f"正在處理股票: {stock_id}")
-            stock_data_df = self.get_stock_data(stock_id)
-            if stock_data_df is not None and not stock_data_df.empty:
-                latest_close_price = self.get_latest_close_price(stock_id)
-                wave_extremes_df = self.find_peaks_troughs_v34_small(stock_data_df, latest_close_price)
-                if wave_extremes_df is not None and not wave_extremes_df.empty:
-                    wave_extremes_df['stock_id'] = stock_id  # 加入股票代號
-                    wave_extremes_df['name'] = self.get_stock_name(stock_id)
-                    recent_segment, highest_segment = self.evaluate_segment(wave_extremes_df)
-                    
-                    isRecent = False
-                    isHigh = False
-                    if (float(ratio) < recent_segment['spread_ratio'] or float(ratio) * -1 > recent_segment['spread_ratio']) and (float(ratio2) < recent_segment['latest_close_price-0.618_ratio'] or float(ratio2) * -1 > recent_segment['latest_close_price-0.618_ratio']):
-                        if not isRecent:
-                            recent_segment['wave_type'] = '最近波段'
-                            all_wave_extremes.append(recent_segment)
-                            highest_segment['wave_type'] = '最高波段'
-                            all_wave_extremes.append(highest_segment)
-                            isRecent = True
-                            isHigh = True
-
-                                            
-                    if (float(ratio) < highest_segment['spread_ratio'] or float(ratio) * -1 > highest_segment['spread_ratio']) and (float(ratio2) < highest_segment['latest_close_price-0.618_ratio'] or float(ratio2) * -1 > highest_segment['latest_close_price-0.618_ratio']):
-                        if not isHigh:
-                            recent_segment['wave_type'] = '最近波段'
-
-                            all_wave_extremes.append(recent_segment)
-                            highest_segment['wave_type'] = '最高波段'
-                            all_wave_extremes.append(highest_segment)
-                            isRecent = True
-                            isHigh = True
+            for stock_id in top_50_stocks:
+                print(f"正在處理股票: {stock_id}")
+                stock_data_df = self.get_stock_data(stock_id)
+                if stock_data_df is not None and not stock_data_df.empty:
+                    latest_close_price = self.get_latest_close_price(stock_id)
+                    wave_extremes_df = self.find_peaks_troughs_v34_small(stock_data_df, latest_close_price)
+                    if wave_extremes_df is not None and not wave_extremes_df.empty:
+                        wave_extremes_df['stock_id'] = stock_id  # 加入股票代號
+                        wave_extremes_df['name'] = self.get_stock_name(stock_id)
+                        recent_segment, highest_segment = self.evaluate_segment(wave_extremes_df)
                         
-            else:
-                print(f"無法獲取股票 {stock_id} 的數據")
-                
-        if all_wave_extremes is not None:
-            return all_wave_extremes
+                        isRecent = False
+                        isHigh = False
+                        if (float(ratio) < recent_segment['spread_ratio'] or float(ratio) * -1 > recent_segment['spread_ratio']) and (float(ratio2) < recent_segment['latest_close_price-0.618_ratio'] or float(ratio2) * -1 > recent_segment['latest_close_price-0.618_ratio']):
+                            if not isRecent:
+                                recent_segment['wave_type'] = '最近波段'
+                                all_wave_extremes.append(recent_segment)
+                                highest_segment['wave_type'] = '最高波段'
+                                all_wave_extremes.append(highest_segment)
+                                isRecent = True
+                                isHigh = True
 
-        # 將所有波段數據合併成一個 DataFrame
-        # if all_wave_extremes:
-        #     recent_segment, highest_segment = self.evaluate_segment(all_wave_extremes)
-        #     if recent_segment and highest_segment:
-        #         result_df = pd.concat(recent_segment, ignore_index=True)
-        #         result_df = pd.concat(highest_segment, ignore_index=True)
-        #         return result_df
-        #     else:
-        #         return pd.DataFrame()
-        # else:
-            return pd.DataFrame()
+                                                
+                        if (float(ratio) < highest_segment['spread_ratio'] or float(ratio) * -1 > highest_segment['spread_ratio']) and (float(ratio2) < highest_segment['latest_close_price-0.618_ratio'] or float(ratio2) * -1 > highest_segment['latest_close_price-0.618_ratio']):
+                            if not isHigh:
+                                recent_segment['wave_type'] = '最近波段'
+
+                                all_wave_extremes.append(recent_segment)
+                                highest_segment['wave_type'] = '最高波段'
+                                all_wave_extremes.append(highest_segment)
+                                isRecent = True
+                                isHigh = True
+                            
+                else:
+                    print(f"無法獲取股票 {stock_id} 的數據")
+                    
+            if all_wave_extremes is not None:
+                return all_wave_extremes
+
+            # 將所有波段數據合併成一個 DataFrame
+            # if all_wave_extremes:
+            #     recent_segment, highest_segment = self.evaluate_segment(all_wave_extremes)
+            #     if recent_segment and highest_segment:
+            #         result_df = pd.concat(recent_segment, ignore_index=True)
+            #         result_df = pd.concat(highest_segment, ignore_index=True)
+            #         return result_df
+            #     else:
+            #         return pd.DataFrame()
+            # else:
+                return pd.DataFrame()
         
     def get_recent_segment(self, segments_df):
         # 获取最近一次波段数据

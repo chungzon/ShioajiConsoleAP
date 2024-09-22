@@ -41,6 +41,11 @@ class SelectStockView(tk.Frame):
         ttk.Label(frame, text="±").pack(side=tk.LEFT)
         self.ratio_entry2 = ttk.Entry(frame)
         self.ratio_entry2.pack(side=tk.LEFT, padx=(0,5))
+        ttk.Label(frame, text="標的交易量前").pack(side=tk.LEFT, padx=(5,0))
+        self.top_n_entry = ttk.Entry(frame, width=5)
+        self.top_n_entry.insert(0, "20")  # 預設值為20
+        self.top_n_entry.pack(side=tk.LEFT, padx=(0,5))
+        ttk.Label(frame, text="名").pack(side=tk.LEFT, padx=(0,5))
         ttk.Button(frame, text="篩選", command=self.calculate).pack(side=tk.LEFT, padx=5)
 
         # 設置 LabelFrame 來包含 Treeview
@@ -82,6 +87,8 @@ class SelectStockView(tk.Frame):
     def calculate(self):
         ratio = self.ratio_entry.get()
         ratio2 = self.ratio_entry2.get()
+        top_n = self.top_n_entry.get()
+        ratio2 = self.ratio_entry2.get()
 
         # ratio為必要 
         if ratio == '': 
@@ -93,10 +100,9 @@ class SelectStockView(tk.Frame):
 
         # 清空 TreeView 中的現有數據
         for item in self.tree.get_children():
-
             self.tree.delete(item)
             
-        all_wave_extremes = self.controller.calculate(ratio, ratio2)
+        all_wave_extremes = self.controller.calculate(ratio, ratio2, top_n)
         
         for index, segment in enumerate(all_wave_extremes):
             stock_id = segment['stock_id']  # 假設 stock_id 已在 segments 中
@@ -114,4 +120,6 @@ class SelectStockView(tk.Frame):
             tag = 'Blue' if (index // 2) % 2 == 0 else 'White'
             self.tree.insert('', 'end', values=(stock_id, stock_name, latest_close_price, wave_type, ratio_0618, ratio_1, max_value, max_date, max_value, min_date, min_value, spread_ratio, ratio_0618_ratio), tags=(tag)) 
 
-        
+
+    def show_error(self, message):
+        messagebox.showerror("錯誤", message)
