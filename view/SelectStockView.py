@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from matplotlib import font_manager
 from tkintertable import TableCanvas, TableModel
 import threading
+import pyperclip
 
 font_path = 'C:/Windows/Fonts/msjh.ttc'  # 微軟正黑體字體路徑
 zh_font = font_manager.FontProperties(fname=font_path)
@@ -68,6 +69,9 @@ class SelectStockView(tk.Frame):
         # 將 Treeview 放置在 LabelFrame 中
         self.tree.grid(row=0, column=0, sticky="nsew")
 
+        # 綁定雙擊事件
+        self.tree.bind("<Double-1>", self.on_double_click)
+
         # 添加垂直滾動條
         vsb = ttk.Scrollbar(self.table_frame, orient="vertical", command=self.tree.yview)
         vsb.grid(row=0, column=1, sticky="ns")
@@ -123,3 +127,17 @@ class SelectStockView(tk.Frame):
 
     def show_error(self, message):
         messagebox.showerror("錯誤", message)
+
+    def on_double_click(self, event):
+        item = self.tree.selection()[0]  # 獲取選中的項目
+        stock_code = self.tree.item(item, "values")[0]  # 獲取第一列（股票代碼）
+        pyperclip.copy(stock_code)  # 複製到剪貼板
+        self.show_copy_message(stock_code)
+
+    def show_copy_message(self, stock_code):
+        # 創建一個臨時標籤來顯示複製成功的消息
+        msg = ttk.Label(self, text=f"已複製股票代碼: {stock_code}", foreground="green")
+        msg.grid(row=3, column=0, columnspan=2, pady=5)
+        
+        # 設置定時器，2秒後刪除消息
+        self.after(2000, msg.destroy)
