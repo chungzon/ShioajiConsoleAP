@@ -20,6 +20,7 @@ from view.SelectStockView import SelectStockView
 from model.SelectStockModel import SelectStockModel
 from controller.SelectStockController import SelectStockController
 import shioaji as sj
+import tkinter.font as tkfont
 
 class MainApplication(tk.Tk):
     
@@ -35,6 +36,23 @@ class MainApplication(tk.Tk):
     def __init__(self):
         super().__init__()
         self.api = self.initialize_api()
+                # 設置默認字體大小
+        default_font = tkfont.nametofont("TkDefaultFont")
+        default_font.configure(size=13)
+
+        text_font = tkfont.nametofont("TkTextFont")
+        text_font.configure(size=13)
+
+        fixed_font = tkfont.nametofont("TkFixedFont")
+        fixed_font.configure(size=13)
+
+        # 設置 ttk 控件的字體
+
+        # 設置 ttk 控件的字體
+        style = ttk.Style()
+        style.configure('.', font=('Microsoft JhengHei', 13))
+        style.configure('Treeview', font=('Microsoft JhengHei', 13))
+        style.configure('Treeview.Heading', font=('Microsoft JhengHei', 13))
 
         self.title("Stock Application")
 
