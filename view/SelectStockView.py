@@ -4,15 +4,13 @@ from numpy import empty
 from tkcalendar import DateEntry
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import pymssql
 import pandas as pd
 import shioaji as sj
-import time
 from datetime import datetime, timedelta
 from matplotlib import font_manager
 from tkintertable import TableCanvas, TableModel
-import threading
 import pyperclip
+from tkinter import filedialog
 
 font_path = 'C:/Windows/Fonts/msjh.ttc'  # 微軟正黑體字體路徑
 zh_font = font_manager.FontProperties(fname=font_path)
@@ -48,6 +46,9 @@ class SelectStockView(tk.Frame):
         self.top_n_entry.pack(side=tk.LEFT, padx=(0,5))
         ttk.Label(frame, text="名").pack(side=tk.LEFT, padx=(0,5))
         ttk.Button(frame, text="篩選", command=self.calculate).pack(side=tk.LEFT, padx=5)
+
+        # 添加匯出按鈕
+        ttk.Button(frame, text="匯出股票代碼txt", command=self.export_stock_codes).pack(side=tk.LEFT, padx=5)
 
         # 設置 LabelFrame 來包含 Treeview
         self.table_frame = ttk.LabelFrame(self, text="股票資訊")
@@ -141,3 +142,21 @@ class SelectStockView(tk.Frame):
         
         # 設置定時器，2秒後刪除消息
         self.after(2000, msg.destroy)
+
+    def export_stock_codes(self):
+        # 獲取所有股票代碼
+        stock_codes = set()
+        for item in self.tree.get_children():
+            stock_code = self.tree.item(item, "values")[0]
+            stock_codes.add(stock_code)
+        
+        # 將股票代碼分組，每組最多60個
+        stock_codes = list(stock_codes)
+        lines = ["\t".join(stock_codes[i:i+60]) for i in range(0, len(stock_codes), 60)]
+        
+        # 選擇文件保存位置
+        file_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text files", "*.txt")])
+        if file_path:
+            with open(file_path, "w", encoding="utf-8") as file:
+                file.write("\n".join(lines))
+            self.show_copy_message("股票代碼已匯出")
