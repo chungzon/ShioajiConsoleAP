@@ -11,6 +11,7 @@ from matplotlib import font_manager
 from tkintertable import TableCanvas, TableModel
 import pyperclip
 from tkinter import filedialog
+from collections import OrderedDict
 
 font_path = 'C:/Windows/Fonts/msjh.ttc'  # 微軟正黑體字體路徑
 zh_font = font_manager.FontProperties(fname=font_path)
@@ -144,14 +145,15 @@ class SelectStockView(tk.Frame):
         self.after(2000, msg.destroy)
 
     def export_stock_codes(self):
-        # 獲取所有股票代碼
-        stock_codes = set()
+        # 獲取所有股票代碼，保持原始順序
+        stock_codes = OrderedDict()
         for item in self.tree.get_children():
             stock_code = self.tree.item(item, "values")[0]
-            stock_codes.add(stock_code)
-        
+            if stock_code not in stock_codes:
+                stock_codes[stock_code] = None
+
         # 將股票代碼分組，每組最多60個
-        stock_codes = list(stock_codes)
+        stock_codes = list(stock_codes.keys())
         lines = ["\t".join(stock_codes[i:i+60]) for i in range(0, len(stock_codes), 60)]
         
         # 選擇文件保存位置
