@@ -12,6 +12,7 @@ from tkintertable import TableCanvas, TableModel
 import pyperclip
 from tkinter import filedialog
 from collections import OrderedDict
+import os
 
 font_path = 'C:/Windows/Fonts/msjh.ttc'  # 微軟正黑體字體路徑
 zh_font = font_manager.FontProperties(fname=font_path)
@@ -43,7 +44,7 @@ class SelectStockView(tk.Frame):
         self.ratio_entry2.pack(side=tk.LEFT, padx=(0,5))
         ttk.Label(frame, text="標的交易量前").pack(side=tk.LEFT, padx=(5,0))
         self.top_n_entry = ttk.Entry(frame, width=5)
-        self.top_n_entry.insert(0, "1732")  # 預設值為20
+        self.top_n_entry.insert(0, "1763")  # 預設值為20
         self.top_n_entry.pack(side=tk.LEFT, padx=(0,5))
         ttk.Label(frame, text="名").pack(side=tk.LEFT, padx=(0,5))
         ttk.Button(frame, text="篩選", command=self.calculate).pack(side=tk.LEFT, padx=5)
@@ -157,10 +158,22 @@ class SelectStockView(tk.Frame):
         # 將股票代碼分組，每組最多60個
         stock_codes = list(stock_codes.keys())
         lines = ["\t".join(stock_codes[i:i+60]) for i in range(0, len(stock_codes), 60)]
+
+        # 獲取下載資料夾路徑
+        downloads_path = os.path.join(os.path.expanduser("~"), "Downloads")
         
-        # 選擇文件保存位置
-        file_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text files", "*.txt")])
+        # 設置默認文件名
+        default_filename = "stock_codes.txt"
+        
+        # 選擇文件保存位置，設置初始目錄為下載資料夾
+        file_path = filedialog.asksaveasfilename(
+            initialdir=downloads_path,
+            initialfile=default_filename,
+            defaultextension=".txt",
+            filetypes=[("Text files", "*.txt")]
+        )
+        
         if file_path:
             with open(file_path, "w", encoding="utf-8") as file:
                 file.write("\n".join(lines))
-            self.show_copy_message("股票代碼已匯出")
+        self.show_copy_message("股票代碼已匯出")

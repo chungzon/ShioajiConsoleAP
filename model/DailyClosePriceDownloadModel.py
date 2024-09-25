@@ -45,7 +45,7 @@ class DailyClosePriceDownloadModel:
         # 讀取 Excel 檔案，取得交易量前30名的股票代碼
         stock_df = pd.read_excel(self.stock_top_file)
         print(stock_df.columns)  # 打印出列標題名稱
-        top_30_stocks = stock_df['股票代號'][:1732]
+        top_30_stocks = stock_df['股票代號'][:1763]
         
         conn = self.connect_db()
         cursor = conn.cursor()
