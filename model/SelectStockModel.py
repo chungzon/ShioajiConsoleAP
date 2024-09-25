@@ -135,14 +135,20 @@ class SelectStockModel(BaseModel):
                         wave_extremes_df['stock_id'] = stock_id  # 加入股票代號
                         wave_extremes_df['name'] = self.get_stock_name(stock_id)
                         recent_segment, highest_segment = self.evaluate_segment(wave_extremes_df)
+                        max_value_of_all_waves = wave_extremes_df['Max_Value'].max()
+                        min_value_of_all_waves = wave_extremes_df['Min_Value'].min()
                         
                         isRecent = False
                         isHigh = False
                         if (float(ratio) < recent_segment['spread_ratio'] or float(ratio) * -1 > recent_segment['spread_ratio']) and (float(ratio2) < recent_segment['latest_close_price-0.618_ratio'] or float(ratio2) * -1 > recent_segment['latest_close_price-0.618_ratio']):
                             if not isRecent:
                                 recent_segment['wave_type'] = '最近波段'
+                                recent_segment['max_value_of_all_waves'] = max_value_of_all_waves
+                                recent_segment['min_value_of_all_waves'] = min_value_of_all_waves
                                 all_wave_extremes.append(recent_segment)
                                 highest_segment['wave_type'] = '最高波段'
+                                highest_segment['max_value_of_all_waves'] = max_value_of_all_waves
+                                highest_segment['min_value_of_all_waves'] = min_value_of_all_waves
                                 all_wave_extremes.append(highest_segment)
                                 isRecent = True
                                 isHigh = True
@@ -151,9 +157,12 @@ class SelectStockModel(BaseModel):
                         if (float(ratio) < highest_segment['spread_ratio'] or float(ratio) * -1 > highest_segment['spread_ratio']) and (float(ratio2) < highest_segment['latest_close_price-0.618_ratio'] or float(ratio2) * -1 > highest_segment['latest_close_price-0.618_ratio']):
                             if not isHigh:
                                 recent_segment['wave_type'] = '最近波段'
-
+                                recent_segment['max_value_of_all_waves'] = max_value_of_all_waves
+                                recent_segment['min_value_of_all_waves'] = min_value_of_all_waves
                                 all_wave_extremes.append(recent_segment)
                                 highest_segment['wave_type'] = '最高波段'
+                                highest_segment['max_value_of_all_waves'] = max_value_of_all_waves
+                                highest_segment['min_value_of_all_waves'] = min_value_of_all_waves
                                 all_wave_extremes.append(highest_segment)
                                 isRecent = True
                                 isHigh = True
