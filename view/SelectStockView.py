@@ -57,7 +57,7 @@ class SelectStockView(tk.Frame):
         self.table_frame.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
 
         # 定義欄位名稱
-        columns = ['股票代碼', '股票名稱', '現價','波段', '買點', '頸線', 'Head', 'Max_Date', 'Max_Value', 'Min_Date', 'Min_Value', '波段最高價','波段最低價','Head-0618價差比例', '現價-0618比例']
+        columns = ['股票代碼', '股票名稱', '現價','波段', 'Head-0618價差比例', '現價-0618比例', '買點', '頸線', 'Head', 'Max_Date', 'Max_Value', 'Min_Date', 'Min_Value', '波段最高價','波段最低價','Head-0618價差比例', '現價-0618比例']
 
         # 設置 Treeview 並定義列
         self.tree = ttk.Treeview(self.table_frame, columns=columns, show='headings')
@@ -127,7 +127,7 @@ class SelectStockView(tk.Frame):
             max_value_of_all_waves = segment['max_value_of_all_waves']
             min_value_of_all_waves = segment['min_value_of_all_waves']
             tag = 'Blue' if (index // 2) % 2 == 0 else 'White'
-            self.tree.insert('', 'end', values=(stock_id, stock_name, latest_close_price, wave_type, ratio_0618, ratio_1, max_value, max_date, max_value, min_date, min_value, max_value_of_all_waves, min_value_of_all_waves, spread_ratio, ratio_0618_ratio), tags=(tag)) 
+            self.tree.insert('', 'end', values=(stock_id, stock_name, latest_close_price, wave_type, spread_ratio, ratio_0618_ratio, ratio_0618, ratio_1, max_value, max_date, max_value, min_date, min_value, max_value_of_all_waves, min_value_of_all_waves), tags=(tag)) 
 
 
     def show_error(self, message):
