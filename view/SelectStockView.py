@@ -43,7 +43,7 @@ class SelectStockView(tk.Frame):
         self.ratio_entry2.pack(side=tk.LEFT, padx=(0,5))
         ttk.Label(frame, text="標的交易量前").pack(side=tk.LEFT, padx=(5,0))
         self.top_n_entry = ttk.Entry(frame, width=5)
-        self.top_n_entry.insert(0, "20")  # 預設值為20
+        self.top_n_entry.insert(0, "1732")  # 預設值為20
         self.top_n_entry.pack(side=tk.LEFT, padx=(0,5))
         ttk.Label(frame, text="名").pack(side=tk.LEFT, padx=(0,5))
         ttk.Button(frame, text="篩選", command=self.calculate).pack(side=tk.LEFT, padx=5)
