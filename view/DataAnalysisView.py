@@ -1,8 +1,7 @@
 ﻿import tkinter as tk
 from tkinter import ttk
 from tkcalendar import DateEntry
-import datetime
-import threading
+import os
 
 class DataAnalysisView(tk.Frame):
     def __init__(self, parent, controller):
@@ -27,10 +26,14 @@ class DataAnalysisView(tk.Frame):
         self.entry_end_date = DateEntry(self, background='white', foreground='black', borderwidth=2, date_pattern='yyyy-mm-dd', locale='zh_TW')
         self.entry_end_date.grid(row=2, column=1, padx=10, pady=5, sticky="w")
 
+      # 獲取下載資料夾路徑
+        self.downloads_path = os.path.join(os.path.expanduser("~"), "Downloads")
+
         # 儲存路徑
         ttk.Label(self, text="儲存路徑:").grid(row=3, column=0, padx=10, pady=5, sticky="e")
         self.entry_file_path = ttk.Entry(self)
         self.entry_file_path.grid(row=3, column=1, padx=10, pady=5)
+        self.entry_file_path.insert(0, self.downloads_path)  # 設置預設路徑
         ttk.Button(self, text="瀏覽", command=self.browse_file).grid(row=3, column=2, padx=10, pady=5)
 
         # Ticks 更新日期
