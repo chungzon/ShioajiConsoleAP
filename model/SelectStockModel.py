@@ -136,7 +136,10 @@ class SelectStockModel(BaseModel):
                         wave_extremes_df['name'] = self.get_stock_name(stock_id)
                         recent_segment, highest_segment = self.evaluate_segment(wave_extremes_df)
                         max_value_of_all_waves = wave_extremes_df['Max_Value'].max()
-                        min_value_of_all_waves = wave_extremes_df['Min_Value'].min()
+                        max_value_index = wave_extremes_df['Max_Value'].idxmax()
+
+                        # 在最高價之後找最低價
+                        min_value_after_max = wave_extremes_df.loc[max_value_index:, 'Min_Value'].min()
                         
                         isRecent = False
                         isHigh = False
@@ -144,11 +147,11 @@ class SelectStockModel(BaseModel):
                             if not isRecent:
                                 recent_segment['wave_type'] = '最近波段'
                                 recent_segment['max_value_of_all_waves'] = max_value_of_all_waves
-                                recent_segment['min_value_of_all_waves'] = min_value_of_all_waves
+                                recent_segment['min_value_after_max'] = min_value_after_max
                                 all_wave_extremes.append(recent_segment)
                                 highest_segment['wave_type'] = '最高波段'
                                 highest_segment['max_value_of_all_waves'] = max_value_of_all_waves
-                                highest_segment['min_value_of_all_waves'] = min_value_of_all_waves
+                                highest_segment['min_value_after_max'] = min_value_after_max
                                 all_wave_extremes.append(highest_segment)
                                 isRecent = True
                                 isHigh = True
@@ -158,11 +161,11 @@ class SelectStockModel(BaseModel):
                             if not isHigh:
                                 recent_segment['wave_type'] = '最近波段'
                                 recent_segment['max_value_of_all_waves'] = max_value_of_all_waves
-                                recent_segment['min_value_of_all_waves'] = min_value_of_all_waves
+                                recent_segment['min_value_after_max'] = min_value_after_max
                                 all_wave_extremes.append(recent_segment)
                                 highest_segment['wave_type'] = '最高波段'
                                 highest_segment['max_value_of_all_waves'] = max_value_of_all_waves
-                                highest_segment['min_value_of_all_waves'] = min_value_of_all_waves
+                                highest_segment['min_value_after_max'] = min_value_after_max
                                 all_wave_extremes.append(highest_segment)
                                 isRecent = True
                                 isHigh = True
