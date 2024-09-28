@@ -32,15 +32,33 @@ class SelectStockView(tk.Frame):
         style.map('Treeview',
                      background=[('selected', 'blue')])
         frame = ttk.Frame(self)
-        frame.grid(row=0, column=0, sticky="w", padx=10, pady=5)
+        frame.grid(row=0, column=0, columnspan=2, sticky="w", padx=10, pady=5)
 
-        ttk.Label(frame, text="0618與Head價差比例").pack(side=tk.LEFT, padx=(0,5))
+        # 添加日期選擇元件
+        date_frame = ttk.Frame(frame)
+        date_frame.pack(side=tk.LEFT, padx=(0, 10))
+
+        ttk.Label(date_frame, text="開始日期:").pack(side=tk.LEFT)
+        self.start_date = DateEntry(date_frame, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='yyyy-mm-dd')
+        self.start_date.pack(side=tk.LEFT, padx=(0, 10))
+
+        ttk.Label(date_frame, text="結束日期:").pack(side=tk.LEFT)
+        self.end_date = DateEntry(date_frame, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='yyyy-mm-dd')
+        self.end_date.pack(side=tk.LEFT)
+
+        # 設置默認日期（例如：最近一年）
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=365)
+        self.start_date.set_date(start_date)
+        self.end_date.set_date(end_date)
+
+        ttk.Label(frame, text="0618與Head價差比例").pack(side=tk.LEFT, padx=(10,5))
         ttk.Label(frame, text="±").pack(side=tk.LEFT)
-        self.ratio_entry = ttk.Entry(frame)
+        self.ratio_entry = ttk.Entry(frame, width=10)
         self.ratio_entry.pack(side=tk.LEFT, padx=(0,5))
         ttk.Label(frame, text="現價-0618比例").pack(side=tk.LEFT, padx=5)
         ttk.Label(frame, text="±").pack(side=tk.LEFT)
-        self.ratio_entry2 = ttk.Entry(frame)
+        self.ratio_entry2 = ttk.Entry(frame, width=10)
         self.ratio_entry2.pack(side=tk.LEFT, padx=(0,5))
         ttk.Label(frame, text="標的交易量前").pack(side=tk.LEFT, padx=(5,0))
         self.top_n_entry = ttk.Entry(frame, width=5)
@@ -92,6 +110,8 @@ class SelectStockView(tk.Frame):
         self.table_frame.grid_columnconfigure(0, weight=1)
         
     def calculate(self):
+        start_date = self.start_date.get_date().strftime('%Y-%m-%d')
+        end_date = self.end_date.get_date().strftime('%Y-%m-%d')
         ratio = self.ratio_entry.get()
         ratio2 = self.ratio_entry2.get()
         top_n = self.top_n_entry.get()
@@ -108,7 +128,7 @@ class SelectStockView(tk.Frame):
         for item in self.tree.get_children():
             self.tree.delete(item)
             
-        all_wave_extremes = self.controller.calculate(ratio, ratio2, top_n)
+        all_wave_extremes = self.controller.calculate(start_date, end_date, ratio, ratio2, top_n)
         
         for index, segment in enumerate(all_wave_extremes):
             stock_id = segment['stock_id']  # 假設 stock_id 已在 segments 中

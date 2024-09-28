@@ -8,9 +8,9 @@ class SelectStockController:
         self.view = view
         self.view.controller = self
 
-    def calculate(self, ratio, ratio2, top_n):
+    def calculate(self, start_date, end_date, ratio, ratio2, top_n):
         # all_wave_extremes = self.model.process_all_stocks(ratio, ratio2, top_n)
-        result = self.model.process_all_stocks(ratio, ratio2, top_n)
+        result = self.model.process_all_stocks(start_date, end_date, ratio, ratio2, top_n)
         if isinstance(result, str) and result.startswith("錯誤："):
             self.view.show_error(result)
         else:

@@ -40,7 +40,7 @@ class SelectStockModel(BaseModel):
             print(f"讀取文件時發生錯誤: {e}")
             return []
 
-    def get_stock_data(self, stock_id):
+    def get_stock_data(self, stock_id, start_date, end_date):
         try:
             # 建立資料庫連接
             conn = self.connect_db()
@@ -50,6 +50,8 @@ class SelectStockModel(BaseModel):
             SELECT stock_id, date, high_price, low_price 
             FROM stock_data
             WHERE stock_id = '{stock_id}'
+            AND date >= '{start_date}'
+            AND date <= '{end_date}'
             ORDER BY date ASC
             """
 
@@ -117,7 +119,7 @@ class SelectStockModel(BaseModel):
         else:
             return None    
 
-    def process_all_stocks(self, ratio, ratio2, top_n):
+    def process_all_stocks(self, start_date, end_date, ratio, ratio2, top_n):
         top_50_stocks = self.get_top_volumn_stocks(top_n)
         if isinstance(top_50_stocks, str) and top_50_stocks.startswith("錯誤："):
             return top_50_stocks
@@ -127,7 +129,7 @@ class SelectStockModel(BaseModel):
 
             for stock_id in top_50_stocks:
                 print(f"正在處理股票: {stock_id}")
-                stock_data_df = self.get_stock_data(stock_id)
+                stock_data_df = self.get_stock_data(stock_id, start_date, end_date)
                 if stock_data_df is not None and not stock_data_df.empty:
                     latest_close_price = self.get_latest_close_price(stock_id)
                     wave_extremes_df = self.find_peaks_troughs_v34_small(stock_data_df, latest_close_price)
