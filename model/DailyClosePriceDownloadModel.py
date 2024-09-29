@@ -168,6 +168,8 @@ class DailyClosePriceDownloadModel:
                 reader = csv.DictReader(io.StringIO('\n'.join(lines)))
 
                 for row in reader:
+                    if row['開盤'] == '--' and row['最高'] == '--' and row['最低'] == '--' and row['收盤'] == '--':
+                        continue
                     gregorian_date_str = self.convert_taiwan_date_to_gregorian(row['日 期'].strip())
                     date = pd.to_datetime(gregorian_date_str, format='%Y/%m/%d').strftime('%Y-%m-%d')
                     open_price = float(row['開盤'].replace(',', '').strip())

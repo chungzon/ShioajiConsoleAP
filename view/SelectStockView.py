@@ -48,7 +48,7 @@ class SelectStockView(tk.Frame):
 
         # 設置默認日期（例如：最近一年）
         end_date = datetime.now()
-        start_date = end_date - timedelta(days=365)
+        start_date = end_date - timedelta(days=30)
         self.start_date.set_date(start_date)
         self.end_date.set_date(end_date)
 
