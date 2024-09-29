@@ -145,7 +145,7 @@ class SelectStockView(tk.Frame):
             ratio_0618_ratio = round(segment['latest_close_price-0.618_ratio'], 2)
             max_value_of_all_waves = segment['max_value_of_all_waves']
             min_value_after_max = segment['min_value_after_max']
-            tag = 'Blue' if (index // 2) % 2 == 0 else 'White'
+            tag = 'Blue' if (index // 3) % 3 == 0 else 'White'
             self.tree.insert('', 'end', values=(stock_id, stock_name, latest_close_price, wave_type, spread_ratio, ratio_0618_ratio, ratio_0618, ratio_1, max_value, max_date, max_value, min_date, min_value, max_value_of_all_waves, min_value_after_max), tags=(tag)) 
 
 

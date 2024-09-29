@@ -140,9 +140,44 @@ class SelectStockModel(BaseModel):
                         max_value_of_all_waves = wave_extremes_df['Max_Value'].max()
                         max_value_index = wave_extremes_df['Max_Value'].idxmax()
 
-                        # 在最高價之後找最低價
-                        min_value_after_max = wave_extremes_df.loc[max_value_index:, 'Min_Value'].min()
-                        
+                        # 獲取最高價的日期
+                        max_value_date = wave_extremes_df.loc[max_value_index, 'Max_Date']
+                           # 在最高價之後找最低價
+                        min_after_max_series = wave_extremes_df.loc[max_value_index:, 'Min_Value']
+                        min_value_after_max = min_after_max_series.min()
+                        min_after_max_index = min_after_max_series.idxmin()
+
+                        # 獲取最低價的日期
+                        min_value_date = wave_extremes_df.loc[min_after_max_index, 'Min_Date']
+
+                        # 計算 ratio_0.618 和 ratio_1
+                        ratio_0618 = round(min_value_after_max + (max_value_of_all_waves - min_value_after_max) * 0.618, 2)
+                        ratio_1 = round(min_value_after_max + (max_value_of_all_waves - min_value_after_max) * 1, 2)
+
+                        # 計算 Head-0.618 價差比例
+                        head_0618_spread_ratio = round((max_value_of_all_waves - ratio_0618) / ratio_0618 * 100, 2)
+
+                        # 計算現價-0.618 價差比例
+                        current_0618_spread_ratio = round((latest_close_price - ratio_0618) / ratio_0618 * 100, 2)
+
+                        segment = {
+                            'stock_id': stock_id,
+                            'name': '',
+                            'latest_close_price': latest_close_price,
+                            'wave_type': [None],
+                            'Max_Date': max_value_date,
+                            'Min_Date': min_value_date,
+                            'Max_Value': max_value_of_all_waves,
+                            'Min_Value': min_value_after_max,
+                            'Ratio_0.618': ratio_0618,
+                            'Ratio_1': ratio_1,
+                            'spread_ratio': head_0618_spread_ratio,
+                            'latest_close_price-0.618_ratio': current_0618_spread_ratio,
+                            'max_value_of_all_waves': max_value_of_all_waves,
+                            'min_value_after_max': min_value_after_max,
+                            'wave_type': ''
+                        }
+
                         isRecent = False
                         isHigh = False
                         if (float(ratio) < recent_segment['spread_ratio'] or float(ratio) * -1 > recent_segment['spread_ratio']) and (float(ratio2) < recent_segment['latest_close_price-0.618_ratio'] or float(ratio2) * -1 > recent_segment['latest_close_price-0.618_ratio']):
@@ -155,6 +190,7 @@ class SelectStockModel(BaseModel):
                                 highest_segment['max_value_of_all_waves'] = max_value_of_all_waves
                                 highest_segment['min_value_after_max'] = min_value_after_max
                                 all_wave_extremes.append(highest_segment)
+                                all_wave_extremes.append(segment)
                                 isRecent = True
                                 isHigh = True
 
@@ -169,6 +205,7 @@ class SelectStockModel(BaseModel):
                                 highest_segment['max_value_of_all_waves'] = max_value_of_all_waves
                                 highest_segment['min_value_after_max'] = min_value_after_max
                                 all_wave_extremes.append(highest_segment)
+                                all_wave_extremes.append(segment)
                                 isRecent = True
                                 isHigh = True
                             
