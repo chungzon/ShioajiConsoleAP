@@ -749,5 +749,19 @@ class BaseModel:
             line_chart2.combine(scatter_chart2)
             worksheet.insert_chart('S20', line_chart2)
 
+            # 設定數字格式
+            num_format = workbook.add_format({'num_format': '0.00'})
+
+            # 設置日期格式
+            date_format = workbook.add_format({'num_format': 'yyyy-mm-dd'})
+
+            # 依列應用格式
+            for col_num, col_name in enumerate(peak_trough_df.columns):
+                if col_name in ['Max_Date', 'Min_Date']:
+                    # 為日期列設置更寬的寬度，例如 15 個字符寬
+                    worksheet.set_column(col_num, col_num, 15, date_format)
+                else:
+                    worksheet.set_column(col_num, col_num, 12, num_format)  
+
         # messagebox.showinfo("完成", f"波段資料及均線資料已儲存到: {output_file_path}")
         
