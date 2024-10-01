@@ -17,3 +17,6 @@ class SelectStockController:
             # 處理正常的结果
             return result
         
+    def download_detail_data(self, stock_id, start_date, end_date, file_path):
+        self.model.analyze_data(stock_id, start_date, end_date, file_path)
+        

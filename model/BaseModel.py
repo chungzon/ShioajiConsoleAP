@@ -3,6 +3,8 @@ import pandas as pd
 import shioaji as sj
 import time
 from datetime import datetime, timedelta
+import os
+from common.Math import Math
 
 class BaseModel:
 
@@ -126,20 +128,13 @@ class BaseModel:
 
     
     # 從資料庫中獲取每日收盤價
-    def get_daily_close_prices_from_db(self, stock_code, days):
+    def get_daily_close_prices_from_db(self, stock_code, days=365):
         conn = self.connect_db()
         query = f"""
-        SELECT ts AS date, close_price
-        FROM (
-            SELECT *,
-                   ROW_NUMBER() OVER (PARTITION BY CONVERT(date, ts) ORDER BY ts DESC) AS rn
-            FROM KBars
-            WHERE stock_id = '{stock_code}'
-        ) AS sub
-        WHERE sub.rn = 1
+        SELECT TOP {days} date, close_price
+        FROM stock_data
+        WHERE stock_id = '{stock_code}'
         ORDER BY date DESC
-        OFFSET 0 ROWS
-        FETCH NEXT 266 ROWS ONLY
         """
         df = pd.read_sql(query, conn)
         df['date'] = pd.to_datetime(df['date'])
@@ -238,3 +233,521 @@ class BaseModel:
     
         return pd.DataFrame(segments, columns=['Max_Date', 'Max_Value', 'Min_Date', 'Min_Value'] + ratio_columns + append_columns)
     
+    def analyze_data(self, stock_id, start_date, end_date, save_path):
+        if not stock_id or not start_date or not end_date or not save_path:
+            raise Exception("下載失敗")
+
+        df = self.get_stock_data(stock_id, start_date, end_date)
+        latest_close_price = self.get_latest_close_price(stock_id)
+        # daily_high_low = df.groupby('date').agg({'High': 'max', 'Low': 'min'}).reset_index()
+        peak_trough_df = self.find_peaks_troughs_v34_small(df, latest_close_price)
+        # 刪除不需要的列
+        peak_trough_df = peak_trough_df.drop(columns=['spread_ratio', 'latest_close_price', 'latest_close_price-0.618_ratio'])
+
+        # 四捨五入至小數點以下兩位，不足補0
+        peak_trough_df['Ratio_0.618'] = peak_trough_df['Ratio_0.618'].round(2)
+        peak_trough_df['Ratio_1'] = peak_trough_df['Ratio_1'].round(2)
+    
+        #取得最後一0.618價格
+        last_ratio_0_618 = peak_trough_df['Ratio_0.618'].iloc[-1]
+
+        peak_trough_df['現價'] = round(latest_close_price, 2)
+
+        # 四捨五入 Max_Value 和 Min_Value 欄位並補0
+        peak_trough_df['Max_Value'] = peak_trough_df['Max_Value'].round(2)
+        peak_trough_df['Min_Value'] = peak_trough_df['Min_Value'].round(2)
+
+        # 計算現價-0.618，Ratio_0.618 - 現價
+        peak_trough_df['現價-0.618'] = (peak_trough_df['Ratio_0.618'] - peak_trough_df['現價']).round(2)
+
+        # 計算Head欄位，Max_Value - 現價
+        peak_trough_df['Head'] = (peak_trough_df['Max_Value'] - peak_trough_df['現價']).round(2)
+
+        # 計算頸線欄位，Ratio_1 - 現價
+        peak_trough_df['頸線'] = (peak_trough_df['Ratio_1'] - peak_trough_df['現價']).round(2)
+
+        # 找出 Max_Value 和 Min_Value 欄位的最大值和最小值
+        max_max_value = peak_trough_df['Max_Value'].max()
+        min_min_value = peak_trough_df['Min_Value'].min()
+
+        # 獲取最高價的日期
+        max_value_index = peak_trough_df['Max_Value'].idxmax()
+        max_value_date = peak_trough_df.loc[max_value_index, 'Max_Date']
+        # 在最高價之後找最低價
+        min_after_max_series = peak_trough_df.loc[max_value_index:, 'Min_Value']
+        min_value_after_max = min_after_max_series.min()
+        min_after_max_index = min_after_max_series.idxmin()
+
+        # 獲取最低價的日期
+        min_value_date = peak_trough_df.loc[min_after_max_index, 'Min_Date']
+
+        # 計算 ratio_0.618 和 ratio_1
+        ratio_0618_after_max = Math.calculate_ratio_0618(max_max_value, min_value_after_max)
+        ratio_1_after_max = Math.calculate_ratio_1(max_max_value, min_value_after_max)
+
+        # 計算前面Max(Max_Value)-Min(Min_Value)/2*0.618+Min(Min_Value)的值，並四捨五入至小數點以下兩位
+        ratio_0_618_value = (max_max_value - min_min_value) / 2 * 0.618 + min_min_value
+        ratio_0_618_value = round(ratio_0_618_value, 2)
+
+        # 計算前面Max(Max_Value)-Min(Min_Value)/2*1+Min(Min_Value)的值，並四捨五入至小數點以下兩位
+        ratio_1_value = (max_max_value - min_min_value) / 2 * 1 + min_min_value
+        ratio_1_value = round(ratio_1_value, 2)
+
+        # 新增一列填入 Max(Max_Value)、Min(Min_Value)、Ratio_0.618 和 Ratio_1 的值
+        new_row = pd.DataFrame({
+            'Max_Date': [None],
+            'Max_Value': [max_max_value],
+            'Min_Date': [None],
+            'Min_Value': [min_value_after_max],
+            'Ratio_0.618': [ratio_0618_after_max],
+            'Ratio_1': [ratio_1_after_max],
+            '現價': [None],
+            '現價-0.618': [None],
+            'Head': [None],
+            '頸線': [None]
+        })
+        peak_trough_df = pd.concat([peak_trough_df, new_row], ignore_index=True)
+
+        # 排除最後一列進行排序
+        sorted_df = peak_trough_df.iloc[:-1]
+
+        # 計算排序欄位
+        peak_trough_df['現價-0.618_Sort'] = sorted_df['現價-0.618'].sort_values().tolist() + [None]
+        peak_trough_df['Head_Sort'] = sorted_df['Head'].sort_values().tolist() + [None]
+        peak_trough_df['頸線_Sort'] = sorted_df['頸線'].sort_values().tolist() + [None]
+        peak_trough_df['max由小到大'] = sorted_df['Max_Value'].sort_values().tolist() + [None]
+        peak_trough_df['Radio_1_Sort'] = sorted_df['Ratio_1'].sort_values().tolist() + [None]
+        peak_trough_df['Radio_0.618_Sort'] = sorted_df['Ratio_0.618'].sort_values().tolist() + [None]
+
+        # 新增流水號欄位
+        peak_trough_df['No'] = range(1, len(peak_trough_df) + 1)
+
+        # 將 No 欄位移到 Max_Value 前
+        cols = list(peak_trough_df.columns)
+        cols.insert(0, cols.pop(cols.index('No')))
+        peak_trough_df = peak_trough_df[cols]
+
+        # 獲取每日收盤價
+        close_prices = self.get_daily_close_prices_from_db(stock_id, 120)
+    
+        # 計算日均線的移動平均
+        sma_values = [
+            round(self.calculate_moving_average(close_prices, 5).iloc[-1], 2),
+            round(self.calculate_moving_average(close_prices, 10).iloc[-1], 2),
+            round(self.calculate_moving_average(close_prices, 20).iloc[-1], 2),
+            round(self.calculate_moving_average(close_prices, 60).iloc[-1], 2),
+            round(self.calculate_moving_average(close_prices, 120).iloc[-1], 2),
+        ]
+
+        # 計算周均線的移動平均
+        weekly_sma_values = [
+            round(self.calculate_weekly_average(close_prices, 5).iloc[-1], 2),
+            round(self.calculate_weekly_average(close_prices, 10).iloc[-1], 2),
+            round(self.calculate_weekly_average(close_prices, 20).iloc[-1], 2),
+            round(self.calculate_weekly_average(close_prices, 60).iloc[-1], 2),
+            round(self.calculate_weekly_average(close_prices, 120).iloc[-1], 2),
+        ]
+
+        # 計算月均線的移動平均
+        monthly_sma_values = [
+            round(self.calculate_monthly_average(close_prices, 5).iloc[-1], 2),
+            round(self.calculate_monthly_average(close_prices, 10).iloc[-1], 2),
+            round(self.calculate_monthly_average(close_prices, 20).iloc[-1], 2),
+            round(self.calculate_monthly_average(close_prices, 60).iloc[-1], 2),
+            round(self.calculate_monthly_average(close_prices, 120).iloc[-1], 2),
+        ]
+        
+        # 設定儲存路徑和檔名
+        # if not os.path.exists(save_path):
+        #     os.makedirs(save_path)
+            
+        stock_name = self.get_stock_name(stock_id)
+        if stock_name is not None:
+            stock_name = stock_name.replace('*', '-')
+    
+        file_name = f"{stock_id}({stock_name})_{start_date}_to_{end_date}.xlsx"
+        file_path = os.path.join(save_path, file_name)
+        self.save_to_excel(peak_trough_df, sma_values, weekly_sma_values, monthly_sma_values, last_ratio_0_618, latest_close_price, file_path)
+        
+
+    def get_stock_data(self, stock_id, start_date, end_date):
+        try:
+            # 建立資料庫連接
+            conn = self.connect_db()
+
+            # 查詢語句
+            query = f"""
+            SELECT stock_id, date, high_price, low_price 
+            FROM stock_data
+            WHERE stock_id = '{stock_id}'
+            AND date >= '{start_date}'
+            AND date <= '{end_date}'
+            ORDER BY date ASC
+            """
+
+            # 執行查詢並讀取數據到 DataFrame
+            df = pd.read_sql(query, conn)
+
+            # 關閉連接
+            conn.close()
+
+            return df
+
+        except Exception as e:
+            print(f"讀取資料時發生錯誤: {e}")
+            return None
+
+
+        # 儲存資料到Excel
+    def save_to_excel(self, peak_trough_df, sma_values, weekly_sma_values, monthly_sma_values, last_ratio_0_618, latest_close_price, output_file_path):
+        with pd.ExcelWriter(output_file_path, engine='xlsxwriter') as writer:
+            workbook = writer.book
+            worksheet = workbook.add_worksheet("Peaks_and_Troughs")
+            percent_fmt = workbook.add_format({'num_format': '0.00%'})
+
+            # 儲存波段資料
+            peak_trough_df.to_excel(writer, sheet_name='Peaks_and_Troughs', index=False, startrow=0)
+
+            # 確定開始寫入日均線的行數
+            start_row = len(peak_trough_df) + 5
+        
+            worksheet.write(start_row - 1, 0, latest_close_price)
+
+            # 設定日均線表格標題
+            headers = ["日均線", "", "", "", "收", "買點", "", "", "", "日均線"]
+            worksheet.write_row(start_row, 0, headers)
+
+            # 合併第5欄位和第6欄位的第1列和第2列資料格
+            worksheet.merge_range(start_row + 1, 4, start_row + 2, 4, "")
+            worksheet.merge_range(start_row + 1, 5, start_row + 2, 5, "")
+        
+            #在日均線表格填入收盤價和買點價
+            worksheet.write(start_row + 1, 4, latest_close_price)       
+            worksheet.write(start_row + 1, 5, last_ratio_0_618)
+        
+            #買點價-收盤價
+            diff_price = last_ratio_0_618 - latest_close_price
+
+            # 合併第5欄位和第6欄位的第3列資料格
+            worksheet.merge_range(start_row + 3, 4, start_row + 3, 5, "")
+
+            #填入日均線(買點價-收盤價)
+            worksheet.write(start_row + 3, 4, diff_price)
+        
+            #計算(買點價-收盤價)/收盤價
+            radio_diff_price = diff_price / latest_close_price
+        
+            # 合併第5欄位和第6欄位的第4列資料格
+            worksheet.merge_range(start_row + 4, 4, start_row + 4, 5, "")
+        
+            #填入(買點價-收盤價)/收盤價
+            worksheet.write(start_row + 4, 4, radio_diff_price, percent_fmt)
+
+            # 設定第一欄和第十欄的資料
+            sma_labels = ["SMA5", "SMA10", "SMA20", "SMA60", "SMA120"]
+            for i, label in enumerate(sma_labels):
+                worksheet.write(start_row + i + 1, 0, label)
+                worksheet.write(start_row + i + 1, 9, label)
+
+            cell_green_format = workbook.add_format()
+            cell_green_format.set_pattern(1)
+            cell_green_format.set_bg_color('green')
+            cell_red_format = workbook.add_format()
+            cell_red_format.set_pattern(1)
+            cell_red_format.set_bg_color('red')
+            # 填入日均線計算值
+            for i, value in enumerate(sma_values):
+                worksheet.write(start_row + i + 1, 2, value if not pd.isna(value) else "NaN")
+                worksheet.write(start_row + i + 1, 7, value if not pd.isna(value) else "NaN")
+                if not pd.isna(value):
+                    if latest_close_price > value:
+                        worksheet.write(start_row + i + 1, 1, "O", cell_green_format)
+                    else:
+                        worksheet.write(start_row + i + 1, 1, "X", cell_red_format)
+                    if  last_ratio_0_618 > value:
+                        worksheet.write(start_row + i + 1, 8, "O", cell_green_format)
+                    else:
+                        worksheet.write(start_row + i + 1, 8, "X", cell_red_format)
+                else:
+                    print("")
+            
+            
+            #填入數值分析
+            if not pd.isna(sma_values[-1]):
+                last_daily_sma120 = sma_values[-1]
+                diff_last_daily_sma120 = (last_daily_sma120 - latest_close_price).round(2)
+                radio_last_dailly_sma120 = (diff_last_daily_sma120 / latest_close_price).round(2)
+                diff_sma_120_label = ["(", f"{diff_last_daily_sma120:.2f}", ", ", f"{radio_last_dailly_sma120:0.00%}", ")"]
+                worksheet.write_rich_string(start_row + 5, 3, *diff_sma_120_label)
+                diff_last_daily_sma120 = (last_ratio_0_618 - last_daily_sma120).round(2)
+                radio_last_dailly_sma120 = (diff_last_daily_sma120 / last_ratio_0_618).round(2)
+                diff_sma_120_label = ["(", f"{diff_last_daily_sma120:.2f}", ", ", f"{radio_last_dailly_sma120:0.00%}", ")"]
+                worksheet.write_rich_string(start_row + 5, 6, *diff_sma_120_label)
+            else:
+                print("")   
+
+            # 插入一行空行
+            start_row += len(sma_labels) + 3
+            worksheet.write_row(start_row, 0, [""] * len(headers))
+            start_row += 1
+
+            # 插入周均線表格
+            headers = ["月均線", "", "", "", "收", "買點", "", "", "", "月均線"]
+            worksheet.write_row(start_row, 0, headers)
+
+            # 合併第5欄位和第6欄位的第1列和第2列資料格
+            worksheet.merge_range(start_row + 1, 4, start_row + 2, 4, "")
+            worksheet.merge_range(start_row + 1, 5, start_row + 2, 5, "")
+
+            worksheet.write(start_row + 1, 4, latest_close_price)       
+            worksheet.write(start_row + 1, 5, last_ratio_0_618)
+
+            # 合併第5欄位和第6欄位的第3列資料格
+            worksheet.merge_range(start_row + 3, 4, start_row + 3, 5, "")
+        
+            #填入周均線(買點價-收盤價)
+            worksheet.write(start_row + 3, 4, diff_price)
+        
+            # 合併第5欄位和第6欄位的第4列資料格
+            worksheet.merge_range(start_row + 4, 4, start_row + 4, 5, "")
+               
+            #填入(買點價-收盤價)/收盤價
+            worksheet.write(start_row + 4, 4, radio_diff_price, percent_fmt)
+        
+            # 設定第一欄和第十欄的資料
+            weekly_sma_labels = ["周SMA5", "周SMA10", "周SMA20", "周SMA60", "周SMA120"]
+            for i, label in enumerate(weekly_sma_labels):
+                worksheet.write(start_row + i + 1, 0, label)
+                worksheet.write(start_row + i + 1, 9, label)
+
+            # 填入周均線計算值
+            for i, value in enumerate(weekly_sma_values):
+                worksheet.write(start_row + i + 1, 2, value if not pd.isna(value) else "NaN")
+                worksheet.write(start_row + i + 1, 7, value if not pd.isna(value) else "NaN")
+                if not pd.isna(value):
+                    if latest_close_price > value:
+                        worksheet.write(start_row + i + 1, 1, "O", cell_green_format)
+                    else:
+                        worksheet.write(start_row + i + 1, 1, "X", cell_red_format)
+                    if  last_ratio_0_618 > value:
+                        worksheet.write(start_row + i + 1, 8, "O", cell_green_format)
+                    else:
+                        worksheet.write(start_row + i + 1, 8, "X", cell_red_format)
+                else:
+                    print("")
+            
+            #填入數值分析
+            if not pd.isna(weekly_sma_values[-1]):
+                last_weekly_sma120 = weekly_sma_values[-1]
+                diff_last_weekly_sma120 = (last_weekly_sma120 - latest_close_price).round(2)
+                radio_last_weekly_sma120 = (diff_last_weekly_sma120 / latest_close_price).round(2)
+                diff_sma_120_label = ["(", f"{diff_last_weekly_sma120:.2f}", ", ", f"{radio_last_weekly_sma120:0.00%}", ")"]
+                worksheet.write_rich_string(start_row + 5, 3, *diff_sma_120_label)
+                diff_last_weekly_sma120 = (last_ratio_0_618 - last_weekly_sma120).round(2)
+                radio_last_weekly_sma120 = (diff_last_weekly_sma120 / last_ratio_0_618).round(2)
+                diff_sma_120_label = ["(", f"{diff_last_weekly_sma120:.2f}", ", ", f"{radio_last_weekly_sma120:0.00%}", ")"]
+                worksheet.write_rich_string(start_row + 5, 6, *diff_sma_120_label)
+            else:
+                print("")
+
+            # 插入一行空行
+            start_row += len(weekly_sma_labels) + 2
+            worksheet.write_row(start_row, 0, [""] * len(headers))
+            start_row += 1
+
+            # 插入月均線表格
+            headers = ["月均線", "", "", "", "收", "買點", "", "", "", "月均線"]
+            worksheet.write_row(start_row, 0, headers)
+
+            # 合併第5欄位和第6欄位的第1列和第2列資料格
+            worksheet.merge_range(start_row + 1, 4, start_row + 2, 4, "")
+            worksheet.merge_range(start_row + 1, 5, start_row + 2, 5, "")
+        
+            worksheet.write(start_row + 1, 4, latest_close_price)       
+            worksheet.write(start_row + 1, 5, last_ratio_0_618)
+
+            # 合併第5欄位和第6欄位的第3列資料格
+            worksheet.merge_range(start_row + 3, 4, start_row + 3, 5, "")
+        
+            #填入(買點價-收盤價)/收盤價
+            worksheet.write(start_row + 3, 4, diff_price)
+        
+            # 合併第5欄位和第6欄位的第4列資料格
+            worksheet.merge_range(start_row + 4, 4, start_row + 4, 5, "")
+        
+            #填入(買點價-收盤價)/收盤價
+            worksheet.write(start_row + 4, 4, radio_diff_price, percent_fmt)
+
+            # 設定第一欄和第十欄的資料
+            monthly_sma_labels = ["月SMA5", "月SMA10", "月SMA20", "月SMA60", "月SMA120"]
+            for i, label in enumerate(monthly_sma_labels):
+                worksheet.write(start_row + i + 1, 0, label)
+                worksheet.write(start_row + i + 1, 9, label)
+
+            # 填入月均線計算值
+            for i, value in enumerate(monthly_sma_values):
+                worksheet.write(start_row + i + 1, 2, value if not pd.isna(value) else "NaN")
+                worksheet.write(start_row + i + 1, 7, value if not pd.isna(value) else "NaN")
+                if not pd.isna(value):
+                    if latest_close_price > value:
+                        worksheet.write(start_row + i + 1, 1, "O", cell_green_format)
+                    else:
+                        worksheet.write(start_row + i + 1, 1, "X", cell_red_format)
+                    if  last_ratio_0_618 > value:
+                        worksheet.write(start_row + i + 1, 8, "O", cell_green_format)
+                    else:
+                        worksheet.write(start_row + i + 1, 8, "X", cell_red_format)
+                else:
+                    print("")
+            
+            #填入數值分析
+            if not pd.isna(monthly_sma_values[-1]):
+                last_monthly_sma120 = monthly_sma_values[-1]
+                diff_last_monthly_sma120 = (last_monthly_sma120 - latest_close_price).round(2)
+                radio_last_monthly_sma120 = (diff_last_monthly_sma120 / latest_close_price).round(2)
+                diff_sma_120_label = ["(", f"{diff_last_monthly_sma120:.2f}", ", ", f"{radio_last_monthly_sma120:0.00%}", ")"]
+                worksheet.write_rich_string(start_row + 5, 3, *diff_sma_120_label)
+                diff_last_monthly_sma120 = (last_ratio_0_618 - last_monthly_sma120).round(2)
+                radio_last_monthly_sma120 = (diff_last_monthly_sma120 / last_ratio_0_618).round(2)
+                diff_sma_120_label = ["(", f"{diff_last_monthly_sma120:.2f}", ", ", f"{radio_last_monthly_sma120:0.00%}", ")"]
+                worksheet.write_rich_string(start_row + 5, 6, *diff_sma_120_label)
+            else:
+                print("")
+            
+         # 設定數字格式
+            num_format = workbook.add_format({'num_format': '0.00'})
+
+            # 依列應用格式
+            for col_num, col_name in enumerate(peak_trough_df.columns):
+                if col_name not in ['Max_Date', 'Min_Date']:
+                    worksheet.set_column(col_num, col_num, 12, num_format)
+
+            # 新增折線圖和散佈圖
+            line_chart1 = workbook.add_chart({'type': 'line'})
+            scatter_chart1 = workbook.add_chart({'type': 'scatter'})
+            line_chart2 = workbook.add_chart({'type': 'line'})
+            scatter_chart2 = workbook.add_chart({'type': 'scatter'})
+
+            # 設定圖表資料範圍
+            max_row = len(peak_trough_df) + 1
+
+            # custom_labels using P column data
+            custom_labels_P = [
+                {'value': f"='Peaks_and_Troughs'!$Q${i}", 'font': {'color': 'blue'}} for i in range(2, max_row)
+            ]
+        
+            # custom_labels using N column data
+            custom_labels_N = [
+                {'value': f"='Peaks_and_Troughs'!$O${i}", 'font': {'color': 'red'}} for i in range(2, max_row)
+            ]
+        
+            # custom_labels using O column data
+            custom_labels_O = [
+                {'value': f"='Peaks_and_Troughs'!$P${i}", 'font': {'color': 'green'}} for i in range(2, max_row)
+            ]
+
+            # 第一張圖表 - 排序後的數列
+            line_chart1.add_series({
+                'name': '現價-0.618_Sort',
+                'categories': f"='Peaks_and_Troughs'!$A$2:$A${max_row}",
+                'values': f"='Peaks_and_Troughs'!$L$2:$L${max_row}",
+                'marker': {'type': 'circle', 'size': 6},
+                'data_labels': {
+                    'value': True,
+                    'custom': custom_labels_P,
+                    'position': 'below'
+                }  # 添加自定義數值標籤
+            })
+            scatter_chart1.add_series({
+                'name': 'Head_Sort',
+                'categories': f"='Peaks_and_Troughs'!$A$2:$A${max_row}",
+                'values': f"='Peaks_and_Troughs'!$M$2:$M${max_row}",
+                'marker': {'type': 'circle', 'size': 6},
+                'data_labels': {
+                    'value': True,
+                    'custom': custom_labels_N,
+                    'position': 'above'
+                }
+            })
+            scatter_chart1.add_series({
+                'name': '頸線_Sort',
+                'categories': f"='Peaks_and_Troughs'!$A$2:$A${max_row}",
+                'values': f"='Peaks_and_Troughs'!$N$2:$N${max_row}",
+                'marker': {'type': 'circle', 'size': 6},
+                'data_labels': {
+                    'value': True,
+                    'custom': custom_labels_O
+                }
+            })
+
+            # 設定第一張圖表標題和軸標籤
+            line_chart1.set_title({'name': 'Stock Price Analysis (Sorted)'})
+            line_chart1.set_x_axis({'name': 'Index'})
+            line_chart1.set_y_axis({'name': 'Value'})
+        
+            # 插入第一張圖表到工作表
+            line_chart1.combine(scatter_chart1)
+            worksheet.insert_chart('S2', line_chart1)
+        
+            # custom_labels using E column data
+            custom_labels_E = [
+                {'value': f"='Peaks_and_Troughs'!$F${i}", 'font': {'color': 'blue'}, 'position': 'below'} for i in range(2, max_row)
+            ]
+        
+            # custom_labels using B column data
+            custom_labels_B = [
+                {'value': f"='Peaks_and_Troughs'!$C${i}", 'font': {'color': 'red'}, 'position': 'above'} for i in range(2, max_row)
+            ]
+        
+            # custom_labels using F column data
+            custom_labels_F = [
+                {'value': f"='Peaks_and_Troughs'!$G${i}", 'font': {'color': 'green'}} for i in range(2, max_row)
+            ]
+
+            # 第二張圖表 - 原始數列
+            line_chart2.add_series({
+                'name': '現價-0.618',
+                'categories': f"='Peaks_and_Troughs'!$A$2:$A${max_row}",
+                'values': f"='Peaks_and_Troughs'!$I$2:$I${max_row}",
+                'marker': {'type': 'circle', 'size': 6},
+                'data_labels': {
+                    'value': True,
+                    'custom': custom_labels_E,
+                    'position': 'below'
+                }
+            })
+            scatter_chart2.add_series({
+                'name': 'Head',
+                'categories': f"='Peaks_and_Troughs'!$A$2:$A${max_row}",
+                'values': f"='Peaks_and_Troughs'!$J$2:$J${max_row}",
+                'marker': {'type': 'circle', 'size': 6},
+                'data_labels': {
+                    'value': True,
+                    'custom': custom_labels_B,
+                    'position': 'above'
+                }
+            })
+            scatter_chart2.add_series({
+                'name': '頸線',
+                'categories': f"='Peaks_and_Troughs'!$A$2:$A${max_row}",
+                'values': f"='Peaks_and_Troughs'!$K$2:$K${max_row}",
+                'marker': {'type': 'circle', 'size': 6},
+                'data_labels': {
+                    'value': True,
+                    'custom': custom_labels_F
+                }})
+       
+            # 設定第二張圖表標題和軸標籤
+            line_chart2.set_title({'name': 'Stock Price Analysis (Original)'})
+            line_chart2.set_x_axis({'name': 'Index'})
+            line_chart2.set_y_axis({'name': 'Value'})
+        
+            line_chart1.set_x_axis({'num_format': ' ', 'line': {'color': 'red', 'width': 1.5}})
+            line_chart2.set_x_axis({'num_format': ' ', 'line': {'color': 'red', 'width': 1.5}})
+
+            # 插入第二張圖表到工作表
+            line_chart2.combine(scatter_chart2)
+            worksheet.insert_chart('S20', line_chart2)
+
+        # messagebox.showinfo("完成", f"波段資料及均線資料已儲存到: {output_file_path}")
+        

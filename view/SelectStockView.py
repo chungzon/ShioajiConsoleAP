@@ -75,7 +75,7 @@ class SelectStockView(tk.Frame):
         self.table_frame.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
 
         # 定義欄位名稱
-        columns = ['股票代碼', '股票名稱', '現價','波段', 'Head-0618價差比例', '現價-0618比例', '買點', '頸線', 'Head', 'Max_Date', 'Max_Value', 'Min_Date', 'Min_Value']
+        columns = ['股票代碼', '股票名稱', '現價','波段', 'Head-0618價差比例', '現價-0618比例', '買點', '頸線', 'Head', 'Max_Date', 'Max_Value', 'Min_Date', 'Min_Value', '下載']
 
         # 設置 Treeview 並定義列
         self.tree = ttk.Treeview(self.table_frame, columns=columns, show='headings')
@@ -87,11 +87,15 @@ class SelectStockView(tk.Frame):
             self.tree.heading(col, text=col)
             self.tree.column(col, width=100, anchor='center')
 
+        self.tree.heading("下載", text="下載")
+        self.tree.column("下載", width=60, anchor="center")  # 設置下載列的寬度和對齊方式
+
         # 將 Treeview 放置在 LabelFrame 中
         self.tree.grid(row=0, column=0, sticky="nsew")
 
         # 綁定雙擊事件
         self.tree.bind("<Double-1>", self.on_double_click)
+        self.tree.bind("<Button-1>", self.on_click)
 
         # 添加垂直滾動條
         vsb = ttk.Scrollbar(self.table_frame, orient="vertical", command=self.tree.yview)
@@ -144,8 +148,9 @@ class SelectStockView(tk.Frame):
             spread_ratio = round(segment['spread_ratio'], 2)  # 價差比例
             ratio_0618_ratio = round(segment['latest_close_price-0.618_ratio'], 2)
             tag = 'Blue' if (index // 3) % 3 == 0 else 'White'
-            self.tree.insert('', 'end', values=(stock_id, stock_name, latest_close_price, wave_type, spread_ratio, ratio_0618_ratio, ratio_0618, ratio_1, max_value, max_date, max_value, min_date, min_value), tags=(tag)) 
-
+            parent = self.tree.insert('', 'end', values=(stock_id, stock_name, latest_close_price, wave_type, spread_ratio, ratio_0618_ratio, ratio_0618, ratio_1, max_value, max_date, max_value, min_date, min_value, '下載'), tags=(tag)) 
+            # 為每一行創建一個下載按鈕
+            self.tree.insert(parent, 'end', values=tuple(stock_id))
 
     def show_error(self, message):
         messagebox.showerror("錯誤", message)
@@ -155,6 +160,15 @@ class SelectStockView(tk.Frame):
         stock_code = self.tree.item(item, "values")[0]  # 獲取第一列（股票代碼）
         pyperclip.copy(stock_code)  # 複製到剪貼板
         self.show_copy_message(stock_code)
+
+    def on_click(self, event):
+        region = self.tree.identify("region", event.x, event.y)
+        if region == "cell":
+            column = self.tree.identify_column(event.x)
+            if column == f"#{len(self.tree['columns'])}":  # 最後一列
+                item = self.tree.identify_row(event.y)
+                stock_id = self.tree.item(item, "values")[0]  # 假設股票代碼是第一列
+                self.download_detail_data(stock_id)
 
     def show_copy_message(self, stock_code):
         # 創建一個臨時標籤來顯示複製成功的消息
@@ -194,3 +208,21 @@ class SelectStockView(tk.Frame):
             with open(file_path, "w", encoding="utf-8") as file:
                 file.write("\n".join(lines))
         self.show_copy_message("股票代碼已匯出")
+
+    def download_detail_data(self, stock_id):
+        print(stock_id)
+        start_date = self.start_date.get_date().strftime('%Y-%m-%d')
+        end_date = self.end_date.get_date().strftime('%Y-%m-%d')
+
+        # 打開文件對話框讓用戶選擇保存位置
+        initial_dir = os.path.expanduser("~/Downloads")  # 預設為用戶的文檔目錄
+        directory = filedialog.askdirectory(
+            initialdir=initial_dir,
+            title="選擇保存目錄"
+        )
+
+        if directory:  # 如果用戶選擇了文件路徑
+            self.controller.download_detail_data(stock_id, start_date, end_date, directory)
+        else:
+            print("下載已取消")
+        

@@ -152,9 +152,7 @@ class SelectStockModel(BaseModel):
                         min_value_date = wave_extremes_df.loc[min_after_max_index, 'Min_Date']
 
                         # 計算 ratio_0.618 和 ratio_1
-                        # ratio_0618 = round(min_value_after_max + (max_value_of_all_waves - min_value_after_max) / 2 * 0.618, 2)
                         ratio_0618 = Math.calculate_ratio_0618(max_value_of_all_waves, min_value_after_max)
-                        # ratio_1 = round(min_value_after_max + (max_value_of_all_waves - min_value_after_max) / 2 * 1, 2)
                         ratio_1 = Math.calculate_ratio_1(max_value_of_all_waves, min_value_after_max)
 
                         # 計算 Head-0.618 價差比例
@@ -250,3 +248,5 @@ class SelectStockModel(BaseModel):
         highest_segment = self.get_highest_segment(segments_df)
         
         return recent_segment, highest_segment
+    
+    
