@@ -150,7 +150,7 @@ class SelectStockView(tk.Frame):
             tag = 'Blue' if (index // 3) % 3 == 0 else 'White'
             parent = self.tree.insert('', 'end', values=(stock_id, stock_name, latest_close_price, wave_type, spread_ratio, ratio_0618_ratio, ratio_0618, ratio_1, max_value, max_date, max_value, min_date, min_value, '下載'), tags=(tag)) 
             # 為每一行創建一個下載按鈕
-            self.tree.insert(parent, 'end', values=tuple(stock_id))
+            self.tree.insert(parent, 'end', values=tuple(str(stock_id)))
 
     def show_error(self, message):
         messagebox.showerror("錯誤", message)
