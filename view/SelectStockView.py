@@ -133,6 +133,10 @@ class SelectStockView(tk.Frame):
             self.tree.delete(item)
             
         all_wave_extremes = self.controller.calculate(start_date, end_date, ratio, ratio2, top_n)
+
+        # 設置標籤樣式
+        self.tree.tag_configure('blue_text', foreground='blue')
+        self.tree.tag_configure('red_text', foreground='red')
         
         for index, segment in enumerate(all_wave_extremes):
             stock_id = segment['stock_id']  # 假設 stock_id 已在 segments 中
@@ -151,15 +155,20 @@ class SelectStockView(tk.Frame):
             group_number = index // 3
             tag = 'Blue' if group_number % 2 == 0 else 'White'
             
+            values = (stock_id, stock_name, latest_close_price, wave_type, spread_ratio, ratio_0618_ratio, ratio_0618, ratio_1, max_value, max_date, max_value, min_date, min_value, '')
+            
             if wave_type == '最高波段':
-                parent = self.tree.insert('', 'end', values=(stock_id, stock_name, latest_close_price, wave_type, spread_ratio, ratio_0618_ratio, ratio_0618, ratio_1, max_value, max_date, max_value, min_date, min_value, '下載'), tags=(tag)) 
-            else:
-                parent = self.tree.insert('', 'end', values=(stock_id, stock_name, latest_close_price, wave_type, spread_ratio, ratio_0618_ratio, ratio_0618, ratio_1, max_value, max_date, max_value, min_date, min_value, ''), tags=(tag)) 
-            # 為每一行創建一個下載按鈕
-            # if wave_type == '最高波段':
-            #     self.tree.insert(parent, 'end', values=tuple(str(stock_id)))
-            # else:
-            #     self.tree.insert(parent, 'end', values='')
+                values = values[:-1] + ('下載',)
+            
+            item = self.tree.insert('', 'end', values=values, tags=(tag,))
+            
+            # 為現價和買點設置特定的顏色
+            # self.tree.set(item, column='現價', value=latest_close_price)
+            # self.tree.item(item, tags=(tag, 'blue_text'), values=values)
+            
+            # self.tree.set(item, column='買點', value=ratio_0618)
+            # self.tree.item(item, tags=(tag, 'red_text'), values=values)
+
 
     def show_error(self, message):
         messagebox.showerror("錯誤", message)

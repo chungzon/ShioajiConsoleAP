@@ -156,10 +156,10 @@ class SelectStockModel(BaseModel):
                         ratio_1 = Math.calculate_ratio_1(max_value_of_all_waves, min_value_after_max)
 
                         # 計算 Head-0.618 價差比例
-                        head_0618_spread_ratio = round((max_value_of_all_waves - ratio_0618) / ratio_0618 * 100, 2)
+                        head_0618_spread_ratio = round((max_value_of_all_waves - ratio_0618) / ratio_0618, 2)
 
                         # 計算現價-0.618 價差比例
-                        current_0618_spread_ratio = round((latest_close_price - ratio_0618) / ratio_0618 * 100, 2)
+                        current_0618_spread_ratio = round((latest_close_price - ratio_0618) / latest_close_price, 2)
 
                         segment = {
                             'stock_id': stock_id,

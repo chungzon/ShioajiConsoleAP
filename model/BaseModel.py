@@ -225,7 +225,7 @@ class BaseModel:
                 
                 segment.append((max_value - segment[4]) / segment[4])   # (Head - ratio_0.618) / ratio_0.618
                 segment.append(latest_close_price)  # 現價
-                segment.append((latest_close_price - segment[4]) / segment[4])   # (現價 - ratio_0.618) / ratio_0.618
+                segment.append((latest_close_price - segment[4]) / latest_close_price)   # (現價 - ratio_0.618) / 現價
                 segments.append(segment)
         
 
