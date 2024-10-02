@@ -147,7 +147,10 @@ class SelectStockView(tk.Frame):
             ratio_1 = round(segment['Ratio_1'], 2) # 頸線
             spread_ratio = round(segment['spread_ratio'], 2)  # 價差比例
             ratio_0618_ratio = round(segment['latest_close_price-0.618_ratio'], 2)
-            tag = 'Blue' if (index // 3) % 3 == 0 else 'White'
+            # 修改這裡：每三行為一組，組間交替顏色
+            group_number = index // 3
+            tag = 'Blue' if group_number % 2 == 0 else 'White'
+            
             if wave_type == '最高波段':
                 parent = self.tree.insert('', 'end', values=(stock_id, stock_name, latest_close_price, wave_type, spread_ratio, ratio_0618_ratio, ratio_0618, ratio_1, max_value, max_date, max_value, min_date, min_value, '下載'), tags=(tag)) 
             else:
