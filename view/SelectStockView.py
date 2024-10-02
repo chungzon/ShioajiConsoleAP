@@ -148,9 +148,15 @@ class SelectStockView(tk.Frame):
             spread_ratio = round(segment['spread_ratio'], 2)  # 價差比例
             ratio_0618_ratio = round(segment['latest_close_price-0.618_ratio'], 2)
             tag = 'Blue' if (index // 3) % 3 == 0 else 'White'
-            parent = self.tree.insert('', 'end', values=(stock_id, stock_name, latest_close_price, wave_type, spread_ratio, ratio_0618_ratio, ratio_0618, ratio_1, max_value, max_date, max_value, min_date, min_value, '下載'), tags=(tag)) 
+            if wave_type == '最高波段':
+                parent = self.tree.insert('', 'end', values=(stock_id, stock_name, latest_close_price, wave_type, spread_ratio, ratio_0618_ratio, ratio_0618, ratio_1, max_value, max_date, max_value, min_date, min_value, '下載'), tags=(tag)) 
+            else:
+                parent = self.tree.insert('', 'end', values=(stock_id, stock_name, latest_close_price, wave_type, spread_ratio, ratio_0618_ratio, ratio_0618, ratio_1, max_value, max_date, max_value, min_date, min_value, ''), tags=(tag)) 
             # 為每一行創建一個下載按鈕
-            self.tree.insert(parent, 'end', values=tuple(str(stock_id)))
+            # if wave_type == '最高波段':
+            #     self.tree.insert(parent, 'end', values=tuple(str(stock_id)))
+            # else:
+            #     self.tree.insert(parent, 'end', values='')
 
     def show_error(self, message):
         messagebox.showerror("錯誤", message)
@@ -165,10 +171,11 @@ class SelectStockView(tk.Frame):
         region = self.tree.identify("region", event.x, event.y)
         if region == "cell":
             column = self.tree.identify_column(event.x)
-            if column == f"#{len(self.tree['columns'])}":  # 最後一列
-                item = self.tree.identify_row(event.y)
+            item = self.tree.identify_row(event.y)
+            if column == f"#{len(self.tree['columns'])}" and self.tree.item(item, "values")[13] == '下載':  # 最後一列
                 stock_id = self.tree.item(item, "values")[0]  # 假設股票代碼是第一列
-                self.download_detail_data(stock_id)
+                max_date = self.tree.item(item, "values")[9]  # 最高價波段日期
+                self.download_detail_data(stock_id, max_date)
 
     def show_copy_message(self, stock_code):
         # 創建一個臨時標籤來顯示複製成功的消息
@@ -209,9 +216,12 @@ class SelectStockView(tk.Frame):
                 file.write("\n".join(lines))
         self.show_copy_message("股票代碼已匯出")
 
-    def download_detail_data(self, stock_id):
+    def download_detail_data(self, stock_id, max_date):
         print(stock_id)
-        start_date = self.start_date.get_date().strftime('%Y-%m-%d')
+        if max_date:
+            start_date = max_date
+        else:
+            start_date = self.start_date.get_date().strftime('%Y-%m-%d')
         end_date = self.end_date.get_date().strftime('%Y-%m-%d')
 
         # 打開文件對話框讓用戶選擇保存位置
