@@ -118,15 +118,12 @@ class AutoDownloadDailyClosePrice:
             conn = self.connect_db()
             if not conn:
                 return
-
-            # cursor = conn.cursor()
+            
             data = []
             for row in reader:
                 # gregorian_date_str = self.convert_taiwan_date_to_gregorian(row['日期'].strip())
-                # date = pd.to_datetime(gregorian_date_str, format='%Y/%m/%d').strftime('%Y-%m-%d')
                 try:
                     stock_id = row['證券代號'].strip()
-                    # open_price = self.parse_float(row['開盤價'].replace(',', '').strip()) if row['開盤價'] is not None else None
                     if row['開盤價'] is not None:
                         open_price = self.parse_float(row['開盤價'].replace(',', '').strip())
                     else:
@@ -152,17 +149,6 @@ class AutoDownloadDailyClosePrice:
                     else:
                         volume = None
 
-                    # high_price = self.parse_float(row['最高價'].replace(',', '').strip()) if row['最高價'] is not None else None
-                    # low_price = self.parse_float(row['最低價'].replace(',', '').strip()) if row['最低價'] is not None else None
-                    # close_price = self.parse_float(row['收盤價'].replace(',', '').strip()) if row['收盤價'] is not None else None
-                    # volume = row['成交股數'] if row['成交股數'] is not None else None
-                    # cursor.execute(
-                    #     """INSERT INTO stock_data 
-                    #     (stock_id, date, open_price, high_price, low_price, close_price, volume) 
-                    #     VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-                    #     (stock_id, today, open_price, high_price, low_price, close_price, volume)
-                    #             )
-                    # conn.commit()
                     stock_data = {
                         'Code': stock_id,
                         'Date': today,
