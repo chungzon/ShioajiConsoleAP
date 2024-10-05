@@ -32,7 +32,7 @@ class DataDownloadScheduler:
         self.show_notification('股票數據下載', message)
 
     def run_scheduler(self):
-        schedule.every().day.at("17:00").do(self.download_task)
+        schedule.every().day.at("15:00").do(self.download_task)
         
         while True:
             schedule.run_pending()
