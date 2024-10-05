@@ -21,6 +21,7 @@ from model.SelectStockModel import SelectStockModel
 from controller.SelectStockController import SelectStockController
 import shioaji as sj
 import tkinter.font as tkfont
+from DataDownloadScheduler import start_scheduler
 
 class MainApplication(tk.Tk):
     
@@ -91,6 +92,12 @@ class MainApplication(tk.Tk):
         self.tab_control.add(self.daily_close_view, text="年度交易量下載")
         self.tab_control.add(self.select_stock_view, text="選股策略")
         self.tab_control.pack(expand=1, fill="both")
+
+        self.scheduler = start_scheduler()
+        # self.scheduler.run()
+
+
+    
 
 if __name__ == "__main__":
     app = MainApplication()
