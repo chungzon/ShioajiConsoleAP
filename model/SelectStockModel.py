@@ -120,7 +120,7 @@ class SelectStockModel(BaseModel):
         else:
             return None    
 
-    def process_all_stocks(self, start_date, end_date, ratio, ratio2, top_n):
+    def process_all_stocks(self, start_date, end_date, ratio, ratio2, top_n, recent_wave_var, highest_wave_var, total_wave_var):
         top_50_stocks = self.get_top_volumn_stocks(top_n)
         if isinstance(top_50_stocks, str) and top_50_stocks.startswith("錯誤："):
             return top_50_stocks
@@ -156,10 +156,10 @@ class SelectStockModel(BaseModel):
                         ratio_1 = Math.calculate_ratio_1(max_value_of_all_waves, min_value_after_max)
 
                         # 計算 Head-0.618 價差比例
-                        head_0618_spread_ratio = round((max_value_of_all_waves - ratio_0618) / ratio_0618, 2)
+                        head_0618_spread_ratio = round((max_value_of_all_waves - ratio_0618) / ratio_0618, 3)
 
                         # 計算現價-0.618 價差比例
-                        current_0618_spread_ratio = round((latest_close_price - ratio_0618) / latest_close_price, 2)
+                        current_0618_spread_ratio = round((latest_close_price - ratio_0618) / latest_close_price, 3)
 
                         segment = {
                             'stock_id': stock_id,
@@ -182,8 +182,13 @@ class SelectStockModel(BaseModel):
                         isRecent = False
                         isHigh = False
                         isSummary = False
-                        if (float(ratio) < recent_segment['spread_ratio'] or float(ratio) * -1 > recent_segment['spread_ratio']) and (float(ratio2) < recent_segment['latest_close_price-0.618_ratio'] or float(ratio2) * -1 > recent_segment['latest_close_price-0.618_ratio']):
-                            if not isRecent:
+
+                        if (float(ratio) < recent_segment['spread_ratio'] or float(ratio) * -1 > recent_segment['spread_ratio']) \
+                            and not isRecent:
+                            if (float(ratio2) == 0) \
+                                or ((float(ratio2) != 0 and recent_wave_var) \
+                                    and (float(ratio2) < recent_segment['latest_close_price-0.618_ratio'] \
+                                        or float(ratio2) * -1 > recent_segment['latest_close_price-0.618_ratio'])):
                                 recent_segment['wave_type'] = '最近波段'
                                 recent_segment['max_value_of_all_waves'] = max_value_of_all_waves
                                 recent_segment['min_value_after_max'] = min_value_after_max
@@ -197,9 +202,12 @@ class SelectStockModel(BaseModel):
                                 isHigh = True
                                 isSummary = True
 
-                                                
-                        if (float(ratio) < highest_segment['spread_ratio'] or float(ratio) * -1 > highest_segment['spread_ratio']) and (float(ratio2) < highest_segment['latest_close_price-0.618_ratio'] or float(ratio2) * -1 > highest_segment['latest_close_price-0.618_ratio']):
-                            if not isHigh:
+                        if (float(ratio) < highest_segment['spread_ratio'] or float(ratio) * -1 > highest_segment['spread_ratio']) \
+                            and not isHigh:
+                            if (float(ratio2) == 0) \
+                                or ((float(ratio2) != 0 and highest_wave_var) \
+                                    and (float(ratio2) < highest_segment['latest_close_price-0.618_ratio'] \
+                                        or float(ratio2) * -1 > highest_segment['latest_close_price-0.618_ratio'])):
                                 recent_segment['wave_type'] = '最近波段'
                                 recent_segment['max_value_of_all_waves'] = max_value_of_all_waves
                                 recent_segment['min_value_after_max'] = min_value_after_max
@@ -213,8 +221,12 @@ class SelectStockModel(BaseModel):
                                 isHigh = True
                                 isSummary = True
 
-                        if (float(ratio) < head_0618_spread_ratio or float(ratio) * -1 > head_0618_spread_ratio) and (float(ratio2) < current_0618_spread_ratio or float(ratio2) * -1 > current_0618_spread_ratio):
-                            if not isHigh:
+                        if (float(ratio) < head_0618_spread_ratio or float(ratio) * -1 > head_0618_spread_ratio) \
+                            and not isSummary:
+                            if (float(ratio2) == 0) \
+                                or ((float(ratio2) != 0 and total_wave_var) \
+                                    and (float(ratio2) < current_0618_spread_ratio \
+                                        or float(ratio2) * -1 > current_0618_spread_ratio)):
                                 recent_segment['wave_type'] = '最近波段'
                                 recent_segment['max_value_of_all_waves'] = max_value_of_all_waves
                                 recent_segment['min_value_after_max'] = min_value_after_max
@@ -227,9 +239,7 @@ class SelectStockModel(BaseModel):
                                 isRecent = True
                                 isHigh = True
                                 isSummary = True
-
-                        
-                            
+              
                 else:
                     print(f"無法獲取股票 {stock_id} 的數據")
                     
@@ -246,7 +256,7 @@ class SelectStockModel(BaseModel):
             #     else:
             #         return pd.DataFrame()
             # else:
-                return pd.DataFrame()
+            return pd.DataFrame()
         
     def get_recent_segment(self, segments_df):
         # 获取最近一次波段数据

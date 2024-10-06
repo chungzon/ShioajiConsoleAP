@@ -56,13 +56,28 @@ class SelectStockView(tk.Frame):
         ttk.Label(frame, text="±").pack(side=tk.LEFT)
         self.ratio_entry = ttk.Entry(frame, width=10)
         self.ratio_entry.pack(side=tk.LEFT, padx=(0,5))
-        ttk.Label(frame, text="現價-0618比例").pack(side=tk.LEFT, padx=5)
+        ratio_label = ttk.Label(frame, text="現價-0618比例")
+        ratio_label.pack(side=tk.LEFT, padx=5)
         ttk.Label(frame, text="±").pack(side=tk.LEFT)
         self.ratio_entry2 = ttk.Entry(frame, width=10)
         self.ratio_entry2.pack(side=tk.LEFT, padx=(0,5))
+
+        # 新增一個 frame 用於放置 checkbox，使用 pack 布局
+        checkbox_frame = ttk.Frame(frame)
+        checkbox_frame.pack(side=tk.LEFT, padx=(20, 0))  # 增加左側間距
+
+        # 創建並添加 checkbox
+        self.recent_wave_var = tk.BooleanVar()
+        self.highest_wave_var = tk.BooleanVar()
+        self.total_wave_var = tk.BooleanVar()
+
+        ttk.Checkbutton(checkbox_frame, text="最近波段", variable=self.recent_wave_var).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Checkbutton(checkbox_frame, text="最高波段", variable=self.highest_wave_var).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Checkbutton(checkbox_frame, text="總波段", variable=self.total_wave_var).pack(side=tk.LEFT)
+    
         ttk.Label(frame, text="標的交易量前").pack(side=tk.LEFT, padx=(5,0))
         self.top_n_entry = ttk.Entry(frame, width=5)
-        self.top_n_entry.insert(0, "1763")  # 預設值為20
+        self.top_n_entry.insert(0, "1763")  # 預設值為1763
         self.top_n_entry.pack(side=tk.LEFT, padx=(0,5))
         ttk.Label(frame, text="名").pack(side=tk.LEFT, padx=(0,5))
         ttk.Button(frame, text="篩選", command=self.calculate).pack(side=tk.LEFT, padx=5)
@@ -72,7 +87,7 @@ class SelectStockView(tk.Frame):
 
         # 設置 LabelFrame 來包含 Treeview
         self.table_frame = ttk.LabelFrame(self, text="股票資訊")
-        self.table_frame.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
+        self.table_frame.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")  # 注意這裡的 row 變回了 1
 
         # 定義欄位名稱
         columns = ['股票代碼', '股票名稱', '現價','波段', 'Head-0618價差比例', '現價-0618比例', '買點', '頸線', 'Head', 'Max_Date', 'Max_Value', 'Min_Date', 'Min_Value', '下載']
@@ -108,6 +123,7 @@ class SelectStockView(tk.Frame):
         self.tree.configure(xscrollcommand=hsb.set)
 
         # 設置框架的網格配置，使其能夠隨著窗口調整大小
+        
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.table_frame.grid_rowconfigure(0, weight=1)
@@ -119,6 +135,9 @@ class SelectStockView(tk.Frame):
         ratio = self.ratio_entry.get()
         ratio2 = self.ratio_entry2.get()
         top_n = self.top_n_entry.get()
+        recent_wave_var = self.recent_wave_var.get()
+        highest_wave_var = self.highest_wave_var.get()
+        total_wave_var = self.total_wave_var.get() 
 
         # ratio為必要 
         if ratio == '': 
@@ -132,7 +151,7 @@ class SelectStockView(tk.Frame):
         for item in self.tree.get_children():
             self.tree.delete(item)
             
-        all_wave_extremes = self.controller.calculate(start_date, end_date, ratio, ratio2, top_n)
+        all_wave_extremes = self.controller.calculate(start_date, end_date, ratio, ratio2, top_n, recent_wave_var, highest_wave_var, total_wave_var)
 
         # 設置標籤樣式
         self.tree.tag_configure('blue_text', foreground='blue')
@@ -149,8 +168,8 @@ class SelectStockView(tk.Frame):
             min_value = segment['Min_Value']
             ratio_0618 = round(segment['Ratio_0.618'], 2)  # 買點
             ratio_1 = round(segment['Ratio_1'], 2) # 頸線
-            spread_ratio = round(segment['spread_ratio'], 2)  # 價差比例
-            ratio_0618_ratio = round(segment['latest_close_price-0.618_ratio'], 2)
+            spread_ratio = round(segment['spread_ratio'], 3)  # 價差比例
+            ratio_0618_ratio = round(segment['latest_close_price-0.618_ratio'], 3)
             # 修改這裡：每三行為一組，組間交替顏色
             group_number = index // 3
             tag = 'Blue' if group_number % 2 == 0 else 'White'
