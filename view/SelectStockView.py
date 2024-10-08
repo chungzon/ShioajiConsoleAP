@@ -64,10 +64,12 @@ class SelectStockView(tk.Frame):
         ttk.Label(row1_frame, text="現價-0618比例").pack(side=tk.LEFT, padx=5)
         ttk.Label(row1_frame, text="+").pack(side=tk.LEFT)
         self.ratio_positive_entry = ttk.Entry(row1_frame, width=5)
+        self.ratio_positive_entry.insert(0, "0.05")  # 設置預設值為 0.05    
         self.ratio_positive_entry.pack(side=tk.LEFT, padx=(0,5))
         ttk.Label(row1_frame, text="~").pack(side=tk.LEFT)
         ttk.Label(row1_frame, text="-").pack(side=tk.LEFT)
         self.ratio_native_entry = ttk.Entry(row1_frame, width=5)
+        self.ratio_native_entry.insert(0, "0.03")  # 設置預設值為 0.03
         self.ratio_native_entry.pack(side=tk.LEFT, padx=(0,5))
 
 
