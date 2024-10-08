@@ -120,7 +120,7 @@ class SelectStockModel(BaseModel):
         else:
             return None    
 
-    def process_all_stocks(self, start_date, end_date, ratio, ratio2, top_n, recent_wave_var, highest_wave_var, total_wave_var):
+    def process_all_stocks(self, start_date, end_date, ratio, positive_ratio, native_ratio, top_n, recent_wave_var, highest_wave_var, total_wave_var):
         top_50_stocks = self.get_top_volumn_stocks(top_n)
         if isinstance(top_50_stocks, str) and top_50_stocks.startswith("錯誤："):
             return top_50_stocks
@@ -185,10 +185,10 @@ class SelectStockModel(BaseModel):
 
                         if (float(ratio) < recent_segment['spread_ratio'] or float(ratio) * -1 > recent_segment['spread_ratio']) \
                             and not isRecent:
-                            if (float(ratio2) == 0) \
-                                or ((float(ratio2) != 0 and recent_wave_var) \
-                                    and (float(ratio2) >= recent_segment['latest_close_price-0.618_ratio'] \
-                                        and float(ratio2) * -1 <= recent_segment['latest_close_price-0.618_ratio'])):
+                            if (float(positive_ratio) == 0 and float(native_ratio) == 0) \
+                                or (recent_wave_var \
+                                    and (float(positive_ratio) >= recent_segment['latest_close_price-0.618_ratio'] \
+                                        and float(native_ratio) * -1 <= recent_segment['latest_close_price-0.618_ratio'])):
                                 recent_segment['wave_type'] = '最近波段'
                                 recent_segment['max_value_of_all_waves'] = max_value_of_all_waves
                                 recent_segment['min_value_after_max'] = min_value_after_max
@@ -204,10 +204,10 @@ class SelectStockModel(BaseModel):
 
                         if (float(ratio) < highest_segment['spread_ratio'] or float(ratio) * -1 > highest_segment['spread_ratio']) \
                             and not isHigh:
-                            if (float(ratio2) == 0) \
-                                or ((float(ratio2) != 0 and highest_wave_var) \
-                                    and (float(ratio2) >= highest_segment['latest_close_price-0.618_ratio'] \
-                                        and float(ratio2) * -1 <= highest_segment['latest_close_price-0.618_ratio'])):
+                            if (float(positive_ratio) == 0 and float(native_ratio) == 0) \
+                                or (highest_wave_var \
+                                    and (float(positive_ratio) >= highest_segment['latest_close_price-0.618_ratio'] \
+                                        and float(native_ratio) * -1 <= highest_segment['latest_close_price-0.618_ratio'])):
                                 recent_segment['wave_type'] = '最近波段'
                                 recent_segment['max_value_of_all_waves'] = max_value_of_all_waves
                                 recent_segment['min_value_after_max'] = min_value_after_max
@@ -223,10 +223,10 @@ class SelectStockModel(BaseModel):
 
                         if (float(ratio) < head_0618_spread_ratio or float(ratio) * -1 > head_0618_spread_ratio) \
                             and not isSummary:
-                            if (float(ratio2) == 0) \
-                                or ((float(ratio2) != 0 and total_wave_var) \
-                                    and (float(ratio2) >= current_0618_spread_ratio \
-                                        and float(ratio2) * -1 <= current_0618_spread_ratio)):
+                            if (float(positive_ratio) == 0 and float(native_ratio) == 0) \
+                                or (total_wave_var \
+                                    and (float(positive_ratio) >= current_0618_spread_ratio \
+                                        and float(native_ratio) * -1 <= current_0618_spread_ratio)):
                                 recent_segment['wave_type'] = '最近波段'
                                 recent_segment['max_value_of_all_waves'] = max_value_of_all_waves
                                 recent_segment['min_value_after_max'] = min_value_after_max
