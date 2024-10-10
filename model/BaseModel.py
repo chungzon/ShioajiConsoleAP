@@ -191,10 +191,14 @@ class BaseModel:
         ratios = [0.618, 1]
         ratio_columns = [f'Ratio_{ratio}' for ratio in ratios]
         append_columns =[f'spread_ratio', f'latest_close_price', f'latest_close_price-0.618_ratio']
+
+        sma_values, weekly_sma_values, monthly_sma_values = Math.calculate_sma(df['close_price'])
+        periods = [5, 10, 20, 60, 120]
+        sma_columns = [f'sma_{period}' for period in periods]
+        weekly_sma_columns = [f'weekly_sma_{period}' for period in periods]
+        monthly_sma_columns = [f'monthly_sma_{period}' for period in periods]
     
         i = 0
-
-
         while i < len(df):
             max_value = df['high_price'].iloc[i]
             max_date = df['date'].iloc[i]
@@ -226,12 +230,18 @@ class BaseModel:
                 segment.append((max_value - segment[4]) / segment[4])   # (Head - ratio_0.618) / ratio_0.618
                 segment.append(latest_close_price)  # 現價
                 segment.append((latest_close_price - segment[4]) / latest_close_price)   # (現價 - ratio_0.618) / 現價
+                for value in sma_values:
+                    segment.append(value)
+                for value in weekly_sma_values:
+                    segment.append(value)
+                for value in monthly_sma_values:
+                    segment.append(value)
                 segments.append(segment)
         
 
             i = k
     
-        return pd.DataFrame(segments, columns=['Max_Date', 'Max_Value', 'Min_Date', 'Min_Value'] + ratio_columns + append_columns)
+        return pd.DataFrame(segments, columns=['Max_Date', 'Max_Value', 'Min_Date', 'Min_Value'] + ratio_columns + append_columns + sma_columns + weekly_sma_columns + monthly_sma_columns)
     
     def analyze_data(self, stock_id, start_date, end_date, save_path):
         if not stock_id or not start_date or not end_date or not save_path:

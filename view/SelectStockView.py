@@ -88,16 +88,40 @@ class SelectStockView(tk.Frame):
         self.top_n_entry.pack(side=tk.LEFT, padx=(0,5))
         ttk.Label(row1_frame, text="名").pack(side=tk.LEFT, padx=(0,5))
 
-        # 第二行（按鈕）
-        # row2_frame = ttk.Frame(main_frame)
-        # row2_frame.grid(row=1, column=0, sticky="w", pady=(0, 5))
-
         ttk.Button(row1_frame, text="匯出股票代碼txt", command=self.export_stock_codes).pack(side=tk.RIGHT, padx=5)
         ttk.Button(row1_frame, text="篩選", command=self.calculate).pack(side=tk.RIGHT, padx=(0, 5))
 
+        # 第二行（按鈕）
+        row2_frame = ttk.Frame(main_frame)
+        row2_frame.grid(row=1, column=0, sticky="w", pady=(0, 5))
+        # 添加日均線的 checkbox
+        ttk.Label(row2_frame, text="日均線:").pack(side=tk.LEFT, padx=(0, 5))
+        self.daily_ma_vars = {}
+        for period in [5, 10, 20, 60, 120]:
+            var = tk.BooleanVar(value=False)  # 預設為選中
+            self.daily_ma_vars[period] = var
+            ttk.Checkbutton(row2_frame, text=f"{period}", variable=var).pack(side=tk.LEFT, padx=(0, 5))
+
+        # 添加周均線的 checkbox
+        ttk.Label(row2_frame, text="周均線:").pack(side=tk.LEFT, padx=(20, 5))
+        self.weekly_ma_vars = {}
+        for period in [5, 10, 20, 60, 120]:
+            var = tk.BooleanVar(value=False)  # 預設為選中
+            self.weekly_ma_vars[period] = var
+            ttk.Checkbutton(row2_frame, text=f"{period}", variable=var).pack(side=tk.LEFT, padx=(0, 5))
+
+        # 添加月均線的 checkbox
+        ttk.Label(row2_frame, text="月均線:").pack(side=tk.LEFT, padx=(20, 5))
+        self.monthly_ma_vars = {}
+        for period in [5, 10, 20, 60, 120]:
+            var = tk.BooleanVar(value=False)  # 預設為選中
+            self.monthly_ma_vars[period] = var
+            ttk.Checkbutton(row2_frame, text=f"{period}", variable=var).pack(side=tk.LEFT, padx=(0, 5))
+
+
         # 設置 LabelFrame 來包含 Treeview
         self.table_frame = ttk.LabelFrame(self, text="股票資訊")
-        self.table_frame.grid(row=1, column=0, pady=10, sticky="nsew")
+        self.table_frame.grid(row=2, column=0, pady=10, sticky="nsew")
 
         # 定義欄位名稱
         columns = ['股票代碼', '股票名稱', '現價','波段', 'Head-0618價差比例', '現價-0618比例', '買點', '頸線', 'Head', 'Max_Date', 'Max_Value', 'Min_Date', 'Min_Value', '下載']
@@ -133,7 +157,7 @@ class SelectStockView(tk.Frame):
         self.tree.configure(xscrollcommand=hsb.set)
 
         # 設置框架的網格配置，使其能夠隨著窗口調整大小
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.table_frame.grid_rowconfigure(0, weight=1)
         self.table_frame.grid_columnconfigure(0, weight=1)
@@ -163,11 +187,18 @@ class SelectStockView(tk.Frame):
             messagebox.showerror("錯誤", "請輸入native_ratio")
             return
 
+        # 收集均線選擇
+        ma_selections = {
+            'daily': {period: var.get() for period, var in self.daily_ma_vars.items()},
+            'weekly': {period: var.get() for period, var in self.weekly_ma_vars.items()},
+            'monthly': {period: var.get() for period, var in self.monthly_ma_vars.items()}
+        }
+
         # 清空 TreeView 中的現有數據
         for item in self.tree.get_children():
             self.tree.delete(item)
             
-        all_wave_extremes = self.controller.calculate(start_date, end_date, ratio, positive_ratio, native_ratio, top_n, recent_wave_var, highest_wave_var, total_wave_var)
+        all_wave_extremes = self.controller.calculate(start_date, end_date, ratio, positive_ratio, native_ratio, top_n, recent_wave_var, highest_wave_var, total_wave_var, ma_selections)
 
         # 設置標籤樣式
         self.tree.tag_configure('blue_text', foreground='blue')
