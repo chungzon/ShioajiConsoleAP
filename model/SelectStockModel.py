@@ -475,21 +475,23 @@ class SelectStockModel(BaseModel):
         :param current_price: 股票當前價格
         :param segment_data: 包含均線數據的字典
         :param ma_selections: 用戶選擇的均線
-        :return: 如果現價大於或等於所有選擇的均線，則返回True；否則返回False
+        :return: 元組 (是否有選擇均線, 是否大於等於所有選擇的均線)
         """
         is_any_ma_selected = False
-        is_more_than_ma = False
+        is_above_all_selected_ma = True
+
         for ma_type in ['daily', 'weekly', 'monthly']:
             for period, is_selected in ma_selections[ma_type].items():
                 if is_selected:
+                    is_any_ma_selected = True
                     ma_column = f"{ma_type}_sma_{period}" if ma_type != 'daily' else f"sma_{period}"
                     if ma_column in segment_data:
-                        if current_price >= segment_data[ma_column]:
-                            is_any_ma_selected = True
-                            is_more_than_ma = True
-                            return  is_any_ma_selected, is_more_than_ma
-                        else:
-                            is_any_ma_selected = True
+                        if current_price < segment_data[ma_column]:
+                            is_above_all_selected_ma = False
+                            return is_any_ma_selected, is_above_all_selected_ma
                     else:
                         print(f"警告: {ma_column} 不在 segment_data 中")
-        return is_any_ma_selected, is_more_than_ma
+                        is_above_all_selected_ma = False
+                        return is_any_ma_selected, is_above_all_selected_ma
+
+        return is_any_ma_selected, is_above_all_selected_ma

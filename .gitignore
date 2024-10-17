@@ -4,3 +4,7 @@
 /shioaji.log
 /.vs/ShioajiConsoleAP/v17/DocumentLayout.json
 /.vs/ShioajiConsoleAP/v17/.suo
+/view/__pycache__
+/model/__pycache__
+/controller/__pycache__
+/common/__pycache__
