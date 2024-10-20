@@ -225,7 +225,9 @@ class SelectStockView(tk.Frame):
             
             if wave_type == '最高波段':
                 values = values[:-1] + ('下載',)
-            
+            elif wave_type == '最近波段':
+                values = values[:-1] + ('詳細資料',)
+
             item = self.tree.insert('', 'end', values=values, tags=(tag,))
             
             # 為現價和買點設置特定的顏色
@@ -254,6 +256,10 @@ class SelectStockView(tk.Frame):
                 stock_id = self.tree.item(item, "values")[0]  # 假設股票代碼是第一列
                 max_date = self.tree.item(item, "values")[9]  # 最高價波段日期
                 self.download_detail_data(stock_id, max_date)
+            elif column == f"#{len(self.tree['columns'])}" and self.tree.item(item, "values")[13] == '詳細資料':  # 最後一列
+                stock_id = self.tree.item(item, "values")[0]  # 假設股票代碼是第一列
+                # 點擊詳細資料，顯示詳細資料，會彈跳出一個視窗以顯示詳細資料
+                self.show_detail_data(stock_id)
 
     def show_copy_message(self, stock_code):
         # 創建一個臨時標籤來顯示複製成功的消息
@@ -314,3 +320,16 @@ class SelectStockView(tk.Frame):
         else:
             print("下載已取消")
         
+    def show_detail_data(self, stock_id):
+        # 彈跳出一個視窗以顯示詳細資料
+        self.controller.show_detail_data(stock_id)
+        
+
+    def show_sma_data(self, stock_id, sma_data):
+        detail_window = tk.Toplevel(self)
+        detail_window.title(f"詳細資料 - {stock_id}")
+        # 在這視窗內顯示sma_data
+        sma_text = f"日均線: {sma_data[0]}\n周均線: {sma_data[1]}\n月均線: {sma_data[2]}"
+        sma_label = tk.Label(detail_window, text=sma_text)
+        sma_label.pack()
+

@@ -131,7 +131,7 @@ class BaseModel:
     def get_daily_close_prices_from_db(self, stock_code, days=365):
         conn = self.connect_db()
         query = f"""
-        SELECT TOP {days} date, close_price
+        SELECT DISTINCT TOP {days} date, close_price
         FROM stock_data
         WHERE stock_id = '{stock_code}'
         ORDER BY date DESC
@@ -186,13 +186,15 @@ class BaseModel:
         conn.close()
 
     # 定義函數找出每個波段的最高價和最低價，並計算特定比例的價格
-    def find_peaks_troughs_v34_small(self, df, latest_close_price):
+    def find_peaks_troughs_v34_small(self, stock_id, df, latest_close_price):
         segments = []
         ratios = [0.618, 1]
         ratio_columns = [f'Ratio_{ratio}' for ratio in ratios]
         append_columns =[f'spread_ratio', f'latest_close_price', f'latest_close_price-0.618_ratio']
 
-        sma_values, weekly_sma_values, monthly_sma_values = Math.calculate_sma(df['close_price'])
+        sma_values, weekly_sma_values, monthly_sma_values = self.calculate_sma(stock_id)
+        # sma_values, weekly_sma_values, monthly_sma_values = Math.calculate_sma(df['close_price'])
+
         periods = [5, 10, 20, 60, 120]
         sma_columns = [f'sma_{period}' for period in periods]
         weekly_sma_columns = [f'weekly_sma_{period}' for period in periods]
@@ -250,7 +252,7 @@ class BaseModel:
         df = self.get_stock_data(stock_id, start_date, end_date)
         latest_close_price = self.get_latest_close_price(stock_id)
         # daily_high_low = df.groupby('date').agg({'High': 'max', 'Low': 'min'}).reset_index()
-        peak_trough_df = self.find_peaks_troughs_v34_small(df, latest_close_price)
+        peak_trough_df = self.find_peaks_troughs_v34_small(stock_id, df, latest_close_price)
         # 刪除不需要的列
         peak_trough_df = peak_trough_df.drop(columns=['spread_ratio', 'latest_close_price', 'latest_close_price-0.618_ratio'])
 
@@ -774,4 +776,9 @@ class BaseModel:
                     worksheet.set_column(col_num, col_num, 12, num_format)  
 
         # messagebox.showinfo("完成", f"波段資料及均線資料已儲存到: {output_file_path}")
+
+    def calculate_sma(self, stock_id):
+        daily_close_prices = self.get_daily_close_prices_from_db(stock_id, 30*120)
+        sma_values, weekly_sma_values, monthly_sma_values = Math.calculate_sma(daily_close_prices)
+        return sma_values, weekly_sma_values, monthly_sma_values
         

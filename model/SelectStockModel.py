@@ -48,7 +48,7 @@ class SelectStockModel(BaseModel):
 
             # 查詢語句
             query = f"""
-            SELECT stock_id, date, high_price, low_price, close_price
+            SELECT DISTINCT stock_id, date, high_price, low_price, close_price
             FROM stock_data
             WHERE stock_id = '{stock_id}'
             AND date >= '{start_date}'
@@ -142,7 +142,7 @@ class SelectStockModel(BaseModel):
                 stock_data_df = self.get_stock_data(stock_id, start_date, end_date)
                 if stock_data_df is not None and not stock_data_df.empty:
                     latest_close_price = self.get_latest_close_price(stock_id)
-                    wave_extremes_df = self.find_peaks_troughs_v34_small(stock_data_df, latest_close_price)
+                    wave_extremes_df = self.find_peaks_troughs_v34_small(stock_id, stock_data_df, latest_close_price)
                     if wave_extremes_df is not None and not wave_extremes_df.empty:
                         wave_extremes_df['stock_id'] = stock_id  # 加入股票代號
                         wave_extremes_df['name'] = self.get_stock_name(stock_id)
@@ -495,3 +495,5 @@ class SelectStockModel(BaseModel):
                         return is_any_ma_selected, is_above_all_selected_ma
 
         return is_any_ma_selected, is_above_all_selected_ma
+    
+    

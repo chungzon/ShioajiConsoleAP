@@ -19,4 +19,8 @@ class SelectStockController:
         
     def download_detail_data(self, stock_id, start_date, end_date, file_path):
         self.model.analyze_data(stock_id, start_date, end_date, file_path)
+
+    def show_detail_data(self, stock_id):
+        sma_data = self.model.calculate_sma(stock_id)
+        self.view.show_sma_data(stock_id, sma_data)
         
