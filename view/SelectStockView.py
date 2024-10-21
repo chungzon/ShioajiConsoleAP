@@ -124,7 +124,7 @@ class SelectStockView(tk.Frame):
         self.table_frame.grid(row=2, column=0, pady=10, sticky="nsew")
 
         # 定義欄位名稱
-        columns = ['股票代碼', '股票名稱', '現價','波段', 'Head-0618價差比例', '現價-0618比例', '買點', '頸線', 'Head', 'Max_Date', 'Max_Value', 'Min_Date', 'Min_Value', '下載']
+        columns = ['股票代碼', '股票名稱', '現價','波段', 'Head-0618價差比例', '現價-0618比例', '0.191', '0.382', '0.5', '0.618', '0.809', '頸線', 'Head', 'Max_Date', 'Max_Value', 'Min_Date', 'Min_Value', '下載']
 
         # 設置 Treeview 並定義列
         self.tree = ttk.Treeview(self.table_frame, columns=columns, show='headings')
@@ -213,7 +213,11 @@ class SelectStockView(tk.Frame):
             min_date = segment['Min_Date']
             max_value = segment['Max_Value']
             min_value = segment['Min_Value']
-            ratio_0618 = round(segment['Ratio_0.618'], 2)  # 買點
+            ratio_0191 = round(segment['Ratio_0.191'])
+            ratio_0382 = round(segment['Ratio_0.382'])
+            ratio_0500 = round(segment['Ratio_0.5'])
+            ratio_0618 = round(segment['Ratio_0.618'], 2)
+            ratio_0809 = round(segment['Ratio_0.809'], 2)
             ratio_1 = round(segment['Ratio_1'], 2) # 頸線
             spread_ratio = round(segment['spread_ratio'], 3)  # 價差比例
             ratio_0618_ratio = round(segment['latest_close_price-0.618_ratio'], 3)
@@ -221,7 +225,7 @@ class SelectStockView(tk.Frame):
             group_number = index // 3
             tag = 'Blue' if group_number % 2 == 0 else 'White'
             
-            values = (stock_id, stock_name, latest_close_price, wave_type, spread_ratio, ratio_0618_ratio, ratio_0618, ratio_1, max_value, max_date, max_value, min_date, min_value, '')
+            values = (stock_id, stock_name, latest_close_price, wave_type, spread_ratio, ratio_0618_ratio, ratio_0191, ratio_0382, ratio_0500, ratio_0618, ratio_0809, ratio_1, max_value, max_date, max_value, min_date, min_value, '')
             
             if wave_type == '最高波段':
                 values = values[:-1] + ('下載',)
@@ -252,11 +256,11 @@ class SelectStockView(tk.Frame):
         if region == "cell":
             column = self.tree.identify_column(event.x)
             item = self.tree.identify_row(event.y)
-            if column == f"#{len(self.tree['columns'])}" and self.tree.item(item, "values")[13] == '下載':  # 最後一列
+            if column == f"#{len(self.tree['columns'])}" and self.tree.item(item, "values")[17] == '下載':  # 最後一列
                 stock_id = self.tree.item(item, "values")[0]  # 假設股票代碼是第一列
                 max_date = self.tree.item(item, "values")[9]  # 最高價波段日期
                 self.download_detail_data(stock_id, max_date)
-            elif column == f"#{len(self.tree['columns'])}" and self.tree.item(item, "values")[13] == '詳細資料':  # 最後一列
+            elif column == f"#{len(self.tree['columns'])}" and self.tree.item(item, "values")[17] == '詳細資料':  # 最後一列
                 stock_id = self.tree.item(item, "values")[0]  # 假設股票代碼是第一列
                 # 點擊詳細資料，顯示詳細資料，會彈跳出一個視窗以顯示詳細資料
                 self.show_detail_data(stock_id)

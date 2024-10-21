@@ -13,6 +13,10 @@ class Math:
     @staticmethod
     def calculate_ratio_1(max_value, min_value):
         return round(min_value + (max_value - min_value) / 2 * 1, 2)
+    
+    @staticmethod
+    def calculate_ratio_value(max_value, min_value, ratio):
+        return round(min_value + (max_value - min_value) / 2 * ratio, 2)
 
     # 日移動平均，週移動平均，月移動平均
     # 5、10、20、60、120

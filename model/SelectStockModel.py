@@ -160,6 +160,12 @@ class SelectStockModel(BaseModel):
                         # 獲取最低價的日期
                         min_value_date = wave_extremes_df.loc[min_after_max_index, 'Min_Date']
 
+                        # 計算 ratio_0.191、ratio_0.382、ratio_0.5、ratio_0.618、ratio_0.809、ratio_1
+                        ratio_0191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0.191)
+                        ratio_0382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0.382)
+                        ratio_0500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0.5)
+                        ratio_0809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0.809)
+
                         # 計算 ratio_0.618 和 ratio_1
                         ratio_0618 = Math.calculate_ratio_0618(max_value_of_all_waves, min_value_after_max)
                         ratio_1 = Math.calculate_ratio_1(max_value_of_all_waves, min_value_after_max)
@@ -179,7 +185,11 @@ class SelectStockModel(BaseModel):
                             'Min_Date': min_value_date,
                             'Max_Value': max_value_of_all_waves,
                             'Min_Value': min_value_after_max,
+                            'Ratio_0.191': ratio_0191,
+                            'Ratio_0.382': ratio_0382,
+                            'Ratio_0.5': ratio_0500,
                             'Ratio_0.618': ratio_0618,
+                            'Ratio_0.809': ratio_0809,
                             'Ratio_1': ratio_1,
                             'spread_ratio': head_0618_spread_ratio,
                             'latest_close_price-0.618_ratio': current_0618_spread_ratio,
