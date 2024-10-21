@@ -98,7 +98,7 @@ class SelectStockView(tk.Frame):
         ttk.Label(row2_frame, text="日均線:").pack(side=tk.LEFT, padx=(0, 5))
         self.daily_ma_vars = {}
         for period in [5, 10, 20, 60, 120]:
-            var = tk.BooleanVar(value=False)  # 預設為選中
+            var = tk.BooleanVar(value=True)  # 預設為選中
             self.daily_ma_vars[period] = var
             ttk.Checkbutton(row2_frame, text=f"{period}", variable=var).pack(side=tk.LEFT, padx=(0, 5))
 
@@ -106,7 +106,7 @@ class SelectStockView(tk.Frame):
         ttk.Label(row2_frame, text="周均線:").pack(side=tk.LEFT, padx=(20, 5))
         self.weekly_ma_vars = {}
         for period in [5, 10, 20, 60, 120]:
-            var = tk.BooleanVar(value=False)  # 預設為選中
+            var = tk.BooleanVar(value=True)  # 預設為選中
             self.weekly_ma_vars[period] = var
             ttk.Checkbutton(row2_frame, text=f"{period}", variable=var).pack(side=tk.LEFT, padx=(0, 5))
 
@@ -114,7 +114,7 @@ class SelectStockView(tk.Frame):
         ttk.Label(row2_frame, text="月均線:").pack(side=tk.LEFT, padx=(20, 5))
         self.monthly_ma_vars = {}
         for period in [5, 10, 20, 60, 120]:
-            var = tk.BooleanVar(value=False)  # 預設為選中
+            var = tk.BooleanVar(value=True)  # 預設為選中
             self.monthly_ma_vars[period] = var
             ttk.Checkbutton(row2_frame, text=f"{period}", variable=var).pack(side=tk.LEFT, padx=(0, 5))
 
