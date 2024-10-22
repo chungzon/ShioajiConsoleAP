@@ -1,3 +1,5 @@
+import math
+
 class Math:
     """
     數學運算類別
@@ -16,7 +18,7 @@ class Math:
     
     @staticmethod
     def calculate_ratio_value(max_value, min_value, ratio):
-        return round(min_value + (max_value - min_value) / 2 * ratio, 2)
+        return Math.adjust_ratio_price(round(min_value + (max_value - min_value) / 2 * ratio, 2))
 
     # 日移動平均，週移動平均，月移動平均
     # 5、10、20、60、120
@@ -81,3 +83,18 @@ class Math:
         monthly_prices = prices.resample('M').last()
         return Math.calculate_moving_average(monthly_prices, window)
         
+    # 根據價格區間，調整各種比例的價格
+    @staticmethod
+    def adjust_ratio_price(price):
+        if price < 10:
+            return round(price, 2)  # 10元以下,保留到小數點後兩位
+        elif price < 50:
+            return math.ceil(price * 20) / 20  # 10元到50元,向上調整到0.05的倍數
+        elif price < 100:
+            return math.ceil(price * 10) / 10  # 50元到100元,向上調整到0.1的倍數
+        elif price < 500:
+            return math.ceil(price * 2) / 2  # 100元到500元,向上調整到0.5的倍數
+        elif price < 1000:
+            return math.ceil(price)  # 500元到1000元,向上調整到整數
+        else:
+            return math.ceil(price / 5) * 5  # 1000元以上,向上調整到5的倍數
