@@ -213,9 +213,9 @@ class SelectStockView(tk.Frame):
             min_date = segment['Min_Date']
             max_value = segment['Max_Value']
             min_value = segment['Min_Value']
-            ratio_0191 = round(segment['Ratio_0.191'])
-            ratio_0382 = round(segment['Ratio_0.382'])
-            ratio_0500 = round(segment['Ratio_0.5'])
+            ratio_0191 = round(segment['Ratio_0.191'], 2)
+            ratio_0382 = round(segment['Ratio_0.382'], 2)
+            ratio_0500 = round(segment['Ratio_0.5'], 2)
             ratio_0618 = round(segment['Ratio_0.618'], 2)
             ratio_0809 = round(segment['Ratio_0.809'], 2)
             ratio_1 = round(segment['Ratio_1'], 2) # 頸線
