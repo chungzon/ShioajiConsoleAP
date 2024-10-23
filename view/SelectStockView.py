@@ -329,11 +329,63 @@ class SelectStockView(tk.Frame):
         self.controller.show_detail_data(stock_id)
         
 
-    def show_sma_data(self, stock_id, sma_data):
+    def show_sma_data(self, stock_id, organized_ma_data, ratio_prices, additional_data):
         detail_window = tk.Toplevel(self)
         detail_window.title(f"詳細資料 - {stock_id}")
-        # 在這視窗內顯示sma_data
-        sma_text = f"日均線: {sma_data[0]}\n周均線: {sma_data[1]}\n月均線: {sma_data[2]}"
-        sma_label = tk.Label(detail_window, text=sma_text)
-        sma_label.pack()
+        detail_window.geometry("600x400")  # 調整視窗大小
+
+        notebook = ttk.Notebook(detail_window)
+        notebook.pack(expand=True, fill='both', padx=10, pady=10)
+
+        # 均線數據選項卡
+        for ma_type, ma_values in organized_ma_data.items():
+            frame = ttk.Frame(notebook)
+            notebook.add(frame, text=ma_type)
+
+            tree = ttk.Treeview(frame, columns=('Period', 'Value'), show='headings')
+            tree.heading('Period', text='週期')
+            tree.heading('Value', text='值')
+            tree.column('Period', width=100, anchor='center')
+            tree.column('Value', width=100, anchor='center')
+
+            for period, value in ma_values.items():
+                tree.insert('', 'end', values=(period, value))
+
+            tree.pack(expand=True, fill='both')
+
+        # 比例價格選項卡
+        ratio_frame = ttk.Frame(notebook)
+        notebook.add(ratio_frame, text="比例價格")
+
+        ratio_tree = ttk.Treeview(ratio_frame, columns=('Ratio', 'Price'), show='headings')
+        ratio_tree.heading('Ratio', text='比例')
+        ratio_tree.heading('Price', text='價格')
+        ratio_tree.column('Ratio', width=100, anchor='center')
+        ratio_tree.column('Price', width=100, anchor='center')
+
+        for ratio, price in ratio_prices.items():
+            ratio_tree.insert('', 'end', values=(ratio, price))
+
+        ratio_tree.pack(expand=True, fill='both')
+
+        # 額外數據選項卡
+        additional_frame = ttk.Frame(notebook)
+        notebook.add(additional_frame, text="其他數據")
+
+        additional_tree = ttk.Treeview(additional_frame, columns=('Item', 'Value'), show='headings')
+        additional_tree.heading('Item', text='項目')
+        additional_tree.heading('Value', text='值')
+        additional_tree.column('Item', width=150, anchor='center')
+        additional_tree.column('Value', width=150, anchor='center')
+
+        for item, value in additional_data.items():
+            additional_tree.insert('', 'end', values=(item, value))
+
+        additional_tree.pack(expand=True, fill='both')
+
+        # 添加一個關閉按鈕
+        close_button = ttk.Button(detail_window, text="關閉", command=detail_window.destroy)
+        close_button.pack(pady=10)
+
+
 

@@ -11,7 +11,8 @@ class SelectStockModel(BaseModel):
     
     def __init__(self, api):
         super().__init__(api)  # 繼承父類的初始化
-                # 獲取當前文件的目錄
+        self.all_wave_extremes = []
+        # 獲取當前文件的目錄
         current_dir = os.path.dirname(os.path.abspath(__file__))
         
         # 構建相對路徑
@@ -122,13 +123,44 @@ class SelectStockModel(BaseModel):
         else:
             return None    
 
+    def organize_ma_data(self, sma_values, weekly_sma_values, monthly_sma_values):
+        """
+        整理均線數據為易讀格式
+        
+        :param sma_values: 日均線數據列表
+        :param weekly_sma_values: 週均線數據列表
+        :param monthly_sma_values: 月均線數據列表
+        :return: 整理後的均線數據字典
+        """
+        ma_data = {
+            "日均線": {},
+            "週均線": {},
+            "月均線": {}
+        }
+        
+        ma_periods = [5, 10, 20, 60, 120]
+        
+        # 處理日均線數據
+        for i, period in enumerate(ma_periods):
+            ma_data["日均線"][f"{period}日"] = sma_values[i] if i < len(sma_values) else "N/A"
+        
+        # 處理週均線數據
+        for i, period in enumerate(ma_periods):
+            ma_data["週均線"][f"{period}週"] = weekly_sma_values[i] if i < len(weekly_sma_values) else "N/A"
+        
+        # 處理月均線數據
+        for i, period in enumerate(ma_periods):
+            ma_data["月均線"][f"{period}月"] = monthly_sma_values[i] if i < len(monthly_sma_values) else "N/A"
+
+        return ma_data
+
     def process_all_stocks(self, start_date, end_date, ratio, positive_ratio, native_ratio, top_n, recent_wave_var, highest_wave_var, total_wave_var, ma_selections):
         top_50_stocks = self.get_top_volumn_stocks(top_n)
         if isinstance(top_50_stocks, str) and top_50_stocks.startswith("錯誤："):
             return top_50_stocks
         else:
             # 處理正常的结果
-            all_wave_extremes = []
+            self.all_wave_extremes = []
 
             # 收集均線選擇
             # ma_selections = {
@@ -212,9 +244,9 @@ class SelectStockModel(BaseModel):
                                 or ((float(ratio) < head_0618_spread_ratio or float(ratio) * -1 > head_0618_spread_ratio)\
                                 and (total_wave_var and (float(positive_ratio) >= current_0618_spread_ratio \
                                 and float(native_ratio) * -1 <= current_0618_spread_ratio))):
-                                self.add_wave_segment(all_wave_extremes, recent_segment, '最近波段', max_value_of_all_waves, min_value_after_max)
-                                self.add_wave_segment(all_wave_extremes, highest_segment, '最高波段', max_value_of_all_waves, min_value_after_max)
-                                self.add_wave_segment(all_wave_extremes, segment, '總波段', max_value_of_all_waves, min_value_after_max)
+                                self.add_wave_segment(recent_segment, '最近波段', max_value_of_all_waves, min_value_after_max)
+                                self.add_wave_segment(highest_segment, '最高波段', max_value_of_all_waves, min_value_after_max)
+                                self.add_wave_segment(segment, '總波段', max_value_of_all_waves, min_value_after_max)
                         elif is_more_than_ma:
                             if ((float(ratio) < recent_segment['spread_ratio'] or float(ratio) * -1 > recent_segment['spread_ratio'])\
                                 and (recent_wave_var and (float(positive_ratio) >= recent_segment['latest_close_price-0.618_ratio'] \
@@ -225,9 +257,9 @@ class SelectStockModel(BaseModel):
                                 or ((float(ratio) < head_0618_spread_ratio or float(ratio) * -1 > head_0618_spread_ratio)\
                                 and (total_wave_var and (float(positive_ratio) >= current_0618_spread_ratio \
                                 and float(native_ratio) * -1 <= current_0618_spread_ratio))):
-                                self.add_wave_segment(all_wave_extremes, recent_segment, '最近波段', max_value_of_all_waves, min_value_after_max)
-                                self.add_wave_segment(all_wave_extremes, highest_segment, '最高波段', max_value_of_all_waves, min_value_after_max)
-                                self.add_wave_segment(all_wave_extremes, segment, '總波段', max_value_of_all_waves, min_value_after_max)
+                                self.add_wave_segment(recent_segment, '最近波段', max_value_of_all_waves, min_value_after_max)
+                                self.add_wave_segment(highest_segment, '最高波段', max_value_of_all_waves, min_value_after_max)
+                                self.add_wave_segment(segment, '總波段', max_value_of_all_waves, min_value_after_max)
                             
 
 
@@ -364,70 +396,13 @@ class SelectStockModel(BaseModel):
                         #             #     isHigh = True
                         #             #     isSummary = True
                         #             #     continue
-
-                        # if (float(ratio) < head_0618_spread_ratio or float(ratio) * -1 > head_0618_spread_ratio) \
-                        #     and not isSummary:
-                        #     if (float(positive_ratio) == 0 and float(native_ratio) == 0) \
-                        #         or (total_wave_var \
-                        #             and (float(positive_ratio) >= current_0618_spread_ratio \
-                        #                 and float(native_ratio) * -1 <= current_0618_spread_ratio)):
-                        #         #判案每個均線(5、10、20、60、120)選擇結果，若選擇了，則判斷現價是否在均線之上，若是，則加入最近波段、最高波段、總波段
-                        #             #先判別是否選擇了日均線5、10、20、60、120  
-                        #             #再判別現價是否在均線之上
-                        #             #若是，則加入最近波段、最高波段、總波段
-                        #             #若否，則不加入
-                        #             # is_ma_selected = False
-                        #             # for selection in ma_selections['daily']:
-                        #             #     if ma_selections['daily'][selection]:
-                        #             #         is_ma_selected = True
-                        #             #         if latest_close_price >= recent_segment[f'sma_{selection}']:
-                        #             #             self.add_wave_segment(all_wave_extremes, recent_segment, '最近波段', max_value_of_all_waves, min_value_after_max)
-                        #             #             self.add_wave_segment(all_wave_extremes, highest_segment, '最高波段', max_value_of_all_waves, min_value_after_max)
-                        #             #             self.add_wave_segment(all_wave_extremes, segment, '總波段', max_value_of_all_waves, min_value_after_max)
-                        #             #             isRecent = True
-                        #             #             isHigh = True
-                        #             #             isSummary = True
-                        #             #             break
-
-                        #             # for selection in ma_selections['weekly']:
-                        #             #     if ma_selections['weekly'][selection]:
-                        #             #         is_ma_selected = True
-                        #             #         if latest_close_price >= recent_segment[f'weekly_sma_{selection}']:
-                        #             #             self.add_wave_segment(all_wave_extremes, recent_segment, '最近波段', max_value_of_all_waves, min_value_after_max)
-                        #             #             self.add_wave_segment(all_wave_extremes, highest_segment, '最高波段', max_value_of_all_waves, min_value_after_max)
-                        #             #             self.add_wave_segment(all_wave_extremes, segment, '總波段', max_value_of_all_waves, min_value_after_max)
-                        #             #             isRecent = True
-                        #             #             isHigh = True
-                        #             #             isSummary = True
-                        #             #             break
-
-                        #             # for selection in ma_selections['monthly']:
-                        #             #     if ma_selections['monthly'][selection]:
-                        #             #         is_ma_selected = True
-                        #             #         if latest_close_price >= recent_segment[f'monthly_sma_{selection}']:
-                        #             #             self.add_wave_segment(all_wave_extremes, recent_segment, '最近波段', max_value_of_all_waves, min_value_after_max)
-                        #             #             self.add_wave_segment(all_wave_extremes, highest_segment, '最高波段', max_value_of_all_waves, min_value_after_max)
-                        #             #             self.add_wave_segment(all_wave_extremes, segment, '總波段', max_value_of_all_waves, min_value_after_max)
-                        #             #             isRecent = True
-                        #             #             isHigh = True
-                        #             #             isSummary = True
-                        #             #             break
-
-                        #             # if not is_ma_selected:
-                        #             #     self.add_wave_segment(all_wave_extremes, recent_segment, '最近波段', max_value_of_all_waves, min_value_after_max)
-                        #             #     self.add_wave_segment(all_wave_extremes, highest_segment, '最高波段', max_value_of_all_waves, min_value_after_max)
-                        #             #     self.add_wave_segment(all_wave_extremes, segment, '總波段', max_value_of_all_waves, min_value_after_max)
-                        #             #     isRecent = True
-                        #             #     isHigh = True
-                        #             #     isSummary = True
-                        #             #     continue
                         #             pass
               
                 else:
                     print(f"無法獲取股票 {stock_id} 的數據")
                     
-            if all_wave_extremes is not None:
-                return all_wave_extremes
+            if self.all_wave_extremes is not None:
+                return self.all_wave_extremes
 
             # 將所有波段數據合併成一個 DataFrame
             # if all_wave_extremes:
@@ -462,21 +437,29 @@ class SelectStockModel(BaseModel):
         
         return recent_segment, highest_segment
     
-    def add_wave_segment(self, all_wave_extremes, segment, wave_type, max_value_of_all_waves, min_value_after_max):
+    def add_wave_segment(self, segment_data, wave_type, max_value_of_all_waves, min_value_after_max):
         """
         添加波段信息到 all_wave_extremes 列表中。
 
         :param all_wave_extremes: 存儲所有波段信息的列表
-        :param segment: 要添加的波段信息字典
+        :param segment_data: 要添加的波段信息字典
         :param wave_type: 波段類型（'最近波段', '最高波段', 或 '總波段'）
         :param max_value_of_all_waves: 所有波段中的最高值
         :param min_value_after_max: 最高點之後的最低值
         """
-        new_segment = segment.copy()  # 創建一個新的字典，避免修改原始數據
+        new_segment = segment_data.copy()  # 創建一個新的字典，避免修改原始數據
         new_segment['wave_type'] = wave_type
         new_segment['max_value_of_all_waves'] = max_value_of_all_waves
         new_segment['min_value_after_max'] = min_value_after_max
-        all_wave_extremes.append(new_segment)
+        self.all_wave_extremes.append(new_segment)
+        
+        # 如果需要,可以在這裡打印整理後的均線數據
+        if 'organized_ma_data' in segment_data:
+            print(f"{wave_type} 均線數據:")
+            for ma_type, ma_values in segment_data['organized_ma_data'].items():
+                print(f"  {ma_type}:")
+                for period, value in ma_values.items():
+                    print(f"    {period}: {value}")
     
     def check_price_above_selected_ma(self, current_price, segment_data, ma_selections):
         """
@@ -506,4 +489,27 @@ class SelectStockModel(BaseModel):
 
         return is_any_ma_selected, is_above_all_selected_ma
     
-    
+    def get_ratio_prices(self, stock_id):
+        # 獲取股票的基準價格（例如最新收盤價）
+        base_price = self.get_base_price(stock_id)
+        
+        ratios = [0.191, 0.382, 0.5, 0.618, 0.809, 1, 1.382, 1.5, 1.618, 2, 4]
+        ratio_prices = {}
+        
+        for ratio in ratios:
+            price = base_price * ratio
+            ratio_prices[f"{ratio:.3f}"] = f"{price:.2f}"
+        
+        return ratio_prices
+
+    def get_stock_data_from_all_wave_extremes(self, stock_id):
+        for segment in self.all_wave_extremes:
+            if str(segment['stock_id']) == str(stock_id):
+                return segment
+        return None  # 如果沒有找到匹配的股票數據
+
+
+
+
+
+
