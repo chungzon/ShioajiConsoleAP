@@ -13,6 +13,7 @@ import pyperclip
 from tkinter import filedialog
 from collections import OrderedDict
 import os
+from tkinter import font as tkfont
 
 font_path = 'C:/Windows/Fonts/msjh.ttc'  # 微軟正黑體字體路徑
 zh_font = font_manager.FontProperties(fname=font_path)
@@ -337,21 +338,29 @@ class SelectStockView(tk.Frame):
     def show_sma_data(self, stock_id, organized_ma_data, ratio_prices, additional_data):
         detail_window = tk.Toplevel(self)
         detail_window.title(f"詳細資料 - {stock_id}")
-        detail_window.geometry("450x650")  # 調整視窗大小
+        detail_window.geometry("500x700")  # 稍微增加視窗大小
+
+        # 創建更大的字體
+        # large_font = tkfont.Font(family="Helvetica", size=12)
 
         notebook = ttk.Notebook(detail_window)
         notebook.pack(expand=True, fill='both', padx=10, pady=10)
+
+        style = ttk.Style()
+        style.configure('.', font=('Microsoft JhengHei', 14))
+        style.configure('Treeview', font=('Microsoft JhengHei', 14))
+        style.configure('Treeview.Heading', font=('Microsoft JhengHei', 14))
 
         # 均線數據選項卡
         for ma_type, ma_values in organized_ma_data.items():
             frame = ttk.Frame(notebook)
             notebook.add(frame, text=ma_type)
 
-            tree = ttk.Treeview(frame, columns=('Period', 'Value'), show='headings')
+            tree = ttk.Treeview(frame, columns=('Period', 'Value'), show='headings', style="Treeview")
             tree.heading('Period', text='週期')
             tree.heading('Value', text='值')
-            tree.column('Period', width=100, anchor='center')
-            tree.column('Value', width=100, anchor='center')
+            tree.column('Period', width=120, anchor='center')
+            tree.column('Value', width=120, anchor='center')
 
             for period, value in ma_values.items():
                 tree.insert('', 'end', values=(period, value))
@@ -362,18 +371,24 @@ class SelectStockView(tk.Frame):
         ratio_frame = ttk.Frame(notebook)
         notebook.add(ratio_frame, text="比例價格")
 
-        ratio_tree = ttk.Treeview(ratio_frame, columns=('Ratio', 'Recent', 'Total'), show='headings')
+        ratio_tree = ttk.Treeview(ratio_frame, columns=('Ratio', 'Recent', 'Total'), show='headings', style="Treeview")
         ratio_tree.heading('Ratio', text='比例')
         ratio_tree.heading('Recent', text='最近波段')
         ratio_tree.heading('Total', text='總波段')
-        ratio_tree.column('Ratio', width=100, anchor='center')
-        ratio_tree.column('Recent', width=100, anchor='center')
-        ratio_tree.column('Total', width=100, anchor='center')
+        ratio_tree.column('Ratio', width=120, anchor='center')
+        ratio_tree.column('Recent', width=120, anchor='center')
+        ratio_tree.column('Total', width=120, anchor='center')
 
-        for ratio in ratio_prices['最近波段'].keys():
+        # 設置單雙行不同背景色
+        ratio_tree.tag_configure('oddrow', background='#E8E8E8')
+        ratio_tree.tag_configure('evenrow', background='#FFFFFF')
+
+        for i, ratio in enumerate(ratio_prices['最近波段'].keys()):
+            tags = ('oddrow',) if i % 2 else ('evenrow',)
             ratio_tree.insert('', 'end', values=(ratio, 
                                                  ratio_prices['最近波段'][ratio], 
-                                                 ratio_prices['總波段'][ratio]))
+                                                 ratio_prices['總波段'][ratio]),
+                              tags=tags)
 
         ratio_tree.pack(expand=True, fill='both')
 
@@ -381,11 +396,11 @@ class SelectStockView(tk.Frame):
         additional_frame = ttk.Frame(notebook)
         notebook.add(additional_frame, text="其他數據")
 
-        additional_tree = ttk.Treeview(additional_frame, columns=('Item', 'Value'), show='headings')
+        additional_tree = ttk.Treeview(additional_frame, columns=('Item', 'Value'), show='headings', style="Treeview")
         additional_tree.heading('Item', text='項目')
         additional_tree.heading('Value', text='值')
-        additional_tree.column('Item', width=150, anchor='center')
-        additional_tree.column('Value', width=150, anchor='center')
+        additional_tree.column('Item', width=180, anchor='center')
+        additional_tree.column('Value', width=180, anchor='center')
 
         for item, value in additional_data.items():
             additional_tree.insert('', 'end', values=(item, value))
@@ -395,6 +410,10 @@ class SelectStockView(tk.Frame):
         # 添加一個關閉按鈕
         close_button = ttk.Button(detail_window, text="關閉", command=detail_window.destroy)
         close_button.pack(pady=10)
+
+        # 設置按鈕字體
+        # close_button.configure(style="TButton")
+        # style.configure("TButton", font=large_font)
 
     def toggle_all(self, ma_type):
         state = self.select_all_vars[ma_type].get()
@@ -408,3 +427,4 @@ class SelectStockView(tk.Frame):
     def get_ma_selections(self):
         return {ma_type: {period: var.get() for period, var in periods.items()}
                 for ma_type, periods in self.ma_selections.items()}
+
