@@ -188,7 +188,8 @@ class BaseModel:
     # 定義函數找出每個波段的最高價和最低價，並計算特定比例的價格
     def find_peaks_troughs_v34_small(self, stock_id, df, latest_close_price):
         segments = []
-        ratios = [0.191, 0.382, 0.5, 0.618, 0.809, 1, 1.382, 1.5, 1.618, 2, 4]
+        ratios = [0.191, 0.382, 0.5, 0.618, 0.809, 1, 1.191, 1.382, 1.5, 1.618, 1.809, 2, 2.191, 2.382, 2.5, 2.618, 2.809, 3, 
+                  3.191, 3.382, 3.5, 3.618, 3.809, 4]
         ratio_columns = [f'Ratio_{ratio}' for ratio in ratios]
         append_columns =[f'spread_ratio', f'latest_close_price', f'latest_close_price-0.618_ratio']
 

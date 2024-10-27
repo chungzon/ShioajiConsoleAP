@@ -94,30 +94,42 @@ class SelectStockView(tk.Frame):
         # 第二行（按鈕）
         row2_frame = ttk.Frame(main_frame)
         row2_frame.grid(row=1, column=0, sticky="w", pady=(0, 5))
-        # 添加日均線的 checkbox
-        ttk.Label(row2_frame, text="日均線:").pack(side=tk.LEFT, padx=(0, 5))
-        self.daily_ma_vars = {}
-        for period in [5, 10, 20, 60, 120]:
-            var = tk.BooleanVar(value=True)  # 預設為選中
-            self.daily_ma_vars[period] = var
-            ttk.Checkbutton(row2_frame, text=f"{period}", variable=var).pack(side=tk.LEFT, padx=(0, 5))
 
-        # 添加周均線的 checkbox
-        ttk.Label(row2_frame, text="周均線:").pack(side=tk.LEFT, padx=(20, 5))
-        self.weekly_ma_vars = {}
-        for period in [5, 10, 20, 60, 120]:
-            var = tk.BooleanVar(value=True)  # 預設為選中
-            self.weekly_ma_vars[period] = var
-            ttk.Checkbutton(row2_frame, text=f"{period}", variable=var).pack(side=tk.LEFT, padx=(0, 5))
+        self.ma_selections = {
+            'daily': {5: tk.BooleanVar(value=False), 10: tk.BooleanVar(value=False), 
+                      20: tk.BooleanVar(value=False), 60: tk.BooleanVar(value=False), 
+                      120: tk.BooleanVar(value=False)},
+            'weekly': {5: tk.BooleanVar(value=False), 10: tk.BooleanVar(value=False), 
+                       20: tk.BooleanVar(value=False), 60: tk.BooleanVar(value=False), 
+                       120: tk.BooleanVar(value=False)},
+            'monthly': {5: tk.BooleanVar(value=False), 10: tk.BooleanVar(value=False), 
+                        20: tk.BooleanVar(value=False), 60: tk.BooleanVar(value=False), 
+                        120: tk.BooleanVar(value=False)}
+        }
+        self.select_all_vars = {
+            'daily': tk.BooleanVar(value=False),
+            'weekly': tk.BooleanVar(value=False),
+            'monthly': tk.BooleanVar(value=False)
+        }
+        ma_types = [("日均線", 'daily'), ("週均線", 'weekly'), ("月均線", 'monthly')]
+        ma_types = [("日均線", 'daily'), ("週均線", 'weekly'), ("月均線", 'monthly')]
+        for i, (ma_type, ma_key) in enumerate(ma_types):
+            frame = ttk.Frame(row2_frame)
+            frame.pack(padx=5, pady=5, anchor="w")
+            
+            ttk.Label(frame, text=ma_type, width=8).pack(side="left")
+            
+            # 添加全選 checkbox
+            select_all_cb = ttk.Checkbutton(frame, text="全選", 
+                                            variable=self.select_all_vars[ma_key],
+                                            command=lambda k=ma_key: self.toggle_all(k))
+            select_all_cb.pack(side="left", padx=(0, 10))
 
-        # 添加月均線的 checkbox
-        ttk.Label(row2_frame, text="月均線:").pack(side=tk.LEFT, padx=(20, 5))
-        self.monthly_ma_vars = {}
-        for period in [5, 10, 20, 60, 120]:
-            var = tk.BooleanVar(value=True)  # 預設為選中
-            self.monthly_ma_vars[period] = var
-            ttk.Checkbutton(row2_frame, text=f"{period}", variable=var).pack(side=tk.LEFT, padx=(0, 5))
-
+            for period in [5, 10, 20, 60, 120]:
+                cb = ttk.Checkbutton(frame, text=f"{period}", 
+                                     variable=self.ma_selections[ma_key][period],
+                                     command=lambda k=ma_key: self.update_select_all(k))
+                cb.pack(side="left", padx=(0, 5))
 
         # 設置 LabelFrame 來包含 Treeview
         self.table_frame = ttk.LabelFrame(self, text="股票資訊")
@@ -189,9 +201,9 @@ class SelectStockView(tk.Frame):
 
         # 收集均線選擇
         ma_selections = {
-            'daily': {period: var.get() for period, var in self.daily_ma_vars.items()},
-            'weekly': {period: var.get() for period, var in self.weekly_ma_vars.items()},
-            'monthly': {period: var.get() for period, var in self.monthly_ma_vars.items()}
+            'daily': {period: var.get() for period, var in self.ma_selections['daily'].items()},
+            'weekly': {period: var.get() for period, var in self.ma_selections['weekly'].items()},
+            'monthly': {period: var.get() for period, var in self.ma_selections['monthly'].items()}
         }
 
         # 清空 TreeView 中的現有數據
@@ -233,13 +245,6 @@ class SelectStockView(tk.Frame):
                 values = values[:-1] + ('詳細資料',)
 
             item = self.tree.insert('', 'end', values=values, tags=(tag,))
-            
-            # 為現價和買點設置特定的顏色
-            # self.tree.set(item, column='現價', value=latest_close_price)
-            # self.tree.item(item, tags=(tag, 'blue_text'), values=values)
-            
-            # self.tree.set(item, column='買點', value=ratio_0618)
-            # self.tree.item(item, tags=(tag, 'red_text'), values=values)
 
 
     def show_error(self, message):
@@ -332,7 +337,7 @@ class SelectStockView(tk.Frame):
     def show_sma_data(self, stock_id, organized_ma_data, ratio_prices, additional_data):
         detail_window = tk.Toplevel(self)
         detail_window.title(f"詳細資料 - {stock_id}")
-        detail_window.geometry("600x400")  # 調整視窗大小
+        detail_window.geometry("450x650")  # 調整視窗大小
 
         notebook = ttk.Notebook(detail_window)
         notebook.pack(expand=True, fill='both', padx=10, pady=10)
@@ -357,14 +362,18 @@ class SelectStockView(tk.Frame):
         ratio_frame = ttk.Frame(notebook)
         notebook.add(ratio_frame, text="比例價格")
 
-        ratio_tree = ttk.Treeview(ratio_frame, columns=('Ratio', 'Price'), show='headings')
+        ratio_tree = ttk.Treeview(ratio_frame, columns=('Ratio', 'Recent', 'Total'), show='headings')
         ratio_tree.heading('Ratio', text='比例')
-        ratio_tree.heading('Price', text='價格')
+        ratio_tree.heading('Recent', text='最近波段')
+        ratio_tree.heading('Total', text='總波段')
         ratio_tree.column('Ratio', width=100, anchor='center')
-        ratio_tree.column('Price', width=100, anchor='center')
+        ratio_tree.column('Recent', width=100, anchor='center')
+        ratio_tree.column('Total', width=100, anchor='center')
 
-        for ratio, price in ratio_prices.items():
-            ratio_tree.insert('', 'end', values=(ratio, price))
+        for ratio in ratio_prices['最近波段'].keys():
+            ratio_tree.insert('', 'end', values=(ratio, 
+                                                 ratio_prices['最近波段'][ratio], 
+                                                 ratio_prices['總波段'][ratio]))
 
         ratio_tree.pack(expand=True, fill='both')
 
@@ -387,5 +396,15 @@ class SelectStockView(tk.Frame):
         close_button = ttk.Button(detail_window, text="關閉", command=detail_window.destroy)
         close_button.pack(pady=10)
 
+    def toggle_all(self, ma_type):
+        state = self.select_all_vars[ma_type].get()
+        for period in self.ma_selections[ma_type]:
+            self.ma_selections[ma_type][period].set(state)
 
+    def update_select_all(self, ma_type):
+        all_checked = all(self.ma_selections[ma_type][period].get() for period in self.ma_selections[ma_type])
+        self.select_all_vars[ma_type].set(all_checked)
 
+    def get_ma_selections(self):
+        return {ma_type: {period: var.get() for period, var in periods.items()}
+                for ma_type, periods in self.ma_selections.items()}
