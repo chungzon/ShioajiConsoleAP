@@ -223,8 +223,8 @@ class SelectStockModel(BaseModel):
                         # 計算 Head-0.618 價差比例
                         head_0618_spread_ratio = round((max_value_of_all_waves - ratio_0618) / ratio_0618, 3)
 
-                        # 計算現價-0.618 價差比例
-                        current_0618_spread_ratio = round((latest_close_price - ratio_0618) / latest_close_price, 3)
+                        # 計算現價-0.191 價差比例
+                        current_0191_spread_ratio = round((latest_close_price - ratio_0191) / latest_close_price, 3)
 
                         segment = {
                             'stock_id': stock_id,
@@ -260,7 +260,7 @@ class SelectStockModel(BaseModel):
                             'Ratio_3.809': ratio_3809,
                             'Ratio_4': ratio_4,
                             'spread_ratio': head_0618_spread_ratio,
-                            'latest_close_price-0.618_ratio': current_0618_spread_ratio,
+                            'latest_close_price-0.191_ratio': current_0191_spread_ratio,
                             'max_value_of_all_waves': max_value_of_all_waves,
                             'min_value_after_max': min_value_after_max,
                             'wave_type': ''
@@ -272,14 +272,14 @@ class SelectStockModel(BaseModel):
                         is_ma_selected, is_more_than_ma = self.check_price_above_selected_ma(latest_close_price, recent_segment, ma_selections)
                         if not is_ma_selected:
                             if ((float(ratio) < recent_segment['spread_ratio'] or float(ratio) * -1 > recent_segment['spread_ratio'])\
-                                and (recent_wave_var and (float(positive_ratio) >= recent_segment['latest_close_price-0.618_ratio'] \
-                                and float(native_ratio) * -1 <= recent_segment['latest_close_price-0.618_ratio'])))\
+                                and (recent_wave_var and (float(positive_ratio) >= recent_segment['latest_close_price-0.191_ratio'] \
+                                and float(native_ratio) * -1 <= recent_segment['latest_close_price-0.191_ratio'])))\
                                 or ((float(ratio) < highest_segment['spread_ratio'] or float(ratio) * -1 > highest_segment['spread_ratio'])\
-                                and (highest_wave_var and (float(positive_ratio) >= highest_segment['latest_close_price-0.618_ratio'] \
-                                and float(native_ratio) * -1 <= highest_segment['latest_close_price-0.618_ratio'])))\
+                                and (highest_wave_var and (float(positive_ratio) >= highest_segment['latest_close_price-0.191_ratio'] \
+                                and float(native_ratio) * -1 <= highest_segment['latest_close_price-0.191_ratio'])))\
                                 or ((float(ratio) < head_0618_spread_ratio or float(ratio) * -1 > head_0618_spread_ratio)\
-                                and (total_wave_var and (float(positive_ratio) >= current_0618_spread_ratio \
-                                and float(native_ratio) * -1 <= current_0618_spread_ratio))):
+                                and (total_wave_var and (float(positive_ratio) >= current_0191_spread_ratio \
+                                and float(native_ratio) * -1 <= current_0191_spread_ratio))):
                                 self.add_wave_segment(recent_segment, '最近波段', max_value_of_all_waves, min_value_after_max)
                                 self.add_wave_segment(highest_segment, '最高波段', max_value_of_all_waves, min_value_after_max)
                                 self.add_wave_segment(segment, '總波段', max_value_of_all_waves, min_value_after_max)
@@ -291,8 +291,8 @@ class SelectStockModel(BaseModel):
                                 and (highest_wave_var and (float(positive_ratio) >= highest_segment['latest_close_price-0.618_ratio'] \
                                 and float(native_ratio) * -1 <= highest_segment['latest_close_price-0.618_ratio'])))\
                                 or ((float(ratio) < head_0618_spread_ratio or float(ratio) * -1 > head_0618_spread_ratio)\
-                                and (total_wave_var and (float(positive_ratio) >= current_0618_spread_ratio \
-                                and float(native_ratio) * -1 <= current_0618_spread_ratio))):
+                                and (total_wave_var and (float(positive_ratio) >= current_0191_spread_ratio \
+                                and float(native_ratio) * -1 <= current_0191_spread_ratio))):
                                 self.add_wave_segment(recent_segment, '最近波段', max_value_of_all_waves, min_value_after_max)
                                 self.add_wave_segment(highest_segment, '最高波段', max_value_of_all_waves, min_value_after_max)
                                 self.add_wave_segment(segment, '總波段', max_value_of_all_waves, min_value_after_max)

@@ -62,7 +62,7 @@ class SelectStockView(tk.Frame):
         self.ratio_entry = ttk.Entry(row1_frame, width=10)
         self.ratio_entry.pack(side=tk.LEFT, padx=(0,5))
         # 現價-0618比例
-        ttk.Label(row1_frame, text="現價-0618比例").pack(side=tk.LEFT, padx=5)
+        ttk.Label(row1_frame, text="現價-0191比例").pack(side=tk.LEFT, padx=5)
         ttk.Label(row1_frame, text="+").pack(side=tk.LEFT)
         self.ratio_positive_entry = ttk.Entry(row1_frame, width=5)
         self.ratio_positive_entry.insert(0, "0.03")  # 設置預設值為 0.03    
@@ -137,7 +137,7 @@ class SelectStockView(tk.Frame):
         self.table_frame.grid(row=2, column=0, pady=10, sticky="nsew")
 
         # 定義欄位名稱
-        columns = ['股票代碼', '股票名稱', '現價','波段', 'Head-0618價差比例', '現價-0618比例', '0.191', '0.382', '0.5', '0.618', '0.809', '頸線', 'Head', 'Max_Date', 'Max_Value', 'Min_Date', 'Min_Value', '下載']
+        columns = ['股票代碼', '股票名稱', '現價','波段', 'Head-0618價差比例', '現價-0191比例', '0.191', '0.382', '0.5', '0.618', '0.809', '頸線', 'Head', 'Max_Date', 'Max_Value', 'Min_Date', 'Min_Value', '下載']
 
         # 設置 Treeview 並定義列
         self.tree = ttk.Treeview(self.table_frame, columns=columns, show='headings')
@@ -233,12 +233,12 @@ class SelectStockView(tk.Frame):
             ratio_0809 = round(segment['Ratio_0.809'], 2)
             ratio_1 = round(segment['Ratio_1'], 2) # 頸線
             spread_ratio = round(segment['spread_ratio'], 3)  # 價差比例
-            ratio_0618_ratio = round(segment['latest_close_price-0.618_ratio'], 3)
+            ratio_0191_ratio = round(segment['latest_close_price-0.191_ratio'], 3)
             # 修改這裡：每三行為一組，組間交替顏色
             group_number = index // 3
             tag = 'Blue' if group_number % 2 == 0 else 'White'
             
-            values = (stock_id, stock_name, latest_close_price, wave_type, spread_ratio, ratio_0618_ratio, ratio_0191, ratio_0382, ratio_0500, ratio_0618, ratio_0809, ratio_1, max_value, max_date, max_value, min_date, min_value, '')
+            values = (stock_id, stock_name, latest_close_price, wave_type, spread_ratio, ratio_0191_ratio, ratio_0191, ratio_0382, ratio_0500, ratio_0618, ratio_0809, ratio_1, max_value, max_date, max_value, min_date, min_value, '')
             
             if wave_type == '最高波段':
                 values = values[:-1] + ('下載',)

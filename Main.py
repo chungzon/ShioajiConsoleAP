@@ -51,9 +51,9 @@ class MainApplication(tk.Tk):
 
         # 設置 ttk 控件的字體
         style = ttk.Style()
-        style.configure('.', font=('Microsoft JhengHei', 13))
-        style.configure('Treeview', font=('Microsoft JhengHei', 13))
-        style.configure('Treeview.Heading', font=('Microsoft JhengHei', 13))
+        style.configure('.', font=('Microsoft JhengHei', 14))
+        style.configure('Treeview', font=('Microsoft JhengHei', 14))
+        style.configure('Treeview.Heading', font=('Microsoft JhengHei', 14))
 
         self.title("Stock Application")
 

@@ -113,7 +113,7 @@ class SelectStockController:
             '最低價': total_segment.get('Min_Value', 'N/A'),
             '最新收盤價': total_segment.get('latest_close_price', 'N/A'),
             '價差比例': total_segment.get('spread_ratio', 'N/A'),
-            '最新收盤價-0.618比例': total_segment.get('latest_close_price-0.618_ratio', 'N/A')
+            '最新收盤價-0.191比例': total_segment.get('latest_close_price-0.191_ratio', 'N/A')
         }
 
         self.view.show_sma_data(stock_id, organized_ma_data, ratio_prices, additional_data)
