@@ -15,6 +15,8 @@ from collections import OrderedDict
 import os
 from tkinter import font as tkfont
 
+from common.Math import Math
+
 font_path = 'C:/Windows/Fonts/msjh.ttc'  # 微軟正黑體字體路徑
 zh_font = font_manager.FontProperties(fname=font_path)
 
@@ -335,10 +337,10 @@ class SelectStockView(tk.Frame):
         self.controller.show_detail_data(stock_id)
         
 
-    def show_sma_data(self, stock_id, organized_ma_data, ratio_prices, additional_data):
+    def show_sma_data(self, stock_id, organized_ma_data, ratio_prices, additional_data, indicator_prices):
         detail_window = tk.Toplevel(self)
         detail_window.title(f"詳細資料 - {stock_id}")
-        detail_window.geometry("500x700")  # 稍微增加視窗大小
+        detail_window.geometry("650x750")  # 稍微增加視窗大小
 
         # 創建更大的字體
         # large_font = tkfont.Font(family="Helvetica", size=12)
@@ -371,24 +373,57 @@ class SelectStockView(tk.Frame):
         ratio_frame = ttk.Frame(notebook)
         notebook.add(ratio_frame, text="比例價格")
 
-        ratio_tree = ttk.Treeview(ratio_frame, columns=('Ratio', 'Recent', 'Total'), show='headings', style="Treeview")
+        ratio_tree = ttk.Treeview(ratio_frame, columns=('Ratio', 'Recent', 'Total', 'CDP'), 
+                                 show='headings', style="Treeview")
         ratio_tree.heading('Ratio', text='比例')
         ratio_tree.heading('Recent', text='最近波段')
         ratio_tree.heading('Total', text='總波段')
-        ratio_tree.column('Ratio', width=120, anchor='center')
-        ratio_tree.column('Recent', width=120, anchor='center')
-        ratio_tree.column('Total', width=120, anchor='center')
+        ratio_tree.heading('CDP', text='指標')
+        ratio_tree.column('Ratio', width=100, anchor='center')
+        ratio_tree.column('Recent', width=100, anchor='center')
+        ratio_tree.column('Total', width=100, anchor='center')
+        ratio_tree.column('CDP', width=100, anchor='center')
 
-        # 設置單雙行不同背景色
         ratio_tree.tag_configure('oddrow', background='#E8E8E8')
         ratio_tree.tag_configure('evenrow', background='#FFFFFF')
 
+        # 初始化每個比例的指標顯示字典
+        indicator_displays = {}
+        
+        # 依序處理每個指標
+        indicator_types = ['AH', 'AL', 'CDP', 'NH', 'NL']
+        for indicator_type in indicator_types:
+            price = indicator_prices.get(indicator_type, 'N/A')
+            if price == 'N/A':
+                continue
+                
+            try:
+                price_value = float(price)
+                closest_ratio = self.find_closest_ratio(price_value, ratio_prices['總波段'])
+                
+                if closest_ratio:
+                    adjusted_ratio = Math.adjust_ratio_price(price_value)
+                    indicator_text = f"{indicator_type}:{price}({adjusted_ratio})\t"
+                    
+                    # 如果該比例已有指標，則添加到現有文本後面
+                    if closest_ratio in indicator_displays:
+                        indicator_displays[closest_ratio] += f"{indicator_text}"
+                    else:
+                        indicator_displays[closest_ratio] = indicator_text
+                        
+            except (ValueError, TypeError):
+                continue
+
+        # 顯示數據
         for i, ratio in enumerate(ratio_prices['最近波段'].keys()):
             tags = ('oddrow',) if i % 2 else ('evenrow',)
+            indicator_display = indicator_displays.get(ratio, '')
+            
             ratio_tree.insert('', 'end', values=(ratio, 
-                                                 ratio_prices['最近波段'][ratio], 
-                                                 ratio_prices['總波段'][ratio]),
-                              tags=tags)
+                                                ratio_prices['最近波段'][ratio], 
+                                                ratio_prices['總波段'][ratio],
+                                                indicator_display),
+                             tags=tags)
 
         ratio_tree.pack(expand=True, fill='both')
 
@@ -427,4 +462,81 @@ class SelectStockView(tk.Frame):
     def get_ma_selections(self):
         return {ma_type: {period: var.get() for period, var in periods.items()}
                 for ma_type, periods in self.ma_selections.items()}
+
+    def find_closest_ratios_for_indicators(self, indicator_prices, total_ratio_prices):
+        """
+        為每個指標價格找出最接近的比例價格，並保存所有指標信息
+        """
+        assignments = {}
+        ratio_values = {ratio: float(value) for ratio, value in total_ratio_prices.items() 
+                       if value != 'N/A'}
+        
+        if not ratio_values:
+            return {}
+
+        # 按固定順序處理指標，確保顯示順序一致
+        indicator_types = ['AH', 'AL', 'CDP', 'NH', 'NL']
+        
+        for indicator_type in indicator_types:
+            price = indicator_prices.get(indicator_type, 'N/A')
+            if price == 'N/A':
+                continue
+                
+            try:
+                price_value = float(price)
+                closest_ratio = min(ratio_values.keys(), 
+                                  key=lambda x: abs(ratio_values[x] - price_value))
+                
+                if closest_ratio not in assignments:
+                    assignments[closest_ratio] = []
+                
+                adjusted_ratio = Math.adjust_ratio_price(price_value)
+                assignments[closest_ratio].append({
+                    'type': indicator_type,
+                    'price': price,
+                    'adjusted': adjusted_ratio
+                })
+                
+            except (ValueError, TypeError):
+                continue
+        
+        return assignments
+
+    def format_indicators_for_ratio(self, ratio, indicator_assignments):
+        """
+        格式化顯示指定比例對應的所有指標，確保所有指標都顯示
+        """
+        if ratio not in indicator_assignments:
+            return ''
+        
+        indicators = indicator_assignments[ratio]
+        # 按指標類型排序，確保顯示順序一致
+        indicators.sort(key=lambda x: x['type'])
+        
+        formatted_indicators = []
+        for indicator in indicators:
+            formatted_indicators.append(
+                f"{indicator['type']}:{indicator['price']}({indicator['adjusted']})"
+            )
+        
+        # 使用換行符連接所有指標
+        return '\n'.join(formatted_indicators)
+
+        
+    def find_closest_ratio(self, price_value, total_ratio_prices):
+        """
+        找出與給定價格最接近的比例
+        """
+        try:
+            ratio_values = {ratio: float(value) for ratio, value in total_ratio_prices.items() 
+                           if value != 'N/A'}
+        
+            if not ratio_values:
+                return None
+            
+            return min(ratio_values.keys(), 
+                      key=lambda x: abs(ratio_values[x] - price_value))
+                  
+        except (ValueError, TypeError):
+            return None
 

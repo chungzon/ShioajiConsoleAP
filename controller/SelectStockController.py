@@ -116,5 +116,14 @@ class SelectStockController:
             '最新收盤價-0.191比例': total_segment.get('latest_close_price-0.191_ratio', 'N/A')
         }
 
-        self.view.show_sma_data(stock_id, organized_ma_data, ratio_prices, additional_data)
+        # 從 total_segment 獲取所有指標價格
+        indicator_prices = {
+            'CDP': total_segment.get('CDP', 'N/A'),
+            'NH': total_segment.get('NH', 'N/A'),
+            'NL': total_segment.get('NL', 'N/A'),
+            'AH': total_segment.get('AH', 'N/A'),
+            'AL': total_segment.get('AL', 'N/A')
+        }
+
+        self.view.show_sma_data(stock_id, organized_ma_data, ratio_prices, additional_data, indicator_prices)
         

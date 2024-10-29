@@ -225,6 +225,13 @@ class SelectStockModel(BaseModel):
 
                         # 計算現價-0.191 價差比例
                         current_0191_spread_ratio = round((latest_close_price - ratio_0191) / latest_close_price, 3)
+                        
+                        # 計算CDP
+                        CDP = highest_segment['CDP']
+                        NH = highest_segment['NH']
+                        NL = highest_segment['NL']
+                        AH = highest_segment['AH']
+                        AL = highest_segment['AL']
 
                         segment = {
                             'stock_id': stock_id,
@@ -263,7 +270,12 @@ class SelectStockModel(BaseModel):
                             'latest_close_price-0.191_ratio': current_0191_spread_ratio,
                             'max_value_of_all_waves': max_value_of_all_waves,
                             'min_value_after_max': min_value_after_max,
-                            'wave_type': ''
+                            'wave_type': '',
+                            'CDP': CDP,
+                            'NH': NH,
+                            'NL': NL,
+                            'AH': AH,
+                            'AL': AL
                         }
 
                         isRecent = False

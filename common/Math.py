@@ -98,3 +98,38 @@ class Math:
             return math.ceil(price)  # 500元到1000元,向上調整到整數
         else:
             return math.ceil(price / 5) * 5  # 1000元以上,向上調整到5的倍數
+
+    @staticmethod
+    def calculate_CDP(high, low, close):
+        return round((high + low + 2 * close) / 4, 3)
+    
+    # 計算CDP支撐(NL)
+    @staticmethod
+    def calculate_CDP_support(CDP, high):
+        return round((2 * CDP) - high, 3)
+    
+    # 計算CDP阻力(NH)
+    @staticmethod
+    def calculate_CDP_resistance(CDP, low):
+        return round((2 * CDP) - low, 3)
+
+    # 計算CDP第一目標(TP)
+    @staticmethod
+    def calculate_CDP_first_target(CDP, NL, NH):
+        return round(CDP + (NH - NL), 3)
+    
+    # 昨日行情最高價(AH = CDP + (最高價 - 最低價))
+    @staticmethod
+    def calculate_AH(CDP, high, low):
+        return round(CDP + (high - low), 3)
+
+    # 昨日行情最低價(AL = CDP - (最高價 - 最低價))
+    @staticmethod
+    def calculate_AL(CDP, high, low):
+        return round(CDP - (high - low), 3)
+
+    # 計算CDP中的5個數據，CDP、NL、NH、AL、AH
+    @staticmethod
+    def calculate_CDP_5_values(CDP, high, low):
+        return CDP, Math.calculate_CDP_support(CDP, high), Math.calculate_CDP_resistance(CDP, low), Math.calculate_AL(CDP, high, low), Math.calculate_AH(CDP, high, low)
+
