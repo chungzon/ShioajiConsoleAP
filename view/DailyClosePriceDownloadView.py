@@ -47,7 +47,10 @@ class DailyClosePriceDownloadView(tk.Frame):
 
         # 重置進度條
         self.update_progress(0)
-        self.controller.download_daily_close_price(start_date, end_date)
+        if stock_id:
+            self.controller.download_daily_close_price(start_date, end_date, stock_id)
+        else:
+            self.controller.download_daily_close_price(start_date, end_date)
 
     def download_daily_close_price(self, start_date, end_date):
         self.model.download_daily_close_top30_stock(start_date, end_date)

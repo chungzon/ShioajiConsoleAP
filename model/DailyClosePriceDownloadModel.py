@@ -41,11 +41,8 @@ class DailyClosePriceDownloadModel:
         )
         return conn
         
-    def download_daily_close_top30_stock(self, view, start_date, end_date):
-        # 讀取 Excel 檔案，取得交易量前30名的股票代碼
-        stock_df = pd.read_excel(self.stock_top_file)
-        print(stock_df.columns)  # 打印出列標題名稱
-        top_30_stocks = stock_df['股票代號'][:1763]
+    def download_daily_close_top30_stock(self, view, start_date, end_date, stock_id=None):
+        
         
         conn = self.connect_db()
         cursor = conn.cursor()
@@ -66,12 +63,22 @@ class DailyClosePriceDownloadModel:
 
         conn.commit()
 
-        # 下載資料並存入資料庫
-        for stock_id in top_30_stocks:
+        if stock_id:
             if self.check_stock_exists(stock_id):
                 self.download_stock_data(self.api, stock_id, conn, cursor, view, start_date, end_date)
             else:
                 self.download_otc_stock_data(self.api, stock_id, conn, cursor, view, start_date, end_date)
+        else:
+            # 讀取 Excel 檔案，取得交易量前30名的股票代碼
+            stock_df = pd.read_excel(self.stock_top_file)
+            print(stock_df.columns)  # 打印出列標題名稱
+            top_30_stocks = stock_df['股票代號'][:1763]
+            # 下載資料並存入資料庫
+            for code in top_30_stocks:
+                if self.check_stock_exists(code):
+                    self.download_stock_data(self.api, code, conn, cursor, view, start_date, end_date)
+                else:
+                    self.download_otc_stock_data(self.api, code, conn, cursor, view, start_date, end_date)
 
         # 關閉資料庫連接
         cursor.close()
