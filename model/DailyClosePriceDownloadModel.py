@@ -152,31 +152,42 @@ class DailyClosePriceDownloadModel:
 
         while current_date <= end_date:
             try:
-                date_str = self.convert_to_taiwan_date(current_date)  # 将日期格式化为YYYY/mm
-                # 根據日期和股票代碼來構建請求URL
-                resp = requests.get(
-                    f'https://www.tpex.org.tw/web/stock/aftertrading/daily_trading_info/st43_download.php?' +
-                    f'l=zh-tw&d={date_str}&stkno={stock_id}&s=0,asc,0'
-                )
+                # 將日期轉換為YYYY/MM/DD格式
+                date_str = current_date.strftime('%Y/%m/%d')
+                
+                # 使用新的API URL
+                url = f'https://www.tpex.org.tw/www/zh-tw/afterTrading/tradingStock?response=&date={date_str}&code={stock_id}'
+                resp = requests.get(url)
             
                 if resp.status_code != 200:
                     raise Exception(f'HTTP response code is not 200: {resp.status_code}')
             
-                # 解析CSV數據
-                lines = io.StringIO(resp.text).readlines()
-                lines = lines[4:-1]  # 去除前4行和最後1行
-                reader = csv.DictReader(io.StringIO('\n'.join(lines)))
+                # 解析JSON數據
+                json_data = resp.json()
+                if json_data['stat'] != 'ok':
+                    raise Exception('API response status is not ok')
 
-                for row in reader:
-                    if row['開盤'] == '--' and row['最高'] == '--' and row['最低'] == '--' and row['收盤'] == '--':
+                # 獲取數據表
+                if not json_data['tables'] or not json_data['tables'][0]['data']:
+                    raise Exception('No data available')
+
+                data_rows = json_data['tables'][0]['data']
+                
+                for row in data_rows:
+                    # 檢查數據是否有效
+                    if '--' in [row[3], row[4], row[5], row[6]]:  # 開盤、最高、最低、收盤價位置
                         continue
-                    gregorian_date_str = self.convert_taiwan_date_to_gregorian(row['日 期'].strip())
+
+                    # 轉換民國日期為西元日期
+                    gregorian_date_str = self.convert_taiwan_date_to_gregorian(row[0].strip())
                     date = pd.to_datetime(gregorian_date_str, format='%Y/%m/%d').strftime('%Y-%m-%d')
-                    open_price = float(row['開盤'].replace(',', '').strip())
-                    high_price = float(row['最高'].replace(',', '').strip())
-                    low_price = float(row['最低'].replace(',', '').strip())
-                    close_price = float(row['收盤'].replace(',', '').strip())
-                    volume = int(row['成交仟股'].replace(',', '').strip())
+                    
+                    # 解析數據
+                    volume = int(row[1].replace(',', '').strip())
+                    open_price = float(row[3].replace(',', '').strip())
+                    high_price = float(row[4].replace(',', '').strip())
+                    low_price = float(row[5].replace(',', '').strip())
+                    close_price = float(row[6].replace(',', '').strip())
 
                     cursor.execute(
                         """INSERT INTO stock_data 
@@ -189,6 +200,7 @@ class DailyClosePriceDownloadModel:
                     self.write_log(f"成功處理上櫃股票 {stock_id} - {gregorian_date_str}")
                     print(f"成功處理上櫃股票 {stock_id} - {gregorian_date_str}")
                     view.append_log(f"成功處理上櫃股票 {stock_id} - {gregorian_date_str}")
+
                 time.sleep(1)  # 每天間隔1秒
 
             except Exception as e:
