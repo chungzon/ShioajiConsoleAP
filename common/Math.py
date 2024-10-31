@@ -105,12 +105,12 @@ class Math:
     
     # 計算CDP支撐(NL)
     @staticmethod
-    def calculate_CDP_support(CDP, high):
+    def calculate_CDP_NL(CDP, high):
         return round((2 * CDP) - high, 3)
     
     # 計算CDP阻力(NH)
     @staticmethod
-    def calculate_CDP_resistance(CDP, low):
+    def calculate_CDP_NH(CDP, low):
         return round((2 * CDP) - low, 3)
 
     # 計算CDP第一目標(TP)
@@ -131,5 +131,5 @@ class Math:
     # 計算CDP中的5個數據，CDP、NL、NH、AL、AH
     @staticmethod
     def calculate_CDP_5_values(CDP, high, low):
-        return CDP, Math.calculate_CDP_support(CDP, high), Math.calculate_CDP_resistance(CDP, low), Math.calculate_AL(CDP, high, low), Math.calculate_AH(CDP, high, low)
+        return CDP, Math.calculate_CDP_NL(CDP, high), Math.calculate_CDP_NH(CDP, low), Math.calculate_AL(CDP, high, low), Math.calculate_AH(CDP, high, low)
 

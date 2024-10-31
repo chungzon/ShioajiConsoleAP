@@ -254,10 +254,10 @@ class BaseModel:
                     segment.append(value)
 
                 segment.append(CDP)
-                segment.append(NL)
                 segment.append(NH)
-                segment.append(AL)
+                segment.append(NL)
                 segment.append(AH)
+                segment.append(AL)
 
                 segments.append(segment)
 
