@@ -274,7 +274,7 @@ class SelectStockView(tk.Frame):
                 self.show_detail_data(stock_id)
 
     def show_copy_message(self, stock_code):
-        # 創建一個臨時標籤來顯示複製成功的消息
+        # 創建一個臨時標���來顯示複製成功��消息
         msg = ttk.Label(self, text=f"已複製股票代碼: {stock_code}", foreground="green")
         msg.grid(row=3, column=0, columnspan=2, pady=5)
         
@@ -340,10 +340,7 @@ class SelectStockView(tk.Frame):
     def show_sma_data(self, stock_id, organized_ma_data, ratio_prices, additional_data, indicator_prices):
         detail_window = tk.Toplevel(self)
         detail_window.title(f"詳細資料 - {stock_id}")
-        detail_window.geometry("750x750")  # 視窗大小
-
-        # 創建更大的字體
-        # large_font = tkfont.Font(family="Helvetica", size=12)
+        detail_window.geometry("650x750")  # 調整視窗大小
 
         notebook = ttk.Notebook(detail_window)
         notebook.pack(expand=True, fill='both', padx=10, pady=10)
@@ -373,16 +370,14 @@ class SelectStockView(tk.Frame):
         ratio_frame = ttk.Frame(notebook)
         notebook.add(ratio_frame, text="比例價格")
 
-        ratio_tree = ttk.Treeview(ratio_frame, columns=('Ratio', 'Recent', 'Total', 'CDP'), 
+        ratio_tree = ttk.Treeview(ratio_frame, columns=('Ratio', 'Total', 'Indicators'), 
                                  show='headings', style="Treeview")
         ratio_tree.heading('Ratio', text='比例')
-        ratio_tree.heading('Recent', text='最近波段')
         ratio_tree.heading('Total', text='總波段')
-        ratio_tree.heading('CDP', text='指標')
+        ratio_tree.heading('Indicators', text='指標')
         ratio_tree.column('Ratio', width=100, anchor='center')
-        ratio_tree.column('Recent', width=100, anchor='center')
-        ratio_tree.column('Total', width=100, anchor='center')
-        ratio_tree.column('CDP', width=100, anchor='center')
+        ratio_tree.column('Total', width=150, anchor='center')
+        ratio_tree.column('Indicators', width=300, anchor='center')  # 增加指標欄位寬度
 
         ratio_tree.tag_configure('oddrow', background='#E8E8E8')
         ratio_tree.tag_configure('evenrow', background='#FFFFFF')
@@ -415,12 +410,11 @@ class SelectStockView(tk.Frame):
                 continue
 
         # 顯示數據
-        for i, ratio in enumerate(ratio_prices['最近波段'].keys()):
+        for i, ratio in enumerate(ratio_prices['總波段'].keys()):
             tags = ('oddrow',) if i % 2 else ('evenrow',)
             indicator_display = indicator_displays.get(ratio, '')
             
             ratio_tree.insert('', 'end', values=(ratio, 
-                                                ratio_prices['最近波段'][ratio], 
                                                 ratio_prices['總波段'][ratio],
                                                 indicator_display),
                              tags=tags)
@@ -445,10 +439,6 @@ class SelectStockView(tk.Frame):
         # 添加一個關閉按鈕
         close_button = ttk.Button(detail_window, text="關閉", command=detail_window.destroy)
         close_button.pack(pady=10)
-
-        # 設置按鈕字體
-        # close_button.configure(style="TButton")
-        # style.configure("TButton", font=large_font)
 
     def toggle_all(self, ma_type):
         state = self.select_all_vars[ma_type].get()
