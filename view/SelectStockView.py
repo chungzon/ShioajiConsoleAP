@@ -340,7 +340,7 @@ class SelectStockView(tk.Frame):
     def show_sma_data(self, stock_id, organized_ma_data, ratio_prices, additional_data, indicator_prices):
         detail_window = tk.Toplevel(self)
         detail_window.title(f"詳細資料 - {stock_id}")
-        detail_window.geometry("650x750")  # 稍微增加視窗大小
+        detail_window.geometry("750x750")  # 視窗大小
 
         # 創建更大的字體
         # large_font = tkfont.Font(family="Helvetica", size=12)
