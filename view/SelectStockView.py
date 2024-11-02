@@ -274,7 +274,7 @@ class SelectStockView(tk.Frame):
                 self.show_detail_data(stock_id)
 
     def show_copy_message(self, stock_code):
-        # 創建一個臨時標���來顯示複製成功��消息
+        # 創建一個臨時標籤來顯示複製成功的消息
         msg = ttk.Label(self, text=f"已複製股票代碼: {stock_code}", foreground="green")
         msg.grid(row=3, column=0, columnspan=2, pady=5)
         
@@ -340,7 +340,7 @@ class SelectStockView(tk.Frame):
     def show_sma_data(self, stock_id, organized_ma_data, ratio_prices, additional_data, indicator_prices):
         detail_window = tk.Toplevel(self)
         detail_window.title(f"詳細資料 - {stock_id}")
-        detail_window.geometry("650x750")  # 調整視窗大小
+        detail_window.geometry("1000x750")  # 調整視窗大小以適應更多內容
 
         notebook = ttk.Notebook(detail_window)
         notebook.pack(expand=True, fill='both', padx=10, pady=10)
@@ -370,21 +370,60 @@ class SelectStockView(tk.Frame):
         ratio_frame = ttk.Frame(notebook)
         notebook.add(ratio_frame, text="比例價格")
 
-        ratio_tree = ttk.Treeview(ratio_frame, columns=('Ratio', 'Total', 'Indicators'), 
-                                 show='headings', style="Treeview")
+        ratio_tree = ttk.Treeview(ratio_frame, 
+                                 columns=('Ratio', 'Total', 'Indicators', 'Daily', 'Weekly', 'Monthly'), 
+                                 show='headings', 
+                                 style="Treeview")
         ratio_tree.heading('Ratio', text='比例')
         ratio_tree.heading('Total', text='總波段')
         ratio_tree.heading('Indicators', text='指標')
-        ratio_tree.column('Ratio', width=100, anchor='center')
-        ratio_tree.column('Total', width=150, anchor='center')
-        ratio_tree.column('Indicators', width=300, anchor='center')  # 增加指標欄位寬度
+        ratio_tree.heading('Daily', text='日均')
+        ratio_tree.heading('Weekly', text='周均')
+        ratio_tree.heading('Monthly', text='月均')
+        
+        ratio_tree.column('Ratio', width=80, anchor='center')
+        ratio_tree.column('Total', width=100, anchor='center')
+        ratio_tree.column('Indicators', width=200, anchor='center')
+        ratio_tree.column('Daily', width=150, anchor='center')
+        ratio_tree.column('Weekly', width=150, anchor='center')
+        ratio_tree.column('Monthly', width=150, anchor='center')
 
         ratio_tree.tag_configure('oddrow', background='#E8E8E8')
         ratio_tree.tag_configure('evenrow', background='#FFFFFF')
 
-        # 初始化每個比例的指標顯示字典
+        # 初始化顯示字典
         indicator_displays = {}
-        
+        ma_displays = {
+            'daily': {},
+            'weekly': {},
+            'monthly': {}
+        }
+
+        # 處理均線數據
+        ma_types = {
+            'daily': ('日均線', ['5', '10', '20', '60', '120']),
+            'weekly': ('週均線', ['5', '10', '20', '60', '120']),
+            'monthly': ('月均線', ['5', '10', '20', '60', '120'])
+        }
+
+        # 比較均線價格和比例價格
+        for ma_category, (ma_name, periods) in ma_types.items():
+            ma_values = organized_ma_data.get(ma_name, {})
+            for period in periods:
+                ma_value = ma_values.get(f"{period}MA", 'N/A')
+                if ma_value != 'N/A':
+                    try:
+                        ma_price = float(ma_value)
+                        closest_ratio = self.find_closest_ratio(ma_price, ratio_prices['總波段'])
+                        if closest_ratio:
+                            ma_text = f"{period}MA({ma_value})"
+                            if closest_ratio in ma_displays[ma_category]:
+                                ma_displays[ma_category][closest_ratio] += f"\n{ma_text}"
+                            else:
+                                ma_displays[ma_category][closest_ratio] = ma_text
+                    except (ValueError, TypeError):
+                        continue
+
         # 依序處理每個指標
         indicator_types = ['AH', 'AL', 'CDP', 'NH', 'NL']
         for indicator_type in indicator_types:
@@ -398,7 +437,7 @@ class SelectStockView(tk.Frame):
                 
                 if closest_ratio:
                     adjusted_ratio = Math.adjust_ratio_price(price_value)
-                    indicator_text = f"{indicator_type}:{price}({adjusted_ratio})\t"
+                    indicator_text = f"{indicator_type}:{price}({adjusted_ratio})\r\n"
                     
                     # 如果該比例已有指標，則添加到現有文本後面
                     if closest_ratio in indicator_displays:
@@ -412,11 +451,19 @@ class SelectStockView(tk.Frame):
         # 顯示數據
         for i, ratio in enumerate(ratio_prices['總波段'].keys()):
             tags = ('oddrow',) if i % 2 else ('evenrow',)
+            
+            # 獲取各類均線數據
+            daily_ma = ma_displays['daily'].get(ratio, '')
+            weekly_ma = ma_displays['weekly'].get(ratio, '')
+            monthly_ma = ma_displays['monthly'].get(ratio, '')
             indicator_display = indicator_displays.get(ratio, '')
             
             ratio_tree.insert('', 'end', values=(ratio, 
                                                 ratio_prices['總波段'][ratio],
-                                                indicator_display),
+                                                indicator_display,
+                                                daily_ma,
+                                                weekly_ma,
+                                                monthly_ma),
                              tags=tags)
 
         ratio_tree.pack(expand=True, fill='both')

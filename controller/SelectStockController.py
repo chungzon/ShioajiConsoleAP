@@ -29,25 +29,25 @@ class SelectStockController:
         # 整理均線數據（使用最近波段數據）
         organized_ma_data = {
             "日均線": {
-                "5日": recent_segment.get('sma_5', 'N/A'),
-                "10日": recent_segment.get('sma_10', 'N/A'),
-                "20日": recent_segment.get('sma_20', 'N/A'),
-                "60日": recent_segment.get('sma_60', 'N/A'),
-                "120日": recent_segment.get('sma_120', 'N/A')
+                "5MA": recent_segment.get('sma_5', 'N/A'),
+                "10MA": recent_segment.get('sma_10', 'N/A'),
+                "20MA": recent_segment.get('sma_20', 'N/A'),
+                "60MA": recent_segment.get('sma_60', 'N/A'),
+                "120MA": recent_segment.get('sma_120', 'N/A')
             },
             "週均線": {
-                "5週": recent_segment.get('weekly_sma_5', 'N/A'),
-                "10週": recent_segment.get('weekly_sma_10', 'N/A'),
-                "20週": recent_segment.get('weekly_sma_20', 'N/A'),
-                "60週": recent_segment.get('weekly_sma_60', 'N/A'),
-                "120週": recent_segment.get('weekly_sma_120', 'N/A')
+                "5MA": recent_segment.get('weekly_sma_5', 'N/A'),
+                "10MA": recent_segment.get('weekly_sma_10', 'N/A'),
+                "20MA": recent_segment.get('weekly_sma_20', 'N/A'),
+                "60MA": recent_segment.get('weekly_sma_60', 'N/A'),
+                "120MA": recent_segment.get('weekly_sma_120', 'N/A')
             },
             "月均線": {
-                "5月": recent_segment.get('monthly_sma_5', 'N/A'),
-                "10月": recent_segment.get('monthly_sma_10', 'N/A'),
-                "20月": recent_segment.get('monthly_sma_20', 'N/A'),
-                "60月": recent_segment.get('monthly_sma_60', 'N/A'),
-                "120月": recent_segment.get('monthly_sma_120', 'N/A')
+                "5MA": recent_segment.get('monthly_sma_5', 'N/A'),
+                "10MA": recent_segment.get('monthly_sma_10', 'N/A'),
+                "20MA": recent_segment.get('monthly_sma_20', 'N/A'),
+                "60MA": recent_segment.get('monthly_sma_60', 'N/A'),
+                "120MA": recent_segment.get('monthly_sma_120', 'N/A')
             }
         }
 
