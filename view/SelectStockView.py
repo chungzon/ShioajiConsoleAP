@@ -1,4 +1,4 @@
-﻿import tkinter as tk
+import tkinter as tk
 from tkinter import ttk, messagebox
 from numpy import empty
 from tkcalendar import DateEntry
@@ -391,7 +391,7 @@ class SelectStockView(tk.Frame):
         ratio_tree.tag_configure('oddrow', background='#E8E8E8')
         ratio_tree.tag_configure('evenrow', background='#FFFFFF')
 
-        # 初始化顯示字典
+        # 初始化顯示字典，使用元組(ratio, next_ratio)作為鍵來表示區間
         indicator_displays = {}
         ma_displays = {
             'daily': {},
@@ -399,32 +399,13 @@ class SelectStockView(tk.Frame):
             'monthly': {}
         }
 
-        # 處理均線數據
-        ma_types = {
-            'daily': ('日均線', ['5', '10', '20', '60', '120']),
-            'weekly': ('週均線', ['5', '10', '20', '60', '120']),
-            'monthly': ('月均線', ['5', '10', '20', '60', '120'])
-        }
+        # 獲取所有比例價格並排序
+        ratio_list = sorted(ratio_prices['總波段'].keys(), 
+                           key=lambda x: float(ratio_prices['總波段'][x]))
+        ratio_values = {ratio: float(ratio_prices['總波段'][ratio]) 
+                       for ratio in ratio_list}
 
-        # 比較均線價格和比例價格
-        for ma_category, (ma_name, periods) in ma_types.items():
-            ma_values = organized_ma_data.get(ma_name, {})
-            for period in periods:
-                ma_value = ma_values.get(f"{period}MA", 'N/A')
-                if ma_value != 'N/A':
-                    try:
-                        ma_price = float(ma_value)
-                        closest_ratio = self.find_closest_ratio(ma_price, ratio_prices['總波段'])
-                        if closest_ratio:
-                            ma_text = f"{period}MA({ma_value})"
-                            if closest_ratio in ma_displays[ma_category]:
-                                ma_displays[ma_category][closest_ratio] += f"\n{ma_text}"
-                            else:
-                                ma_displays[ma_category][closest_ratio] = ma_text
-                    except (ValueError, TypeError):
-                        continue
-
-        # 依序處理每個指標
+        # 處理指標數據
         indicator_types = ['AH', 'AL', 'CDP', 'NH', 'NL']
         for indicator_type in indicator_types:
             price = indicator_prices.get(indicator_type, 'N/A')
@@ -433,38 +414,97 @@ class SelectStockView(tk.Frame):
                 
             try:
                 price_value = float(price)
-                closest_ratio = self.find_closest_ratio(price_value, ratio_prices['總波段'])
-                
-                if closest_ratio:
+                interval = self.find_price_interval(price_value, ratio_values)
+                if interval:
                     adjusted_ratio = Math.adjust_ratio_price(price_value)
-                    indicator_text = f"{indicator_type}:{price}({adjusted_ratio})\r\n"
+                    indicator_text = f"{indicator_type}:{price}({adjusted_ratio})\t"
                     
-                    # 如果該比例已有指標，則添加到現有文本後面
-                    if closest_ratio in indicator_displays:
-                        indicator_displays[closest_ratio] += f"{indicator_text}"
+                    if interval in indicator_displays:
+                        indicator_displays[interval] += f"{indicator_text}"
                     else:
-                        indicator_displays[closest_ratio] = indicator_text
+                        indicator_displays[interval] = indicator_text
                         
             except (ValueError, TypeError):
                 continue
 
-        # 顯示數據
-        for i, ratio in enumerate(ratio_prices['總波段'].keys()):
+        # 處理均線數據
+        ma_types = {
+            'daily': ('日均線', ['5', '10', '20', '60', '120']),
+            'weekly': ('週均線', ['5', '10', '20', '60', '120']),
+            'monthly': ('月均線', ['5', '10', '20', '60', '120'])
+        }
+
+        for ma_category, (ma_name, periods) in ma_types.items():
+            ma_values = organized_ma_data.get(ma_name, {})
+            for period in periods:
+                ma_value = ma_values.get(f"{period}MA", 'N/A')
+                if ma_value != 'N/A':
+                    try:
+                        ma_price = float(ma_value)
+                        interval = self.find_price_interval(ma_price, ratio_values)
+                        if interval:
+                            ma_text = f"{period}MA({ma_value})"
+                            if interval in ma_displays[ma_category]:
+                                ma_displays[ma_category][interval] += f"{ma_text}\t"
+                                
+                                print(f"1===> {ma_displays[ma_category][interval]}")
+                            else:
+                                ma_displays[ma_category][interval] = ma_text
+                                
+                                print(f"2===> {ma_displays[ma_category][interval]}")
+                    except (ValueError, TypeError):
+                        continue
+
+        # 顯示數據，包括空白行
+        ratio_list = sorted(ratio_values.keys(), key=lambda x: float(ratio_values[x]))
+        
+        # 首先插入最小比例價格前的空白行
+        min_interval_indicator = indicator_displays.get(('min', ratio_list[0]), '')
+        min_interval_daily = ma_displays['daily'].get(('min', ratio_list[0]), '')
+        min_interval_weekly = ma_displays['weekly'].get(('min', ratio_list[0]), '')
+        min_interval_monthly = ma_displays['monthly'].get(('min', ratio_list[0]), '')
+        
+        ratio_tree.insert('', 'end', values=('', 
+                                            '',
+                                            min_interval_indicator,
+                                            min_interval_daily,
+                                            min_interval_weekly,
+                                            min_interval_monthly),
+                         tags=('evenrow',))
+
+        # 插入所有比例價格行和中間的空白行
+        for i, ratio in enumerate(ratio_list):
             tags = ('oddrow',) if i % 2 else ('evenrow',)
             
-            # 獲取各類均線數據
-            daily_ma = ma_displays['daily'].get(ratio, '')
-            weekly_ma = ma_displays['weekly'].get(ratio, '')
-            monthly_ma = ma_displays['monthly'].get(ratio, '')
-            indicator_display = indicator_displays.get(ratio, '')
+            # 插入比例價格行
+            exact_match_indicator = indicator_displays.get((ratio, ratio), '')
+            exact_match_daily = ma_displays['daily'].get((ratio, ratio), '')
+            exact_match_weekly = ma_displays['weekly'].get((ratio, ratio), '')
+            exact_match_monthly = ma_displays['monthly'].get((ratio, ratio), '')
             
             ratio_tree.insert('', 'end', values=(ratio, 
                                                 ratio_prices['總波段'][ratio],
-                                                indicator_display,
-                                                daily_ma,
-                                                weekly_ma,
-                                                monthly_ma),
+                                                exact_match_indicator,
+                                                exact_match_daily,
+                                                exact_match_weekly,
+                                                exact_match_monthly),
                              tags=tags)
+
+            # 插入空白行（包括最後一個比例價格後的空白行）
+            if i < len(ratio_list):
+                interval = (ratio, ratio_list[i + 1]) if i < len(ratio_list) - 1 else (ratio, 'max')
+                interval_indicator = indicator_displays.get(interval, '')
+                interval_daily = ma_displays['daily'].get(interval, '')
+                interval_weekly = ma_displays['weekly'].get(interval, '')
+                interval_monthly = ma_displays['monthly'].get(interval, '')
+                
+                ratio_tree.insert('', 'end', values=('', 
+                                                    '',
+                                                    interval_indicator,
+                                                    interval_daily,
+                                                    interval_weekly,
+                                                    interval_monthly),
+                                 tags=tags)
 
         ratio_tree.pack(expand=True, fill='both')
 
@@ -575,5 +615,45 @@ class SelectStockView(tk.Frame):
                       key=lambda x: abs(ratio_values[x] - price_value))
                   
         except (ValueError, TypeError):
+            return None
+
+    def find_price_interval(self, price, ratio_values):
+        """
+        找出價格所在的區間或確切的比例
+        返回特殊值：
+        - ('min', first_ratio) 表示小於最小比例價格
+        - (last_ratio, 'max') 表示大於最大比例價格
+        - (ratio, ratio) 表示確切匹配
+        - (ratio1, ratio2) 表示在兩個比例價格之間
+        """
+        try:
+            # 將所有比例價格排序
+            ratios = sorted(ratio_values.keys(), key=lambda x: float(ratio_values[x]))
+            min_ratio = ratios[0]
+            max_ratio = ratios[-1]
+            
+            # 檢查是否小於最小比例價格
+            if price < float(ratio_values[min_ratio]):
+                return ('min', min_ratio)
+                
+            # 檢查是否大於最大比例價格
+            if price > float(ratio_values[max_ratio]):
+                return (max_ratio, 'max')
+
+            # 檢查是否與某個比例價格完全相等
+            for ratio, value in ratio_values.items():
+                if abs(price - float(value)) < 0.01:
+                    return (ratio, ratio)
+
+            # 找出價格所在的區間
+            for i in range(len(ratios) - 1):
+                ratio1, ratio2 = ratios[i], ratios[i + 1]
+                if float(ratio_values[ratio1]) < price < float(ratio_values[ratio2]):
+                    return (ratio1, ratio2)
+
+            return None
+        
+        except (ValueError, TypeError) as e:
+            print(f"Error in find_price_interval: {e}")
             return None
 
