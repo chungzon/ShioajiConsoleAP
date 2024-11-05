@@ -16,6 +16,9 @@ import os
 from tkinter import font as tkfont
 
 from common.Math import Math
+from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView, QFrame, QWidget, QVBoxLayout, QTabWidget
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont, QColor
 
 font_path = 'C:/Windows/Fonts/msjh.ttc'  # 微軟正黑體字體路徑
 zh_font = font_manager.FontProperties(fname=font_path)
@@ -157,7 +160,7 @@ class SelectStockView(tk.Frame):
         # 將 Treeview 放置在 LabelFrame 中
         self.tree.grid(row=0, column=0, sticky="nsew")
 
-        # 綁定雙擊事件
+        # 綁定事件
         self.tree.bind("<Double-1>", self.on_double_click)
         self.tree.bind("<Button-1>", self.on_click)
 
@@ -270,11 +273,11 @@ class SelectStockView(tk.Frame):
                 self.download_detail_data(stock_id, max_date)
             elif column == f"#{len(self.tree['columns'])}" and self.tree.item(item, "values")[17] == '詳細資料':  # 最後一列
                 stock_id = self.tree.item(item, "values")[0]  # 假設股票代碼是第一列
-                # 點擊詳細資料，顯示詳細資料，會彈跳出一個視窗以顯示詳細資料
+                # 點擊詳細資料，顯示詳細資料會彈跳出一個視窗顯示詳細資料
                 self.show_detail_data(stock_id)
 
     def show_copy_message(self, stock_code):
-        # 創建一個臨時標籤來顯示複製成功的消息
+        # 創建一個臨時標來顯示複製成功的消息
         msg = ttk.Label(self, text=f"已複製股票代碼: {stock_code}", foreground="green")
         msg.grid(row=3, column=0, columnspan=2, pady=5)
         
@@ -337,195 +340,226 @@ class SelectStockView(tk.Frame):
         self.controller.show_detail_data(stock_id)
         
 
-    def show_sma_data(self, stock_id, organized_ma_data, ratio_prices, additional_data, indicator_prices):
-        detail_window = tk.Toplevel(self)
-        detail_window.title(f"詳細資料 - {stock_id}")
-        detail_window.geometry("1000x750")  # 調整視窗大小以適應更多內容
-
-        notebook = ttk.Notebook(detail_window)
-        notebook.pack(expand=True, fill='both', padx=10, pady=10)
-
-        style = ttk.Style()
-        style.configure('.', font=('Microsoft JhengHei', 14))
-        style.configure('Treeview', font=('Microsoft JhengHei', 14))
-        style.configure('Treeview.Heading', font=('Microsoft JhengHei', 14))
-
-        # 均線數據選項卡
-        for ma_type, ma_values in organized_ma_data.items():
-            frame = ttk.Frame(notebook)
-            notebook.add(frame, text=ma_type)
-
-            tree = ttk.Treeview(frame, columns=('Period', 'Value'), show='headings', style="Treeview")
-            tree.heading('Period', text='週期')
-            tree.heading('Value', text='值')
-            tree.column('Period', width=120, anchor='center')
-            tree.column('Value', width=120, anchor='center')
-
-            for period, value in ma_values.items():
-                tree.insert('', 'end', values=(period, value))
-
-            tree.pack(expand=True, fill='both')
-
-        # 比例價格選項卡
-        ratio_frame = ttk.Frame(notebook)
-        notebook.add(ratio_frame, text="比例價格")
-
-        ratio_tree = ttk.Treeview(ratio_frame, 
-                                 columns=('Ratio', 'Total', 'Indicators', 'Daily', 'Weekly', 'Monthly'), 
-                                 show='headings', 
-                                 style="Treeview")
-        ratio_tree.heading('Ratio', text='比例')
-        ratio_tree.heading('Total', text='總波段')
-        ratio_tree.heading('Indicators', text='指標')
-        ratio_tree.heading('Daily', text='日均')
-        ratio_tree.heading('Weekly', text='周均')
-        ratio_tree.heading('Monthly', text='月均')
+    def create_ma_table(self, ma_data, ma_type):
+        # 创建通用的均价表格
+        table = QTableWidget()
+        table.setColumnCount(2)
+        table.setRowCount(5)
+        table.setHorizontalHeaderLabels(["週期", "價格"])
+                # 設置表頭樣式
+        header_font = QFont('Microsoft JhengHei', 12, QFont.Bold)
+        table.horizontalHeader().setFont(header_font)
         
-        ratio_tree.column('Ratio', width=80, anchor='center')
-        ratio_tree.column('Total', width=100, anchor='center')
-        ratio_tree.column('Indicators', width=200, anchor='center')
-        ratio_tree.column('Daily', width=150, anchor='center')
-        ratio_tree.column('Weekly', width=150, anchor='center')
-        ratio_tree.column('Monthly', width=150, anchor='center')
+        ma_periods = ['5MA', '10MA', '20MA', '60MA', '120MA']
+        for row, period in enumerate(ma_periods):
+            # 设置周期
+            period_item = QTableWidgetItem(period)
+            table.setItem(row, 0, period_item)
+            
+            # 设置价格
+            price = ma_data[ma_type].get(period, 'N/A')
+            if hasattr(price, 'item'):
+                price = f"{price.item():.2f}"
+            price_item = QTableWidgetItem(str(price))
+            table.setItem(row, 1, price_item)
+        
+        table.resizeColumnsToContents()
+        return table
 
-        ratio_tree.tag_configure('oddrow', background='#E8E8E8')
-        ratio_tree.tag_configure('evenrow', background='#FFFFFF')
+    def create_ratio_table(self, ratio_prices, indicator_prices, organized_ma_data):
+        table = QTableWidget()
+        table.setColumnCount(6)  # 6列
+        
+        # 设置固定的比例序列
+        ratios = ['0', '0.191', '0.382', '0.5', '0.618', '0.809', '1', 
+                 '1.191', '1.382', '1.5', '1.618', '1.809', '2',
+                 '2.191', '2.382', '2.5', '2.618', '2.809', '3',
+                 '3.191', '3.382', '3.5', '3.618', '3.809', '4']
+        
+        total_rows = len(ratios) * 2 - 1
+        table.setRowCount(total_rows)
+        table.setHorizontalHeaderLabels(["比例", "總波段", "指標", "日均價", "周均價", "月均價"])
+        
+        # 首先填充比例和总波段数据
+        for i, ratio in enumerate(ratios):
+            row = i * 2
+            
+            # 设置比例
+            ratio_item = QTableWidgetItem(ratio)
+            table.setItem(row, 0, ratio_item)
+            
+            # 设置总波段价格
+            price = ratio_prices['總波段'].get(ratio, 'N/A')
+            if hasattr(price, 'item'):
+                price = f"{price.item():.2f}"
+            price_item = QTableWidgetItem(str(price))
+            table.setItem(row, 1, price_item)
+            
+            # 添加空白行（最后一行不需要）
+            if i < len(ratios) - 1:
+                table.setItem(row + 1, 0, QTableWidgetItem(""))
+                table.setItem(row + 1, 1, QTableWidgetItem(""))
+        
+        # 将比例价格转换为数值列表，用于后续比较
+        ratio_values = {ratio: float(ratio_prices['總波段'].get(ratio, 'N/A')) 
+                       for ratio in ratios if ratio_prices['總波段'].get(ratio, 'N/A') != 'N/A'}
+        
+        # 辅助函数：添加数据到单元格
+        def add_to_cell(row, col, new_text):
+            current_item = table.item(row, col)
+            if current_item and current_item.text():
+                new_text = f"{current_item.text()}\n{new_text}"
+            table.setItem(row, col, QTableWidgetItem(new_text))
 
-        # 初始化顯示字典，使用元組(ratio, next_ratio)作為鍵來表示區間
-        indicator_displays = {}
-        ma_displays = {
-            'daily': {},
-            'weekly': {},
-            'monthly': {}
-        }
-
-        # 獲取所有比例價格並排序
-        ratio_list = sorted(ratio_prices['總波段'].keys(), 
-                           key=lambda x: float(ratio_prices['總波段'][x]))
-        ratio_values = {ratio: float(ratio_prices['總波段'][ratio]) 
-                       for ratio in ratio_list}
-
-        # 處理指標數據
-        indicator_types = ['AH', 'AL', 'CDP', 'NH', 'NL']
-        for indicator_type in indicator_types:
-            price = indicator_prices.get(indicator_type, 'N/A')
-            if price == 'N/A':
-                continue
-                
-            try:
-                price_value = float(price)
-                interval = self.find_price_interval(price_value, ratio_values)
-                if interval:
-                    adjusted_ratio = Math.adjust_ratio_price(price_value)
-                    indicator_text = f"{indicator_type}:{price}({adjusted_ratio})\t"
-                    
-                    if interval in indicator_displays:
-                        indicator_displays[interval] += f"{indicator_text}"
-                    else:
-                        indicator_displays[interval] = indicator_text
-                        
-            except (ValueError, TypeError):
-                continue
-
-        # 處理均線數據
+        # 处理均线数据
         ma_types = {
-            'daily': ('日均線', ['5', '10', '20', '60', '120']),
-            'weekly': ('週均線', ['5', '10', '20', '60', '120']),
-            'monthly': ('月均線', ['5', '10', '20', '60', '120'])
+            3: ('日均線', '日均價'),
+            4: ('週均線', '周均價'),
+            5: ('月均線', '月均價')
         }
-
-        for ma_category, (ma_name, periods) in ma_types.items():
-            ma_values = organized_ma_data.get(ma_name, {})
-            for period in periods:
-                ma_value = ma_values.get(f"{period}MA", 'N/A')
-                if ma_value != 'N/A':
-                    try:
-                        ma_price = float(ma_value)
-                        interval = self.find_price_interval(ma_price, ratio_values)
-                        if interval:
-                            ma_text = f"{period}MA({ma_value})"
-                            if interval in ma_displays[ma_category]:
-                                ma_displays[ma_category][interval] += f"{ma_text}\t"
-                                
-                                print(f"1===> {ma_displays[ma_category][interval]}")
-                            else:
-                                ma_displays[ma_category][interval] = ma_text
-                                
-                                print(f"2===> {ma_displays[ma_category][interval]}")
-                    except (ValueError, TypeError):
-                        continue
-
-        # 顯示數據，包括空白行
-        ratio_list = sorted(ratio_values.keys(), key=lambda x: float(ratio_values[x]))
         
-        # 首先插入最小比例價格前的空白行
-        min_interval_indicator = indicator_displays.get(('min', ratio_list[0]), '')
-        min_interval_daily = ma_displays['daily'].get(('min', ratio_list[0]), '')
-        min_interval_weekly = ma_displays['weekly'].get(('min', ratio_list[0]), '')
-        min_interval_monthly = ma_displays['monthly'].get(('min', ratio_list[0]), '')
-        
-        ratio_tree.insert('', 'end', values=('', 
-                                            '',
-                                            min_interval_indicator,
-                                            min_interval_daily,
-                                            min_interval_weekly,
-                                            min_interval_monthly),
-                         tags=('evenrow',))
-
-        # 插入所有比例價格行和中間的空白行
-        for i, ratio in enumerate(ratio_list):
-            tags = ('oddrow',) if i % 2 else ('evenrow',)
-            
-            # 插入比例價格行
-            exact_match_indicator = indicator_displays.get((ratio, ratio), '')
-            exact_match_daily = ma_displays['daily'].get((ratio, ratio), '')
-            exact_match_weekly = ma_displays['weekly'].get((ratio, ratio), '')
-            exact_match_monthly = ma_displays['monthly'].get((ratio, ratio), '')
-            
-            ratio_tree.insert('', 'end', values=(ratio, 
-                                                ratio_prices['總波段'][ratio],
-                                                exact_match_indicator,
-                                                exact_match_daily,
-                                                exact_match_weekly,
-                                                exact_match_monthly),
-                             tags=tags)
-
-            # 插入空白行（包括最後一個比例價格後的空白行）
-            if i < len(ratio_list):
-                interval = (ratio, ratio_list[i + 1]) if i < len(ratio_list) - 1 else (ratio, 'max')
-                interval_indicator = indicator_displays.get(interval, '')
-                interval_daily = ma_displays['daily'].get(interval, '')
-                interval_weekly = ma_displays['weekly'].get(interval, '')
-                interval_monthly = ma_displays['monthly'].get(interval, '')
+        for col, (ma_key, _) in ma_types.items():
+            ma_data = organized_ma_data[ma_key]
+            for ma_period in ['5MA', '10MA', '20MA', '60MA', '120MA']:
+                if ma_period not in ma_data or ma_data[ma_period] == 'N/A':
+                    continue
+                    
+                value = ma_data[ma_period]
+                if hasattr(value, 'item'):
+                    value = value.item()
                 
-                ratio_tree.insert('', 'end', values=('', 
-                                                    '',
-                                                    interval_indicator,
-                                                    interval_daily,
-                                                    interval_weekly,
-                                                    interval_monthly),
-                                 tags=tags)
+                # 找到最接近的位置
+                for i, ratio in enumerate(ratios[:-1]):
+                    current_price = ratio_values.get(ratio)
+                    next_price = ratio_values.get(ratios[i + 1])
+                    
+                    if current_price is None or next_price is None:
+                        continue
+                    
+                    row = i * 2
+                    ma_text = f"{ma_period}({value:.2f})"
+                    
+                    # 如果价格等于某个比例价格
+                    if abs(value - current_price) < 0.01:
+                        add_to_cell(row, col, ma_text)
+                        break
+                    # 如果价格在两个比例价格之间
+                    elif current_price < value < next_price or next_price < value < current_price:
+                        add_to_cell(row + 1, col, ma_text)
+                        break
+        
+        # 填充CDP指标
+        for indicator_name, value in indicator_prices.items():
+            if hasattr(value, 'item'):
+                value = value.item()
+            
+            # 找到最接近的比例价格位置
+            found_position = False
+            for i, ratio in enumerate(ratios[:-1]):
+                current_price = ratio_values.get(ratio)
+                next_price = ratio_values.get(ratios[i + 1])
+                
+                if current_price is None or next_price is None:
+                    continue
+                
+                row = i * 2
+                
+                # 如果指标价格等于某个比例价格
+                if abs(value - current_price) < 0.01:
+                    # 检查是否已有数据
+                    current_item = table.item(row, 2)
+                    new_text = f"{indicator_name}: {value:.2f}"
+                    if current_item and current_item.text():
+                        new_text = f"{current_item.text()}\n{new_text}"
+                    indicator_item = QTableWidgetItem(new_text)
+                    table.setItem(row, 2, indicator_item)
+                    found_position = True
+                    break
+                # 如果指标价格在两个比例价格之间
+                elif current_price < value < next_price or next_price < value < current_price:
+                    # 检查是否已有数据
+                    current_item = table.item(row + 1, 2)
+                    new_text = f"{indicator_name}: {value:.2f}"
+                    if current_item and current_item.text():
+                        new_text = f"{current_item.text()}\n{new_text}"
+                    indicator_item = QTableWidgetItem(new_text)
+                    table.setItem(row + 1, 2, indicator_item)
+                    found_position = True
+                    break
+        
+        # 调整每一行的高度
+        for row in range(table.rowCount()):
+            table.resizeRowToContents(row)
+            
+        table.resizeColumnsToContents()
+        return table
 
-        ratio_tree.pack(expand=True, fill='both')
+    def show_sma_data(self, stock_id, organized_ma_data, ratio_prices, additional_data, indicator_prices):
+        self.detail_window = QWidget()
+        self.detail_window.setWindowTitle(f"詳細資料 - {stock_id}")
+        self.detail_window.setGeometry(100, 100, 1000, 750)
 
-        # 額外數據選項卡
-        additional_frame = ttk.Frame(notebook)
-        notebook.add(additional_frame, text="其他數據")
+        # 创建分页控件
+        self.tab_widget = QTabWidget()
+        
+        # 创建各个分页
+        self.daily_tab = QWidget()
+        self.weekly_tab = QWidget()
+        self.monthly_tab = QWidget()
+        self.ratio_tab = QWidget()
+        
+        # 将分页添加到tab widget
+        self.tab_widget.addTab(self.daily_tab, "日均價")
+        self.tab_widget.addTab(self.weekly_tab, "周均價")
+        self.tab_widget.addTab(self.monthly_tab, "月均價")
+        self.tab_widget.addTab(self.ratio_tab, "比例價格")
+        
+        # 为每个分页创建表格
+        # 日均价表格
+        daily_layout = QVBoxLayout()
+        daily_table = self.create_ma_table(organized_ma_data, '日均線')
+        daily_layout.addWidget(daily_table)
+        self.daily_tab.setLayout(daily_layout)
 
-        additional_tree = ttk.Treeview(additional_frame, columns=('Item', 'Value'), show='headings', style="Treeview")
-        additional_tree.heading('Item', text='項目')
-        additional_tree.heading('Value', text='值')
-        additional_tree.column('Item', width=180, anchor='center')
-        additional_tree.column('Value', width=180, anchor='center')
+        # 周均价表格
+        weekly_layout = QVBoxLayout()
+        weekly_table = self.create_ma_table(organized_ma_data, '週均線')
+        weekly_layout.addWidget(weekly_table)
+        self.weekly_tab.setLayout(weekly_layout)
 
-        for item, value in additional_data.items():
-            additional_tree.insert('', 'end', values=(item, value))
+        # 月均价表格
+        monthly_layout = QVBoxLayout()
+        monthly_table = self.create_ma_table(organized_ma_data, '月均線')
+        monthly_layout.addWidget(monthly_table)
+        self.monthly_tab.setLayout(monthly_layout)
 
-        additional_tree.pack(expand=True, fill='both')
+        # 比例价格表格
+        ratio_layout = QVBoxLayout()
+        ratio_table = self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data)
+        ratio_layout.addWidget(ratio_table)
+        self.ratio_tab.setLayout(ratio_layout)
+        
+        # 设置主布局
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(self.tab_widget)
+        self.detail_window.setLayout(main_layout)
+        
+        self.detail_window.show()
 
-        # 添加一個關閉按鈕
-        close_button = ttk.Button(detail_window, text="關閉", command=detail_window.destroy)
-        close_button.pack(pady=10)
+    def insert_table_row(self, table, row, values):
+        """輔助函數：插入一行數據到表格中"""
+        for col, value in enumerate(values):
+            item = QTableWidgetItem(str(value))
+            item.setTextAlignment(Qt.AlignCenter)
+            
+            # 設置交替行背景色
+            if row % 2 == 0:
+                item.setBackground(QColor(240, 240, 240))
+                
+            # 設置為不可編輯
+            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+            
+            table.setItem(row, col, item)
 
     def toggle_all(self, ma_type):
         state = self.select_all_vars[ma_type].get()
@@ -657,3 +691,35 @@ class SelectStockView(tk.Frame):
             print(f"Error in find_price_interval: {e}")
             return None
 
+    def create_qt_table(self):
+        table = QTableWidget()
+        table.setColumnCount(6)
+            
+        # 設置表頭
+        headers = ['比例', '總波段', '指標', '日均', '周均', '月均']
+        table.setHorizontalHeaderLabels(headers)
+            
+        # 設置表頭樣式
+        header_font = QFont('Microsoft JhengHei', 12, QFont.Bold)
+        table.horizontalHeader().setFont(header_font)
+            
+        # 設置列寬
+        table.setColumnWidth(0, 80)   # 比例
+        table.setColumnWidth(1, 100)  # 總波段
+        table.setColumnWidth(2, 200)  # 指標
+        table.setColumnWidth(3, 150)  # 日均
+        table.setColumnWidth(4, 150)  # 周均
+        table.setColumnWidth(5, 150)  # 月均
+            
+        # 設置自動調整行高
+        table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+            
+        # 設置文字自動換行
+        table.setWordWrap(True)
+            
+        # 設置表格樣式
+        table.setFrameStyle(QFrame.Box | QFrame.Plain)
+        table.setShowGrid(True)
+        table.setFont(QFont('Microsoft JhengHei', 12))
+            
+        return table    

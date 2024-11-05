@@ -193,6 +193,7 @@ class SelectStockModel(BaseModel):
                         min_value_date = wave_extremes_df.loc[min_after_max_index, 'Min_Date']
 
                         # 計算 ratio_0.191、ratio_0.382、ratio_0.5、ratio_0.618、ratio_0.809、ratio_1
+                        ratio_0 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0)
                         ratio_0191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0.191)
                         ratio_0382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0.382)
                         ratio_0500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0.5)
@@ -242,6 +243,7 @@ class SelectStockModel(BaseModel):
                             'Min_Date': min_value_date,
                             'Max_Value': max_value_of_all_waves,
                             'Min_Value': min_value_after_max,
+                            'Ratio_0': ratio_0,
                             'Ratio_0.191': ratio_0191,
                             'Ratio_0.382': ratio_0382,
                             'Ratio_0.5': ratio_0500,
