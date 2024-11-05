@@ -404,7 +404,7 @@ class SelectStockView(tk.Frame):
         
         # 设置交替行颜色
         def set_row_color(table, row, is_alternate):
-            color = QColor("#F0F0F0") if is_alternate else QColor("#E6F3FF")  # 浅灰色 : 淺藍色
+            color = QColor("#FFFFFF") if is_alternate else QColor("#E6F3FF")  # 淺灰色 : 淺藍色
             for col in range(table.columnCount()):
                 item = table.item(row, col)
                 if item is None:
