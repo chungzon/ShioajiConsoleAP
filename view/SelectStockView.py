@@ -368,7 +368,7 @@ class SelectStockView(tk.Frame):
 
     def create_ratio_table(self, ratio_prices, indicator_prices, organized_ma_data):
         table = QTableWidget()
-        table.setColumnCount(6)  # 6列
+        table.setColumnCount(4)
         
         # 设置固定的比例序列
         ratios = ['0', '0.191', '0.382', '0.5', '0.618', '0.809', '1', 
@@ -376,13 +376,21 @@ class SelectStockView(tk.Frame):
                  '2.191', '2.382', '2.5', '2.618', '2.809', '3',
                  '3.191', '3.382', '3.5', '3.618', '3.809', '4']
         
-        total_rows = len(ratios) * 2 - 1
+        # 计算总行数（包括前后和中间的空白行）
+        total_rows = (len(ratios) * 2 - 1) + 2  # 加2是为了前后的空白行
         table.setRowCount(total_rows)
-        table.setHorizontalHeaderLabels(["比例", "總波段", "指標", "日均價", "周均價", "月均價"])
+        table.setHorizontalHeaderLabels(["比例", "總波段", "指標", "均價"])
         
-        # 首先填充比例和总波段数据
+        # 辅助函数：添加数据到单元格
+        def add_to_cell(row, col, new_text):
+            current_item = table.item(row, col)
+            if current_item and current_item.text():
+                new_text = f"{current_item.text()}\n{new_text}"
+            table.setItem(row, col, QTableWidgetItem(new_text))
+        
+        # 填充比例和总波段数据（向下偏移一行）
         for i, ratio in enumerate(ratios):
-            row = i * 2
+            row = (i * 2) + 1  # 偏移一行
             
             # 设置比例
             ratio_item = QTableWidgetItem(ratio)
@@ -395,30 +403,46 @@ class SelectStockView(tk.Frame):
             price_item = QTableWidgetItem(str(price))
             table.setItem(row, 1, price_item)
             
-            # 添加空白行（最后一行不需要）
+            # 添加中间的空白行
             if i < len(ratios) - 1:
                 table.setItem(row + 1, 0, QTableWidgetItem(""))
                 table.setItem(row + 1, 1, QTableWidgetItem(""))
         
-        # 将比例价格转换为数值列表，用于后续比较
-        ratio_values = {ratio: float(ratio_prices['總波段'].get(ratio, 'N/A')) 
-                       for ratio in ratios if ratio_prices['總波段'].get(ratio, 'N/A') != 'N/A'}
-        
-        # 辅助函数：添加数据到单元格
-        def add_to_cell(row, col, new_text):
-            current_item = table.item(row, col)
-            if current_item and current_item.text():
-                new_text = f"{current_item.text()}\n{new_text}"
-            table.setItem(row, col, QTableWidgetItem(new_text))
+        # 辅助函数：确定值应该填入哪一行
+        def find_row_for_value(value):
+            min_price = float(ratio_prices['總波段']['0'])
+            max_price = float(ratio_prices['總波段']['4'])
+            
+            # 如果价格小于最小比例价格
+            if value < min_price:
+                return 0  # 第一个空白行
+            
+            # 如果价格大于最大比例价格
+            if value > max_price:
+                return total_rows - 1  # 最后一个空白行
+            
+            # 在比例价格之间查找位置
+            for i, ratio in enumerate(ratios[:-1]):
+                current_price = float(ratio_prices['總波段'][ratio])
+                next_price = float(ratio_prices['總波段'][ratios[i + 1]])
+                
+                row = (i * 2) + 1  # 考虑偏移
+                
+                if abs(value - current_price) < 0.01:
+                    return row
+                elif current_price < value < next_price or next_price < value < current_price:
+                    return row + 1
+            
+            return total_rows - 1  # 如果没找到合适的位置，放在最后
 
         # 处理均线数据
         ma_types = {
-            3: ('日均線', '日均價'),
-            4: ('週均線', '周均價'),
-            5: ('月均線', '月均價')
+            '日均線': '日',
+            '週均線': '周',
+            '月均線': '月'
         }
         
-        for col, (ma_key, _) in ma_types.items():
+        for ma_key, prefix in ma_types.items():
             ma_data = organized_ma_data[ma_key]
             for ma_period in ['5MA', '10MA', '20MA', '60MA', '120MA']:
                 if ma_period not in ma_data or ma_data[ma_period] == 'N/A':
@@ -428,70 +452,28 @@ class SelectStockView(tk.Frame):
                 if hasattr(value, 'item'):
                     value = value.item()
                 
-                # 找到最接近的位置
-                for i, ratio in enumerate(ratios[:-1]):
-                    current_price = ratio_values.get(ratio)
-                    next_price = ratio_values.get(ratios[i + 1])
-                    
-                    if current_price is None or next_price is None:
-                        continue
-                    
-                    row = i * 2
-                    ma_text = f"{ma_period}({value:.2f})"
-                    
-                    # 如果价格等于某个比例价格
-                    if abs(value - current_price) < 0.01:
-                        add_to_cell(row, col, ma_text)
-                        break
-                    # 如果价格在两个比例价格之间
-                    elif current_price < value < next_price or next_price < value < current_price:
-                        add_to_cell(row + 1, col, ma_text)
-                        break
+                period_num = ma_period.replace('MA', '')
+                ma_text = f"{prefix}({period_num}):{value:.2f}"
+                
+                # 找到应该填入的行
+                row = find_row_for_value(value)
+                add_to_cell(row, 3, ma_text)
         
-        # 填充CDP指标
+        # 处理指标数据
         for indicator_name, value in indicator_prices.items():
             if hasattr(value, 'item'):
                 value = value.item()
             
-            # 找到最接近的比例价格位置
-            found_position = False
-            for i, ratio in enumerate(ratios[:-1]):
-                current_price = ratio_values.get(ratio)
-                next_price = ratio_values.get(ratios[i + 1])
-                
-                if current_price is None or next_price is None:
-                    continue
-                
-                row = i * 2
-                
-                # 如果指标价格等于某个比例价格
-                if abs(value - current_price) < 0.01:
-                    # 检查是否已有数据
-                    current_item = table.item(row, 2)
-                    new_text = f"{indicator_name}: {value:.2f}"
-                    if current_item and current_item.text():
-                        new_text = f"{current_item.text()}\n{new_text}"
-                    indicator_item = QTableWidgetItem(new_text)
-                    table.setItem(row, 2, indicator_item)
-                    found_position = True
-                    break
-                # 如果指标价格在两个比例价格之间
-                elif current_price < value < next_price or next_price < value < current_price:
-                    # 检查是否已有数据
-                    current_item = table.item(row + 1, 2)
-                    new_text = f"{indicator_name}: {value:.2f}"
-                    if current_item and current_item.text():
-                        new_text = f"{current_item.text()}\n{new_text}"
-                    indicator_item = QTableWidgetItem(new_text)
-                    table.setItem(row + 1, 2, indicator_item)
-                    found_position = True
-                    break
+            # 找到应该填入的行
+            row = find_row_for_value(value)
+            indicator_text = f"{indicator_name}: {value:.2f}"
+            add_to_cell(row, 2, indicator_text)
         
-        # 调整每一行的高度
+        # 调整行高和列宽
         for row in range(table.rowCount()):
             table.resizeRowToContents(row)
-            
         table.resizeColumnsToContents()
+        
         return table
 
     def show_sma_data(self, stock_id, organized_ma_data, ratio_prices, additional_data, indicator_prices):
