@@ -18,7 +18,8 @@ from tkinter import font as tkfont
 from common.Math import Math
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView, QFrame, QWidget, QVBoxLayout, QTabWidget
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QColor
+from PyQt5.QtGui import QFont, QColor, QBrush
+from PyQt5.QtCore import Qt
 
 font_path = 'C:/Windows/Fonts/msjh.ttc'  # 微軟正黑體字體路徑
 zh_font = font_manager.FontProperties(fname=font_path)
@@ -381,19 +382,58 @@ class SelectStockView(tk.Frame):
         table.setRowCount(total_rows)
         table.setHorizontalHeaderLabels(["比例", "總波段", "指標", "均價"])
         
-        # 辅助函数：添加数据到单元格
+        # 辅助函数：添加数据到单元格并保持背景色
         def add_to_cell(row, col, new_text):
             current_item = table.item(row, col)
-            if current_item and current_item.text():
-                new_text = f"{current_item.text()}\n{new_text}"
-            table.setItem(row, col, QTableWidgetItem(new_text))
+            current_bg = current_item.background() if current_item else None
+            current_text = current_item.text() if current_item else ""
+            
+            if current_text:
+                new_text = f"{current_text}\n{new_text}"
+            
+            new_item = QTableWidgetItem(new_text)
+            if current_bg:
+                new_item.setBackground(current_bg)
+            else:
+                # 设置默认背景色
+                is_alternate = (row % 2) == 0
+                color = QColor("#F0F0F0") if is_alternate else QColor("#E6F3FF")
+                new_item.setBackground(QBrush(color))
+            
+            table.setItem(row, col, new_item)
+        
+        # 设置交替行颜色
+        def set_row_color(table, row, is_alternate):
+            color = QColor("#F0F0F0") if is_alternate else QColor("#E6F3FF")  # 浅灰色 : 淺藍色
+            for col in range(table.columnCount()):
+                item = table.item(row, col)
+                if item is None:
+                    item = QTableWidgetItem()
+                item.setBackground(QBrush(color))
+                table.setItem(row, col, item)
+        
+        # 首先创建所有单元格并设置颜色
+        for row in range(total_rows):
+            # 第一行和最后一行是浅灰色
+            if row == 0 or row == total_rows - 1:
+                set_row_color(table, row, True)
+            # 其他行交替设置颜色
+            else:
+                is_alternate = (row % 2) == 0  # 偶数行使用浅灰色
+                set_row_color(table, row, is_alternate)
         
         # 填充比例和总波段数据（向下偏移一行）
         for i, ratio in enumerate(ratios):
             row = (i * 2) + 1  # 偏移一行
             
+            # 设置比例行的颜色（奇数行）
+            set_row_color(table, row, False)
+            
             # 设置比例
             ratio_item = QTableWidgetItem(ratio)
+            is_alternate = (row % 2) == 0
+            color = QColor("#F0F0F0") if is_alternate else QColor("#E6F3FF")
+            ratio_item.setBackground(QBrush(color))
             table.setItem(row, 0, ratio_item)
             
             # 设置总波段价格
@@ -401,12 +441,19 @@ class SelectStockView(tk.Frame):
             if hasattr(price, 'item'):
                 price = f"{price.item():.2f}"
             price_item = QTableWidgetItem(str(price))
+            price_item.setBackground(QBrush(color))
             table.setItem(row, 1, price_item)
             
-            # 添加中间的空白行
+            # 添加空白行并设置颜色（偶数行）
             if i < len(ratios) - 1:
-                table.setItem(row + 1, 0, QTableWidgetItem(""))
-                table.setItem(row + 1, 1, QTableWidgetItem(""))
+                row_between = row + 1
+                set_row_color(table, row_between, True)
+                for col in range(table.columnCount()):
+                    table.setItem(row_between, col, QTableWidgetItem(""))
+        
+        # 设置第一行（0之前的空白行）和最后一行的颜色
+        set_row_color(table, 0, True)  # 第一个空白行
+        set_row_color(table, total_rows - 1, True)  # 最后一个空白行
         
         # 辅助函数：确定值应该填入哪一行
         def find_row_for_value(value):
