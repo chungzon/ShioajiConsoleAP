@@ -234,6 +234,9 @@ class SelectStockModel(BaseModel):
                         AH = highest_segment['AH']
                         AL = highest_segment['AL']
 
+                        latest_close_prices = recent_segment['latest_close_prices']
+                        latest_dates = recent_segment['latest_dates']
+
                         segment = {
                             'stock_id': stock_id,
                             'name': '',
@@ -277,7 +280,9 @@ class SelectStockModel(BaseModel):
                             'NH': NH,
                             'NL': NL,
                             'AH': AH,
-                            'AL': AL
+                            'AL': AL,
+                            'latest_close_prices': latest_close_prices,
+                            'latest_dates': latest_dates
                         }
 
                         isRecent = False

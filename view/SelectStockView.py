@@ -16,7 +16,7 @@ import os
 from tkinter import font as tkfont
 
 from common.Math import Math
-from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView, QFrame, QWidget, QVBoxLayout, QTabWidget
+from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView, QFrame, QWidget, QVBoxLayout, QTabWidget, QGridLayout, QLabel
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QColor, QBrush
 from PyQt5.QtCore import Qt
@@ -104,13 +104,13 @@ class SelectStockView(tk.Frame):
 
         self.ma_selections = {
             'daily': {5: tk.BooleanVar(value=False), 10: tk.BooleanVar(value=False), 
-                      20: tk.BooleanVar(value=False), 60: tk.BooleanVar(value=False), 
+                      20: tk.BooleanVar(value=False), 60: tk.BooleanVar(value=True), 
                       120: tk.BooleanVar(value=False)},
             'weekly': {5: tk.BooleanVar(value=False), 10: tk.BooleanVar(value=False), 
-                       20: tk.BooleanVar(value=False), 60: tk.BooleanVar(value=False), 
+                       20: tk.BooleanVar(value=False), 60: tk.BooleanVar(value=True), 
                        120: tk.BooleanVar(value=False)},
             'monthly': {5: tk.BooleanVar(value=False), 10: tk.BooleanVar(value=False), 
-                        20: tk.BooleanVar(value=False), 60: tk.BooleanVar(value=False), 
+                        20: tk.BooleanVar(value=False), 60: tk.BooleanVar(value=True), 
                         120: tk.BooleanVar(value=False)}
         }
         self.select_all_vars = {
@@ -464,7 +464,7 @@ class SelectStockView(tk.Frame):
             if value < min_price:
                 return 0  # 第一个空白行
             
-            # 如果价格大于最大比例价格
+            # 如果价格大于最大比例价���
             if value > max_price:
                 return total_rows - 1  # 最后一个空白行
             
@@ -538,30 +538,105 @@ class SelectStockView(tk.Frame):
         self.ratio_tab = QWidget()
         
         # 将分页添加到tab widget
-        self.tab_widget.addTab(self.daily_tab, "日均價")
-        self.tab_widget.addTab(self.weekly_tab, "周均價")
-        self.tab_widget.addTab(self.monthly_tab, "月均價")
+        self.tab_widget.addTab(self.daily_tab, "均價")
         self.tab_widget.addTab(self.ratio_tab, "比例價格")
         
-        # 为每个分页创建表格
-        # 日均价表格
-        daily_layout = QVBoxLayout()
+        # 在日均价分页中创建网格布局
+        daily_layout = QGridLayout()
+        
+        # 创建标签和表格的辅助函数
+        def create_labeled_table(title, table):
+            container = QWidget()
+            layout = QVBoxLayout(container)
+            
+            # 创建标签
+            label = QLabel(title)
+            font = QFont()
+            font.setPointSize(13)
+            font.setBold(True)
+            label.setFont(font)
+            
+            # 添加标签和表格到垂直布局
+            layout.addWidget(label)
+            layout.addWidget(table)
+            layout.setSpacing(5)  # 设置标签和表格之间的间距
+            layout.setContentsMargins(0, 0, 0, 0)  # 设置边距
+            
+            return container
+        
+        # 创建最近收盘价的表格（左上）
+        recent_price_table = QTableWidget()
+        recent_price_table.setColumnCount(2)
+        recent_price_table.setRowCount(5)
+        recent_price_table.setHorizontalHeaderLabels(["日期", "收盤價"])
+        
+        # 设置字体
+        font = QFont()
+        font.setPointSize(13)
+        recent_price_table.setFont(font)
+        recent_price_table.horizontalHeader().setFont(font)
+        
+        # 获取并填充最近5筆收盤價
+        recent_prices = additional_data.get('latest_close_prices', [])[:5]
+        recent_dates = additional_data.get('latest_dates', [])[:5]
+        
+        for i, (date, price) in enumerate(zip(recent_dates, recent_prices)):
+            # 设置日期
+            date_item = QTableWidgetItem(str(date))
+            date_item.setFont(font)
+            recent_price_table.setItem(i, 0, date_item)
+            
+            # 设置价格
+            if hasattr(price, 'item'):
+                price = f"{price.item():.2f}"
+            price_item = QTableWidgetItem(str(price))
+            price_item.setFont(font)
+            recent_price_table.setItem(i, 1, price_item)
+        
+        recent_price_table.resizeColumnsToContents()
+        recent_price_table.resizeRowsToContents()
+        
+        # 创建三个均线表格
         daily_table = self.create_ma_table(organized_ma_data, '日均線')
-        daily_layout.addWidget(daily_table)
-        self.daily_tab.setLayout(daily_layout)
-
-        # 周均价表格
-        weekly_layout = QVBoxLayout()
         weekly_table = self.create_ma_table(organized_ma_data, '週均線')
-        weekly_layout.addWidget(weekly_table)
-        self.weekly_tab.setLayout(weekly_layout)
-
-        # 月均价表格
-        monthly_layout = QVBoxLayout()
         monthly_table = self.create_ma_table(organized_ma_data, '月均線')
-        monthly_layout.addWidget(monthly_table)
-        self.monthly_tab.setLayout(monthly_layout)
 
+        daily_table.setFont(font)
+        daily_table.horizontalHeader().setFont(font)
+        weekly_table.setFont(font)
+        weekly_table.horizontalHeader().setFont(font)
+        monthly_table.setFont(font)
+        monthly_table.horizontalHeader().setFont(font)
+
+        daily_table.resizeColumnsToContents()
+        daily_table.resizeRowsToContents()
+        weekly_table.resizeColumnsToContents()
+        weekly_table.resizeRowsToContents()
+        monthly_table.resizeColumnsToContents()
+        monthly_table.resizeRowsToContents()
+        
+        # 创建带标签的表格容器
+        recent_container = create_labeled_table("近五日價格", recent_price_table)
+        daily_container = create_labeled_table("日均價", daily_table)
+        weekly_container = create_labeled_table("周均價", weekly_table)
+        monthly_container = create_labeled_table("月均價", monthly_table)
+        
+        # 将带标签的容器添加到网格布局中
+        daily_layout.addWidget(recent_container, 0, 0)  # 左上
+        daily_layout.addWidget(daily_container, 0, 1)   # 右上
+        daily_layout.addWidget(weekly_container, 1, 0)  # 左下
+        daily_layout.addWidget(monthly_container, 1, 1) # 右下
+        
+        # 设置列和行的拉伸因子
+        daily_layout.setColumnStretch(0, 1)
+        daily_layout.setColumnStretch(1, 1)
+        daily_layout.setRowStretch(0, 1)
+        daily_layout.setRowStretch(1, 1)
+        
+        # 设置布局
+        self.daily_tab.setLayout(daily_layout)
+        
+        
         # 比例价格表格
         ratio_layout = QVBoxLayout()
         ratio_table = self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data)

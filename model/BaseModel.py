@@ -191,10 +191,10 @@ class BaseModel:
         ratios = [0, 0.191, 0.382, 0.5, 0.618, 0.809, 1, 1.191, 1.382, 1.5, 1.618, 1.809, 2, 2.191, 2.382, 2.5, 2.618, 2.809, 3, 
                   3.191, 3.382, 3.5, 3.618, 3.809, 4]
         ratio_columns = [f'Ratio_{ratio}' for ratio in ratios]
-        append_columns =[f'spread_ratio', f'latest_close_price', f'latest_close_price-0.191_ratio']
+        append_columns =[f'spread_ratio', f'latest_close_price', f'latest_close_price-0.191_ratio', f'latest_close_prices', f'latest_dates']
         cdp_columns = [f'CDP', 'NH', 'NL', 'AH', 'AL']
 
-        sma_values, weekly_sma_values, monthly_sma_values = self.calculate_sma(stock_id)
+        sma_values, weekly_sma_values, monthly_sma_values, latest_close_prices, latest_dates = self.calculate_sma(stock_id)
         # sma_values, weekly_sma_values, monthly_sma_values = Math.calculate_sma(df['close_price'])
 
         periods = [5, 10, 20, 60, 120]
@@ -245,6 +245,9 @@ class BaseModel:
                 segment.append((max_value - segment[4]) / segment[4])   # (Head - ratio_0.618) / ratio_0.618
                 segment.append(latest_close_price)  # 現價
                 segment.append((latest_close_price - segment[4]) / latest_close_price)   # (現價 - ratio_0.618) / 現價
+
+                segment.append(latest_close_prices)
+                segment.append(latest_dates)
                 
                 for value in sma_values:
                     segment.append(value)
@@ -799,6 +802,9 @@ class BaseModel:
 
     def calculate_sma(self, stock_id):
         daily_close_prices = self.get_daily_close_prices_from_db(stock_id, 30*120)
+        # 获取最近5个收盘价和日期
+        latest_close_prices = daily_close_prices.values[-5:].tolist()
+        latest_dates = daily_close_prices.index[-5:].strftime('%Y-%m-%d').tolist()
         sma_values, weekly_sma_values, monthly_sma_values = Math.calculate_sma(daily_close_prices)
-        return sma_values, weekly_sma_values, monthly_sma_values
+        return sma_values, weekly_sma_values, monthly_sma_values, latest_close_prices, latest_dates
         

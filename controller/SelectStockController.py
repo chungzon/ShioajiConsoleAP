@@ -114,7 +114,9 @@ class SelectStockController:
             '最低價': total_segment.get('Min_Value', 'N/A'),
             '最新收盤價': total_segment.get('latest_close_price', 'N/A'),
             '價差比例': total_segment.get('spread_ratio', 'N/A'),
-            '最新收盤價-0.191比例': total_segment.get('latest_close_price-0.191_ratio', 'N/A')
+            '最新收盤價-0.191比例': total_segment.get('latest_close_price-0.191_ratio', 'N/A'),
+            'latest_close_prices': total_segment.get('latest_close_prices', 'N/A'),
+            'latest_dates': total_segment.get('latest_dates', 'N/A')
         }
 
         # 從 total_segment 獲取所有指標價格
