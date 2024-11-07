@@ -158,7 +158,7 @@ class SelectStockView(tk.Frame):
         self.tree.heading("下載", text="下載")
         self.tree.column("下載", width=60, anchor="center")  # 設置下載列的寬度和對齊方式
 
-        # 將 Treeview 放置在 LabelFrame 中
+        # 將 Treeview 放置在 LabelFrame ��
         self.tree.grid(row=0, column=0, sticky="nsew")
 
         # 綁定事件
@@ -388,37 +388,64 @@ class SelectStockView(tk.Frame):
         table.horizontalHeader().setFont(font)
         
         # 辅助函数：添加数据到单元格并按价格排序
-        def add_to_cell(row, col, new_text):
+        def add_to_cell(row, col, new_text, is_daily_ma=False):
             current_item = table.item(row, col)
             current_text = current_item.text() if current_item else ""
             
-            # 收集所有价格项
+            # 收集所有价格项及其属性（是否为日均价）
             all_items = []
             if current_text:
-                all_items.extend(current_text.split('\n'))
+                lines = current_text.split('\n')
+                for line in lines:
+                    is_daily = line.startswith('日')
+                    all_items.append((line, is_daily))
             if new_text:
-                all_items.append(new_text)
+                all_items.append((new_text, is_daily_ma))
             
             # 提取价格进行排序
-            def extract_price(text):
+            def extract_price(item_tuple):
+                text = item_tuple[0]
                 try:
-                    # 提取格式为 "xxx:123.45" 或 "xxx(5):123.45" 的价格
-                    price = float(text.split(':')[-1].split('(')[0])
-                    return price
+                    # 提取价格，支持多种格式
+                    if '：' in text:
+                        price = float(text.split('：')[-1].split('(')[0])
+                    elif ':' in text:
+                        price = float(text.split(':')[-1].split('(')[0])
+                    else:
+                        price = float(text.split()[-1])
+                    return -price  # 负数用于从大到小排序
                 except:
-                    return float('inf')  # 无法提取价格的项放到最后
+                    return float('-inf')  # 无法提取价格的项放到最后
             
-            # 按价格排序
+            # 按价格从大到小排序
             all_items.sort(key=extract_price)
             
-            # 创建新的项
-            new_item = QTableWidgetItem('\n'.join(all_items))
+            # 创建最终的表格项
+            text_lines = []
+            for text, is_daily in all_items:
+                # 为每一行创建新的表格项
+                item = QTableWidgetItem(text)
+                if is_daily:
+                    item.setForeground(QBrush(QColor("red")))
+                else:
+                    item.setForeground(QBrush(QColor("black")))
+                text_lines.append(item)
+            
+            # 合并所有文本
+            final_text = '\n'.join(item.text() for item in text_lines)
+            new_item = QTableWidgetItem(final_text)
+            
+            # 设置背景色
             if current_item:
                 new_item.setBackground(current_item.background())
             else:
                 is_alternate = (row % 2) == 0
                 color = QColor("#F0F0F0") if is_alternate else QColor("#E6F3FF")
                 new_item.setBackground(QBrush(color))
+            
+            # 设置文本颜色
+            if is_daily_ma:
+                new_item.setForeground(QBrush(QColor("red")))
             
             table.setItem(row, col, new_item)
         
