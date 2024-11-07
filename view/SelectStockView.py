@@ -158,7 +158,7 @@ class SelectStockView(tk.Frame):
         self.tree.heading("下載", text="下載")
         self.tree.column("下載", width=60, anchor="center")  # 設置下載列的寬度和對齊方式
 
-        # 將 Treeview 放置在 LabelFrame ��
+        # 將 Treeview 放置在 LabelFrame 
         self.tree.grid(row=0, column=0, sticky="nsew")
 
         # 綁定事件
@@ -413,11 +413,11 @@ class SelectStockView(tk.Frame):
                         price = float(text.split(':')[-1].split('(')[0])
                     else:
                         price = float(text.split()[-1])
-                    return -price  # 负数用于从大到小排序
+                    return price  # 直接返回价格，实现从小到大排序
                 except:
-                    return float('-inf')  # 无法提取价格的项放到最后
+                    return float('inf')  # 无法提取价格的项放到最后
             
-            # 按价格从大到小排序
+            # 按价格从小到大排序
             all_items.sort(key=extract_price)
             
             # 创建最终的表格项
