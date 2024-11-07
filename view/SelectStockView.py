@@ -369,7 +369,7 @@ class SelectStockView(tk.Frame):
 
     def create_ratio_table(self, ratio_prices, indicator_prices, organized_ma_data):
         table = QTableWidget()
-        table.setColumnCount(4)
+        table.setColumnCount(3)  # 改为3列：比例、總波段、指標
         
         # 设置固定的比例序列
         ratios = ['0', '0.191', '0.382', '0.5', '0.618', '0.809', '1', 
@@ -380,22 +380,37 @@ class SelectStockView(tk.Frame):
         # 计算总行数（包括前后和中间的空白行）
         total_rows = (len(ratios) * 2 - 1) + 2  # 加2是为了前后的空白行
         table.setRowCount(total_rows)
-        table.setHorizontalHeaderLabels(["比例", "總波段", "指標", "均價"])
+        table.setHorizontalHeaderLabels(["比例", "總波段", "指標"])
         
-        # 辅助函数：添加数据到单元格并保持背景色
+        # 辅助函数：添加数据到单元格并按价格排序
         def add_to_cell(row, col, new_text):
             current_item = table.item(row, col)
-            current_bg = current_item.background() if current_item else None
             current_text = current_item.text() if current_item else ""
             
+            # 收集所有价格项
+            all_items = []
             if current_text:
-                new_text = f"{current_text}\n{new_text}"
+                all_items.extend(current_text.split('\n'))
+            if new_text:
+                all_items.append(new_text)
             
-            new_item = QTableWidgetItem(new_text)
-            if current_bg:
-                new_item.setBackground(current_bg)
+            # 提取价格进行排序
+            def extract_price(text):
+                try:
+                    # 提取格式为 "xxx:123.45" 或 "xxx(5):123.45" 的价格
+                    price = float(text.split(':')[-1].split('(')[0])
+                    return price
+                except:
+                    return float('inf')  # 无法提取价格的项放到最后
+            
+            # 按价格排序
+            all_items.sort(key=extract_price)
+            
+            # 创建新的项
+            new_item = QTableWidgetItem('\n'.join(all_items))
+            if current_item:
+                new_item.setBackground(current_item.background())
             else:
-                # 设置默认背景色
                 is_alternate = (row % 2) == 0
                 color = QColor("#F0F0F0") if is_alternate else QColor("#E6F3FF")
                 new_item.setBackground(QBrush(color))
@@ -464,7 +479,7 @@ class SelectStockView(tk.Frame):
             if value < min_price:
                 return 0  # 第一个空白行
             
-            # 如果价格大于最大比例价���
+            # 如果价格大于最大比例价
             if value > max_price:
                 return total_rows - 1  # 最后一个空白行
             
@@ -482,7 +497,7 @@ class SelectStockView(tk.Frame):
             
             return total_rows - 1  # 如果没找到合适的位置，放在最后
 
-        # 处理均线数据
+        # 处理均线数据 - 现在添加到指标列
         ma_types = {
             '日均線': '日',
             '週均線': '周',
@@ -504,7 +519,7 @@ class SelectStockView(tk.Frame):
                 
                 # 找到应该填入的行
                 row = find_row_for_value(value)
-                add_to_cell(row, 3, ma_text)
+                add_to_cell(row, 2, ma_text)  # 现在添加到指标列(列索引2)
         
         # 处理指标数据
         for indicator_name, value in indicator_prices.items():
@@ -514,7 +529,7 @@ class SelectStockView(tk.Frame):
             # 找到应该填入的行
             row = find_row_for_value(value)
             indicator_text = f"{indicator_name}: {value:.2f}"
-            add_to_cell(row, 2, indicator_text)
+            add_to_cell(row, 2, indicator_text)  # 添加到指标列
         
         # 调整行高和列宽
         for row in range(table.rowCount()):
