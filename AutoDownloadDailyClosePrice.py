@@ -210,7 +210,7 @@ class AutoDownloadDailyClosePrice:
         self.logger.info("開始從 TWSE 下載每日收盤價數據")
         data = self.download_data_from_twse()
         if data:
-            if self.insert_data_to_database(data):
+            if self.insert_data_to_database(data, is_twse=True):
                 self.logger.info(f"成功更新TWSE最後下載日期為 {today}")
                 success = True
             else:
@@ -223,7 +223,7 @@ class AutoDownloadDailyClosePrice:
 
         data = self.download_tpex_data()
         if data:
-            if self.insert_data_to_database(data):
+            if self.insert_data_to_database(data, is_twse=False):
                 self.logger.info(f"成功更新TPEx最後下載日期為 {today}")
                 success = True
             else:
