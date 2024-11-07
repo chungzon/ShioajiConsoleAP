@@ -381,6 +381,11 @@ class SelectStockView(tk.Frame):
         total_rows = (len(ratios) * 2 - 1) + 2  # 加2是为了前后的空白行
         table.setRowCount(total_rows)
         table.setHorizontalHeaderLabels(["比例", "總波段", "指標"])
+
+        font = QFont()
+        font.setPointSize(13)
+        table.setFont(font)
+        table.horizontalHeader().setFont(font)
         
         # 辅助函数：添加数据到单元格并按价格排序
         def add_to_cell(row, col, new_text):
@@ -515,7 +520,7 @@ class SelectStockView(tk.Frame):
                     value = value.item()
                 
                 period_num = ma_period.replace('MA', '')
-                ma_text = f"{prefix}({period_num}):{value:.2f}"
+                ma_text = f"{prefix}({period_num})：{value:.2f}"
                 
                 # 找到应该填入的行
                 row = find_row_for_value(value)
@@ -528,7 +533,7 @@ class SelectStockView(tk.Frame):
             
             # 找到应该填入的行
             row = find_row_for_value(value)
-            indicator_text = f"{indicator_name}: {value:.2f}"
+            indicator_text = f"{indicator_name}：{value:.2f}"
             add_to_cell(row, 2, indicator_text)  # 添加到指标列
         
         # 调整行高和列宽
