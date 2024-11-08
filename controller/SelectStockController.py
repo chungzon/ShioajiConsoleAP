@@ -20,7 +20,7 @@ class SelectStockController:
     def download_detail_data(self, stock_id, start_date, end_date, file_path):
         self.model.analyze_data(stock_id, start_date, end_date, file_path)
 
-    def show_detail_data(self, stock_id):
+    def show_detail_data(self, stock_id, stock_name):
         recent_segment, total_segment = self.model.get_stock_data_from_all_wave_extremes(stock_id)
         if total_segment is None:
             print(f"沒有找到股票 {stock_id} 的數據")
@@ -128,5 +128,5 @@ class SelectStockController:
             'AL': total_segment.get('AL', 'N/A')
         }
 
-        self.view.show_sma_data(stock_id, organized_ma_data, ratio_prices, additional_data, indicator_prices)
+        self.view.show_sma_data(stock_id, stock_name, organized_ma_data, ratio_prices, additional_data, indicator_prices)
         

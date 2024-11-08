@@ -274,8 +274,9 @@ class SelectStockView(tk.Frame):
                 self.download_detail_data(stock_id, max_date)
             elif column == f"#{len(self.tree['columns'])}" and self.tree.item(item, "values")[17] == '詳細資料':  # 最後一列
                 stock_id = self.tree.item(item, "values")[0]  # 假設股票代碼是第一列
+                stock_name = self.tree.item(item, "values")[1]  # 股票名稱
                 # 點擊詳細資料，顯示詳細資料會彈跳出一個視窗顯示詳細資料
-                self.show_detail_data(stock_id)
+                self.show_detail_data(stock_id, stock_name)
 
     def show_copy_message(self, stock_code):
         # 創建一個臨時標來顯示複製成功的消息
@@ -336,9 +337,9 @@ class SelectStockView(tk.Frame):
         else:
             print("下載已取消")
         
-    def show_detail_data(self, stock_id):
+    def show_detail_data(self, stock_id, stock_name):
         # 彈跳出一個視窗以顯示詳細資料
-        self.controller.show_detail_data(stock_id)
+        self.controller.show_detail_data(stock_id, stock_name)
         
 
     def create_ma_table(self, ma_data, ma_type):
@@ -570,9 +571,9 @@ class SelectStockView(tk.Frame):
         
         return table
 
-    def show_sma_data(self, stock_id, organized_ma_data, ratio_prices, additional_data, indicator_prices):
+    def show_sma_data(self, stock_id, stock_name, organized_ma_data, ratio_prices, additional_data, indicator_prices):
         self.detail_window = QWidget()
-        self.detail_window.setWindowTitle(f"詳細資料 - {stock_id}")
+        self.detail_window.setWindowTitle(f"詳細資料 - {stock_id} ({stock_name})")
         self.detail_window.setGeometry(100, 100, 1000, 750)
 
         # 创建分页控件
