@@ -5,6 +5,7 @@ import time
 from datetime import datetime, timedelta
 from model.BaseModel import BaseModel
 from common.Math import Math
+from common.Event import Event
 
 class SelectStockModel(BaseModel):
     
@@ -12,6 +13,7 @@ class SelectStockModel(BaseModel):
     def __init__(self, api):
         super().__init__(api)  # 繼承父類的初始化
         self.all_wave_extremes = []
+        self.event = Event()
         # 獲取當前文件的目錄
         current_dir = os.path.dirname(os.path.abspath(__file__))
         
@@ -171,6 +173,7 @@ class SelectStockModel(BaseModel):
 
             for stock_id in top_50_stocks:
                 print(f"正在處理股票: {stock_id}")
+                stock_segment = []
                 stock_data_df = self.get_stock_data(stock_id, start_date, end_date)
                 if stock_data_df is not None and not stock_data_df.empty:
                     latest_close_price = self.get_latest_close_price(stock_id)
@@ -302,6 +305,7 @@ class SelectStockModel(BaseModel):
                                 self.add_wave_segment(recent_segment, '最近波段', max_value_of_all_waves, min_value_after_max)
                                 self.add_wave_segment(highest_segment, '最高波段', max_value_of_all_waves, min_value_after_max)
                                 self.add_wave_segment(segment, '總波段', max_value_of_all_waves, min_value_after_max)
+
                         elif is_more_than_ma:
                             if ((float(ratio) < recent_segment['spread_ratio'] or float(ratio) * -1 > recent_segment['spread_ratio'])\
                                 and (recent_wave_var and (float(positive_ratio) >= recent_segment['latest_close_price-0.191_ratio'] \
@@ -315,13 +319,17 @@ class SelectStockModel(BaseModel):
                                 self.add_wave_segment(recent_segment, '最近波段', max_value_of_all_waves, min_value_after_max)
                                 self.add_wave_segment(highest_segment, '最高波段', max_value_of_all_waves, min_value_after_max)
                                 self.add_wave_segment(segment, '總波段', max_value_of_all_waves, min_value_after_max)
+                                stock_segment.append(recent_segment)
+                                stock_segment.append(highest_segment)
+                                stock_segment.append(segment)
+                                self.event.notify(stock_segment)
                 else:
                     print(f"無法獲取股票 {stock_id} 的數據")
                     
-            if self.all_wave_extremes is not None:
-                return self.all_wave_extremes
+            # if self.all_wave_extremes is not None:
+            #     return self.all_wave_extremes
 
-            return pd.DataFrame()
+            # return pd.DataFrame()
         
     def get_recent_segment(self, segments_df):
         # 获取最近一次波段数据
@@ -354,12 +362,14 @@ class SelectStockModel(BaseModel):
         :param max_value_of_all_waves: 所有波段中的最高值
         :param min_value_after_max: 最高點之後的最低值
         """
+        stock_segment = {}
         new_segment = segment_data.copy()  # 創建一個新的字典，避免修改原始數據
         new_segment['wave_type'] = wave_type
         new_segment['max_value_of_all_waves'] = max_value_of_all_waves
         new_segment['min_value_after_max'] = min_value_after_max
-        self.all_wave_extremes.append(new_segment)
-        
+        # self.all_wave_extremes.append(new_segment)
+        self.event.notify(new_segment)
+                
         # 如果需要,可以在這裡打印整理後的均線數據
         if 'organized_ma_data' in segment_data:
             print(f"{wave_type} 均線數據:")

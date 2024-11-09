@@ -14,6 +14,8 @@ from tkinter import filedialog
 from collections import OrderedDict
 import os
 from tkinter import font as tkfont
+import threading
+from queue import Queue
 
 from common.Math import Math
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView, QFrame, QWidget, QVBoxLayout, QTabWidget, QGridLayout, QLabel
@@ -31,6 +33,9 @@ class SelectStockView(tk.Frame):
         self.controller = controller
         self.model = model
         self.init_ui()
+        self.data_queue = Queue()  # 用于存储待处理的股票数据
+        self.processing = False
+        self.start_update_thread()
 
     def init_ui(self):
         style = ttk.Style()
@@ -182,6 +187,10 @@ class SelectStockView(tk.Frame):
         self.table_frame.grid_columnconfigure(0, weight=1)
         
     def calculate(self):
+        if self.processing:
+            messagebox.showinfo("提示", "正在處理中，請稍候...")
+            return
+            
         start_date = self.start_date.get_date().strftime('%Y-%m-%d')
         end_date = self.end_date.get_date().strftime('%Y-%m-%d')
         ratio = self.ratio_entry.get()
@@ -216,43 +225,33 @@ class SelectStockView(tk.Frame):
         # 清空 TreeView 中的現有數據
         for item in self.tree.get_children():
             self.tree.delete(item)
-            
-        all_wave_extremes = self.controller.calculate(start_date, end_date, ratio, positive_ratio, native_ratio, top_n, recent_wave_var, highest_wave_var, total_wave_var, ma_selections)
-
-        # 設置標籤樣式
-        self.tree.tag_configure('blue_text', foreground='blue')
-        self.tree.tag_configure('red_text', foreground='red')
         
-        for index, segment in enumerate(all_wave_extremes):
-            stock_id = segment['stock_id']  # 假設 stock_id 已在 segments 中
-            stock_name = segment['name'] # 股票名稱
-            latest_close_price = segment['latest_close_price']
-            wave_type = segment['wave_type']
-            max_date = segment['Max_Date']
-            min_date = segment['Min_Date']
-            max_value = segment['Max_Value']
-            min_value = segment['Min_Value']
-            ratio_0191 = round(segment['Ratio_0.191'], 2)
-            ratio_0382 = round(segment['Ratio_0.382'], 2)
-            ratio_0500 = round(segment['Ratio_0.5'], 2)
-            ratio_0618 = round(segment['Ratio_0.618'], 2)
-            ratio_0809 = round(segment['Ratio_0.809'], 2)
-            ratio_1 = round(segment['Ratio_1'], 2) # 頸線
-            spread_ratio = round(segment['spread_ratio'], 3)  # 價差比例
-            ratio_0191_ratio = round(segment['latest_close_price-0.191_ratio'], 3)
-            # 修改這裡：每三行為一組，組間交替顏色
-            group_number = index // 3
-            tag = 'Blue' if group_number % 2 == 0 else 'White'
-            
-            values = (stock_id, stock_name, latest_close_price, wave_type, spread_ratio, ratio_0191_ratio, ratio_0191, ratio_0382, ratio_0500, ratio_0618, ratio_0809, ratio_1, max_value, max_date, max_value, min_date, min_value, '')
-            
-            if wave_type == '最高波段':
-                values = values[:-1] + ('下載',)
-            elif wave_type == '最近波段':
-                values = values[:-1] + ('詳細資料',)
+        self.processing = True
+        
+        # 启动处理线程
+        process_thread = threading.Thread(
+            target=self.process_calculation,
+            args=(start_date, end_date, ratio, positive_ratio, native_ratio,
+                  top_n, recent_wave_var, highest_wave_var, total_wave_var,
+                  ma_selections)
+        )
+        process_thread.daemon = True
+        process_thread.start()
 
-            item = self.tree.insert('', 'end', values=values, tags=(tag,))
+    def process_calculation(self, *args):
+        """在新线程中处理计算"""
+        try:
+            self.controller.calculate(*args)
+        except Exception as e:
+            self.tree.after(0, messagebox.showerror, "錯誤", f"計算過程中發生錯誤：{str(e)}")
+        finally:
+            self.processing = False
+            self.tree.after(0, self._calculation_finished)
 
+    def _calculation_finished(self):
+        """计算完成后的处理"""
+        if not self.processing:
+            messagebox.showinfo("完成", "篩選完成")
 
     def show_error(self, message):
         messagebox.showerror("錯誤", message)
@@ -699,7 +698,7 @@ class SelectStockView(tk.Frame):
         self.detail_window.show()
 
     def insert_table_row(self, table, row, values):
-        """輔助函數：插入一行數據到表格中"""
+        """輔助函數：插��一行數據到表格中"""
         for col, value in enumerate(values):
             item = QTableWidgetItem(str(value))
             item.setTextAlignment(Qt.AlignCenter)
@@ -875,3 +874,81 @@ class SelectStockView(tk.Frame):
         table.setFont(QFont('Microsoft JhengHei', 12))
             
         return table    
+
+    def start_update_thread(self):
+        """启动更新UI的线程"""
+        self.update_thread = threading.Thread(target=self.process_data_queue, daemon=True)
+        self.update_thread.start()
+    
+    def process_data_queue(self):
+        """处理数据队列的线程"""
+        while True:
+            try:
+                stock_segment = self.data_queue.get()
+                if stock_segment is None:  # 结束信号
+                    break
+                    
+                # 在主线程中更新UI
+                self.tree.after(0, self._update_tree_safe, stock_segment)
+                self.data_queue.task_done()
+            except Exception as e:
+                print(f"Error in process_data_queue: {e}")
+            
+    def print_stock_list(self, stock_segment):
+        """接收股票数据并放入队列"""
+        try:
+            # 将数据放入队列
+            self.data_queue.put(stock_segment)
+        except Exception as e:
+            print(f"Error in print_stock_list: {e}")
+            print(f"Stock segment data: {stock_segment}")
+
+    def _update_tree_safe(self, stock_segment):
+        """在主线程中安全地更新树形视图"""
+        try:
+            # 获取当前树形视图中的项目数
+            current_items = len(self.tree.get_children())
+            group_number = current_items // 3
+            tag = 'Blue' if group_number % 2 == 0 else 'White'
+
+            # 准备数据
+            values = self._prepare_tree_values(stock_segment)
+            
+            # 插入数据
+            self.tree.insert('', 'end', values=values, tags=(tag,))
+            
+            # 确保视图滚动到最新项目
+            self.tree.yview_moveto(1)
+            
+        except Exception as e:
+            print(f"Error in _update_tree_safe: {e}")
+            print(f"Stock segment data: {stock_segment}")
+
+    def _prepare_tree_values(self, stock_segment):
+        """准备树形视图的数据"""
+        try:
+            return (
+                stock_segment['stock_id'],
+                stock_segment['name'],
+                stock_segment['latest_close_price'],
+                stock_segment['wave_type'],
+                round(stock_segment['spread_ratio'], 3),
+                round(stock_segment['latest_close_price-0.191_ratio'], 3),
+                round(stock_segment['Ratio_0.191'], 2),
+                round(stock_segment['Ratio_0.382'], 2),
+                round(stock_segment['Ratio_0.5'], 2),
+                round(stock_segment['Ratio_0.618'], 2),
+                round(stock_segment['Ratio_0.809'], 2),
+                round(stock_segment['Ratio_1'], 2),
+                stock_segment['Max_Value'],
+                stock_segment['Max_Date'],
+                stock_segment['Max_Value'],
+                stock_segment['Min_Date'],
+                stock_segment['Min_Value'],
+                '下載' if stock_segment['wave_type'] == '最高波段' else '詳細資料'
+            )
+        except Exception as e:
+            print(f"Error in _prepare_tree_values: {e}")
+            print(f"Stock segment data: {stock_segment}")
+            return None
+
