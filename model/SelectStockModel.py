@@ -377,7 +377,7 @@ class SelectStockModel(BaseModel):
         new_segment['wave_type'] = wave_type
         new_segment['max_value_of_all_waves'] = max_value_of_all_waves
         new_segment['min_value_after_max'] = min_value_after_max
-        # self.all_wave_extremes.append(new_segment)
+        self.all_wave_extremes.append(new_segment)
         self.event.notify(new_segment)
                 
         # 如果需要,可以在這裡打印整理後的均線數據
