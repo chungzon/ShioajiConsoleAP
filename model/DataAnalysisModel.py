@@ -1,8 +1,10 @@
 ﻿import pymssql
 import pandas as pd
 from tkinter import messagebox
+from model.SelectStockModel import SelectStockModel
+from common.Math import Math
 
-class DataAnalysisModel:
+class DataAnalysisModel(SelectStockModel):
   
     def __init__(self, api):
         self.api = api
@@ -517,4 +519,155 @@ class DataAnalysisModel:
         return contract['name']
     
 
+    def get_stock_data_from_all_wave_extremes(self, stock_id, start_date, end_date):
+        stock_data_df = self.get_stock_data(stock_id, start_date, end_date)
+        if stock_data_df is not None and not stock_data_df.empty:
+            latest_close_price = self.get_latest_close_price(stock_id)
+            # latest_close_price = stock_data_df['close_price'].iloc[-1]
+            wave_extremes_df = self.find_peaks_troughs_v34_small(stock_id, stock_data_df, latest_close_price)
+            if wave_extremes_df is not None and not wave_extremes_df.empty:
+                wave_extremes_df['stock_id'] = stock_id  # 加入股票代號
+                wave_extremes_df['name'] = self.get_stock_name(stock_id)
+                recent_segment, highest_segment = self.evaluate_segment(wave_extremes_df)
+                max_value_of_all_waves = wave_extremes_df['Max_Value'].max()
+                max_value_index = wave_extremes_df['Max_Value'].idxmax()
 
+                # 獲取最高價的日期
+                max_value_date = wave_extremes_df.loc[max_value_index, 'Max_Date']
+                # 在最高價之後找最低價
+                min_after_max_series = wave_extremes_df.loc[max_value_index:, 'Min_Value']
+                min_value_after_max = min_after_max_series.min()
+                min_after_max_index = min_after_max_series.idxmin()
+
+                # 獲取最低價的日期
+                min_value_date = wave_extremes_df.loc[min_after_max_index, 'Min_Date']
+
+                # 計算 ratio_0.191、ratio_0.382、ratio_0.5、ratio_0.618、ratio_0.809、ratio_1
+                ratio_0 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0)
+                ratio_0191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0.191)
+                ratio_0382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0.382)
+                ratio_0500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0.5)
+                ratio_0809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0.809)
+                ratio_1191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 1.191)
+                ratio_1382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 1.382)
+                ratio_1500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 1.5)
+                ratio_1618 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 1.618)
+                ratio_1809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 1.809)
+                ratio_2 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 2)
+                ratio_2191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 2.191)
+                ratio_2382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 2.382)
+                ratio_2500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 2.5)
+                ratio_2618 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 2.618)
+                ratio_2809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 2.809)
+                ratio_3 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 3)
+                ratio_3191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 3.191)
+                ratio_3382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 3.382)
+                ratio_3500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 3.5)
+                ratio_3618 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 3.618)
+                ratio_3809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 3.809)
+                ratio_4 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 4)
+
+                # 計算 ratio_0.618 和 ratio_1
+                ratio_0618 = Math.calculate_ratio_0618(max_value_of_all_waves, min_value_after_max)
+                ratio_1 = Math.calculate_ratio_1(max_value_of_all_waves, min_value_after_max)
+
+                # 計算 Head-0.618 價差比例
+                head_0618_spread_ratio = round((max_value_of_all_waves - ratio_0618) / ratio_0618, 3)
+
+                # 計算現價-0.191 價差比例
+                current_0191_spread_ratio = round((latest_close_price - ratio_0191) / latest_close_price, 3)
+                        
+                # 計算CDP
+                CDP = highest_segment['CDP']
+                NH = highest_segment['NH']
+                NL = highest_segment['NL']
+                AH = highest_segment['AH']
+                AL = highest_segment['AL']
+
+                latest_close_prices = recent_segment['latest_close_prices']
+                latest_dates = recent_segment['latest_dates']
+
+                segment = {
+                    'stock_id': stock_id,
+                    'name': '',
+                    'latest_close_price': latest_close_price,
+                    'wave_type': [None],
+                    'Max_Date': max_value_date,
+                    'Min_Date': min_value_date,
+                    'Max_Value': max_value_of_all_waves,
+                    'Min_Value': min_value_after_max,
+                    'Ratio_0': ratio_0,
+                    'Ratio_0.191': ratio_0191,
+                    'Ratio_0.382': ratio_0382,
+                    'Ratio_0.5': ratio_0500,
+                    'Ratio_0.618': ratio_0618,
+                    'Ratio_0.809': ratio_0809,
+                    'Ratio_1': ratio_1,
+                    'Ratio_1.191': ratio_1191,
+                    'Ratio_1.382': ratio_1382,
+                    'Ratio_1.5': ratio_1500,
+                    'Ratio_1.618': ratio_1618,
+                    'Ratio_1.809': ratio_1809,
+                    'Ratio_2': ratio_2,
+                    'Ratio_2.191': ratio_2191,
+                    'Ratio_2.382': ratio_2382,
+                    'Ratio_2.5': ratio_2500,
+                    'Ratio_2.618': ratio_2618,
+                    'Ratio_2.809': ratio_2809,
+                    'Ratio_3': ratio_3,
+                    'Ratio_3.191': ratio_3191,
+                    'Ratio_3.382': ratio_3382,
+                    'Ratio_3.5': ratio_3500,
+                    'Ratio_3.618': ratio_3618,
+                    'Ratio_3.809': ratio_3809,
+                    'Ratio_4': ratio_4,
+                    'spread_ratio': head_0618_spread_ratio,
+                    'latest_close_price-0.191_ratio': current_0191_spread_ratio,
+                    'max_value_of_all_waves': max_value_of_all_waves,
+                    'min_value_after_max': min_value_after_max,
+                    'wave_type': '',
+                    'CDP': CDP,
+                    'NH': NH,
+                    'NL': NL,
+                    'AH': AH,
+                    'AL': AL,
+                    'latest_close_prices': latest_close_prices,
+                    'latest_dates': latest_dates,
+                    'sma_5': recent_segment.get('sma_5', 'N/A'),
+                    'sma_10': recent_segment.get('sma_10', 'N/A'),
+                    'sma_20': recent_segment.get('sma_20', 'N/A'),
+                    'sma_60': recent_segment.get('sma_60', 'N/A'),
+                    'sma_120': recent_segment.get('sma_120', 'N/A'),
+                    'weekly_sma_5': recent_segment.get('weekly_sma_5', 'N/A'),
+                    'weekly_sma_10': recent_segment.get('weekly_sma_10', 'N/A'),
+                    'weekly_sma_20': recent_segment.get('weekly_sma_20', 'N/A'),
+                    'weekly_sma_60': recent_segment.get('weekly_sma_60', 'N/A'),
+                    'weekly_sma_120': recent_segment.get('weekly_sma_120', 'N/A'),
+                    'monthly_sma_5': recent_segment.get('monthly_sma_5', 'N/A'),
+                    'monthly_sma_10': recent_segment.get('monthly_sma_10', 'N/A'),
+                    'monthly_sma_20': recent_segment.get('monthly_sma_20', 'N/A'),
+                    'monthly_sma_60': recent_segment.get('monthly_sma_60', 'N/A'),
+                    'monthly_sma_120': recent_segment.get('monthly_sma_120', 'N/A'),
+                }
+                return segment
+
+    def get_recent_segment(self, segments_df):
+        # 获取最近一次波段数据
+        if not segments_df.empty:
+            return segments_df.iloc[-1]  # 最近一次波段数据在最后一行
+        else:
+            return None
+
+    def get_highest_segment(self, segments_df):
+        # 获取最高点波段数据
+        if not segments_df.empty:
+            max_value_idx = segments_df['Max_Value'].idxmax()  # 找到最高点波段的索引
+            return segments_df.iloc[max_value_idx]
+        else:
+            return None
+        
+    def evaluate_segment(self, segments_df):
+        recent_segment = self.get_recent_segment(segments_df)
+        highest_segment = self.get_highest_segment(segments_df)
+        
+        return recent_segment, highest_segment

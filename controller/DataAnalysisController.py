@@ -166,3 +166,90 @@ class DataAnalysisController:
         self.model.save_to_excel(peak_trough_df, sma_values, weekly_sma_values, monthly_sma_values, last_ratio_0_618, latest_close_price, file_path)
         self.view.set_status("資料分析完成並已儲存")
 
+    def show_detail_data(self):
+        stock_id = self.view.entry_stock_id.get()
+        start_date = self.view.entry_start_date.get()
+        end_date = self.view.entry_end_date.get()
+        total_segment = self.model.get_stock_data_from_all_wave_extremes(stock_id, start_date, end_date)
+        if total_segment is None:
+            print(f"沒有找到股票 {stock_id} 的數據")
+            return
+
+        # 整理均線數據（使用最近波段數據）
+        organized_ma_data = {
+            "日均線": {
+                "5MA": total_segment.get('sma_5', 'N/A'),
+                "10MA": total_segment.get('sma_10', 'N/A'),
+                "20MA": total_segment.get('sma_20', 'N/A'),
+                "60MA": total_segment.get('sma_60', 'N/A'),
+                "120MA": total_segment.get('sma_120', 'N/A')
+            },
+            "週均線": {
+                "5MA": total_segment.get('weekly_sma_5', 'N/A'),
+                "10MA": total_segment.get('weekly_sma_10', 'N/A'),
+                "20MA": total_segment.get('weekly_sma_20', 'N/A'),
+                "60MA": total_segment.get('weekly_sma_60', 'N/A'),
+                "120MA": total_segment.get('weekly_sma_120', 'N/A')
+            },
+            "月均線": {
+                "5MA": total_segment.get('monthly_sma_5', 'N/A'),
+                "10MA": total_segment.get('monthly_sma_10', 'N/A'),
+                "20MA": total_segment.get('monthly_sma_20', 'N/A'),
+                "60MA": total_segment.get('monthly_sma_60', 'N/A'),
+                "120MA": total_segment.get('monthly_sma_120', 'N/A')
+            }
+        }
+
+        # 整理比例價格數據（包括最近波段和總波段）
+        ratio_prices = {
+            "總波段": {
+                '0': total_segment.get('Ratio_0', 'N/A'),
+                '0.191': total_segment.get('Ratio_0.191', 'N/A'),
+                '0.382': total_segment.get('Ratio_0.382', 'N/A'),
+                '0.5': total_segment.get('Ratio_0.5', 'N/A'),
+                '0.618': total_segment.get('Ratio_0.618', 'N/A'),
+                '0.809': total_segment.get('Ratio_0.809', 'N/A'),
+                '1': total_segment.get('Ratio_1', 'N/A'),
+                '1.191': total_segment.get('Ratio_1.191', 'N/A'),
+                '1.382': total_segment.get('Ratio_1.382', 'N/A'),
+                '1.5': total_segment.get('Ratio_1.5', 'N/A'),
+                '1.618': total_segment.get('Ratio_1.618', 'N/A'),
+                '1.809': total_segment.get('Ratio_1.809', 'N/A'),
+                '2': total_segment.get('Ratio_2', 'N/A'),
+                '2.191': total_segment.get('Ratio_2.191', 'N/A'),
+                '2.382': total_segment.get('Ratio_2.382', 'N/A'),
+                '2.5': total_segment.get('Ratio_2.5', 'N/A'),
+                '2.618': total_segment.get('Ratio_2.618', 'N/A'),
+                '2.809': total_segment.get('Ratio_2.809', 'N/A'),
+                '3': total_segment.get('Ratio_3', 'N/A'),
+                '3.191': total_segment.get('Ratio_3.191', 'N/A'),
+                '3.382': total_segment.get('Ratio_3.382', 'N/A'),
+                '3.5': total_segment.get('Ratio_3.5', 'N/A'),
+                '3.618': total_segment.get('Ratio_3.618', 'N/A'),
+                '3.809': total_segment.get('Ratio_3.809', 'N/A'),
+                '4': total_segment.get('Ratio_4', 'N/A')
+            }
+        }
+
+        # 添加其他可能需要的數據（使用總波段數據）
+        additional_data = {
+            '最高價': total_segment.get('Max_Value', 'N/A'),
+            '最低價': total_segment.get('Min_Value', 'N/A'),
+            '最新收盤價': total_segment.get('latest_close_price', 'N/A'),
+            '價差比例': total_segment.get('spread_ratio', 'N/A'),
+            '最新收盤價-0.191比例': total_segment.get('latest_close_price-0.191_ratio', 'N/A'),
+            'latest_close_prices': total_segment.get('latest_close_prices', 'N/A'),
+            'latest_dates': total_segment.get('latest_dates', 'N/A')
+        }
+
+        # 從 total_segment 獲取所有指標價格
+        indicator_prices = {
+            'CDP': total_segment.get('CDP', 'N/A'),
+            'NH': total_segment.get('NH', 'N/A'),
+            'NL': total_segment.get('NL', 'N/A'),
+            'AH': total_segment.get('AH', 'N/A'),
+            'AL': total_segment.get('AL', 'N/A')
+        }
+
+        self.view.show_sma_data(stock_id, '', organized_ma_data, ratio_prices, additional_data, indicator_prices)
+        
