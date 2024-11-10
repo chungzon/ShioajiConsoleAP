@@ -240,6 +240,7 @@ class SelectStockView(tk.Frame):
 
     def process_calculation(self, *args):
         """在新线程中处理计算"""
+        # self.controller.calculate(*args)
         try:
             self.controller.calculate(*args)
         except Exception as e:
@@ -901,7 +902,7 @@ class SelectStockView(tk.Frame):
             self.data_queue.put(stock_segment)
         except Exception as e:
             print(f"Error in print_stock_list: {e}")
-            print(f"Stock segment data: {stock_segment}")
+            # print(f"Stock segment data: {stock_segment}")
 
     def _update_tree_safe(self, stock_segment):
         """在主线程中安全地更新树形视图"""
@@ -922,7 +923,7 @@ class SelectStockView(tk.Frame):
             
         except Exception as e:
             print(f"Error in _update_tree_safe: {e}")
-            print(f"Stock segment data: {stock_segment}")
+            # print(f"Stock segment data: {stock_segment}")
 
     def _prepare_tree_values(self, stock_segment):
         """准备树形视图的数据"""
@@ -949,6 +950,6 @@ class SelectStockView(tk.Frame):
             )
         except Exception as e:
             print(f"Error in _prepare_tree_values: {e}")
-            print(f"Stock segment data: {stock_segment}")
+            # print(f"Stock segment data: {stock_segment}")
             return None
 

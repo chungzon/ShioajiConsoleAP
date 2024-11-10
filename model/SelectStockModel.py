@@ -8,7 +8,11 @@ from common.Math import Math
 from common.Event import Event
 
 class SelectStockModel(BaseModel):
-    
+        # 創建log資料夾和檔案
+    log_dir = "logs"
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    log_filename = os.path.join(log_dir, f"log_select_stock_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
     
     def __init__(self, api):
         super().__init__(api)  # 繼承父類的初始化
@@ -171,12 +175,16 @@ class SelectStockModel(BaseModel):
             #     'monthly': {period: var.get() for period, var in self.monthly_ma_vars.items()}
             # }
 
+            count = 0
             for stock_id in top_50_stocks:
-                print(f"正在處理股票: {stock_id}")
-                stock_segment = []
-                stock_data_df = self.get_stock_data(stock_id, start_date, end_date)
-                if stock_data_df is not None and not stock_data_df.empty:
-                    latest_close_price = self.get_latest_close_price(stock_id)
+                try:
+                    count += 1
+                    print(f"正在處理股票: {stock_id} {count} / {len(top_50_stocks)}")
+                    stock_segment = []
+                    stock_data_df = self.get_stock_data(stock_id, start_date, end_date)
+                    if stock_data_df is not None and not stock_data_df.empty:
+                        latest_close_price = self.get_latest_close_price(stock_id)
+                    # latest_close_price = stock_data_df['close_price'].iloc[-1]
                     wave_extremes_df = self.find_peaks_troughs_v34_small(stock_id, stock_data_df, latest_close_price)
                     if wave_extremes_df is not None and not wave_extremes_df.empty:
                         wave_extremes_df['stock_id'] = stock_id  # 加入股票代號
@@ -323,8 +331,10 @@ class SelectStockModel(BaseModel):
                                 stock_segment.append(highest_segment)
                                 stock_segment.append(segment)
                                 self.event.notify(stock_segment)
-                else:
-                    print(f"無法獲取股票 {stock_id} 的數據")
+                except Exception as e:
+                    print(f"無法獲取股票 {stock_id} 的數據: {str(e)}")
+                    self.write_log(f"無法分析股票 {stock_id} 的數據: {str(e)}")
+                    continue
                     
             # if self.all_wave_extremes is not None:
             #     return self.all_wave_extremes
@@ -434,7 +444,9 @@ class SelectStockModel(BaseModel):
         
         return None, None  # 如果完全沒有找到匹配的股票數據
 
-
+    def write_log(self, message):
+        with open(self.log_filename, "a") as log_file:
+            log_file.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
 
 
 
