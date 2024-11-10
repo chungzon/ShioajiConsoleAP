@@ -1,3 +1,0 @@
-2024-09-11 00:38:35 - 開始處理股票 1815
-2024-09-11 00:38:35 - 錯誤處理 1815 - 2024-08-01 00:00:00: 'int' object has no attribute 'startswith'
-2024-09-11 00:38:35 - 錯誤處理 1815 - 2024-09-01 00:00:00: 'int' object has no attribute 'startswith'
