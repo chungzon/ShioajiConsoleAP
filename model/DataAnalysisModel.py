@@ -73,25 +73,25 @@ class DataAnalysisModel(SelectStockModel):
     
         i = 0
         while i < len(df):
-            max_value = df['High'].iloc[i]
+            max_value = df['high_price'].iloc[i]
             max_date = df['date'].iloc[i]
         
             j = i + 1
-            while j < len(df) and df['High'].iloc[j] >= max_value:
-                max_value = df['High'].iloc[j]
+            while j < len(df) and df['high_price'].iloc[j] >= max_value:
+                max_value = df['high_price'].iloc[j]
                 max_date = df['date'].iloc[j]
                 j += 1
         
             if j < len(df):
-                min_value = df['Low'].iloc[j]
+                min_value = df['low_price'].iloc[j]
                 min_date = df['date'].iloc[j]
             else:
-                min_value = df['Low'].iloc[j-1]
+                min_value = df['low_price'].iloc[j-1]
                 min_date = df['date'].iloc[j-1]
         
             k = j
-            while k < len(df) and df['Low'].iloc[k] <= min_value:
-                min_value = df['Low'].iloc[k]
+            while k < len(df) and df['low_price'].iloc[k] <= min_value:
+                min_value = df['low_price'].iloc[k]
                 min_date = df['date'].iloc[k]
                 k += 1
         
@@ -113,26 +113,26 @@ class DataAnalysisModel(SelectStockModel):
         return latest_close
     
     # 從資料庫中獲取每日收盤價
-    def get_daily_close_prices_from_db(self, stock_code, days):
-        conn = self.connect_db()
-        query = f"""
-        SELECT ts AS date, close_price
-        FROM (
-            SELECT *,
-                   ROW_NUMBER() OVER (PARTITION BY CONVERT(date, ts) ORDER BY ts DESC) AS rn
-            FROM KBars
-            WHERE stock_id = '{stock_code}'
-        ) AS sub
-        WHERE sub.rn = 1
-        ORDER BY date DESC
-        OFFSET 0 ROWS
-        FETCH NEXT {days + 365} ROWS ONLY
-        """
-        df = pd.read_sql(query, conn)
-        df['date'] = pd.to_datetime(df['date'])
-        df.set_index('date', inplace=True)
-        df = df.sort_index()  # 按日期排序
-        return df['close_price']
+    # def get_daily_close_prices_from_db(self, stock_code, days):
+    #     conn = self.connect_db()
+    #     query = f"""
+    #     SELECT ts AS date, close_price
+    #     FROM (
+    #         SELECT *,
+    #                ROW_NUMBER() OVER (PARTITION BY CONVERT(date, ts) ORDER BY ts DESC) AS rn
+    #         FROM KBars
+    #         WHERE stock_id = '{stock_code}'
+    #     ) AS sub
+    #     WHERE sub.rn = 1
+    #     ORDER BY date DESC
+    #     OFFSET 0 ROWS
+    #     FETCH NEXT {days + 365} ROWS ONLY
+    #     """
+    #     df = pd.read_sql(query, conn)
+    #     df['date'] = pd.to_datetime(df['date'])
+    #     df.set_index('date', inplace=True)
+    #     df = df.sort_index()  # 按日期排序
+    #     return df['close_price']
     
     # 計算移動平均
     def calculate_moving_average(self, prices, window):

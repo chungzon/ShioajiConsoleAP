@@ -49,8 +49,8 @@ class DataAnalysisController:
             self.view.set_status("股票代碼和日期均為必填")
             return
 
-        df = self.model.get_stock_data_from_db(stock_id, start_date, end_date)
-        daily_high_low = df.groupby('date').agg({'High': 'max', 'Low': 'min'}).reset_index()
+        df = self.model.get_stock_data(stock_id, start_date, end_date)
+        daily_high_low = df.groupby('date').agg({'high_price': 'max', 'low_price': 'min'}).reset_index()
         peak_trough_df = self.model.find_peaks_troughs_v34(daily_high_low)
 
         # 四捨五入至小數點以下兩位，不足補0
@@ -124,35 +124,8 @@ class DataAnalysisController:
         peak_trough_df = peak_trough_df[cols]
 
         # 獲取每日收盤價
-        close_prices = self.model.get_daily_close_prices_from_db(stock_id, 120)
-    
-        # 計算日均線的移動平均
-        sma_values = [
-            round(self.model.calculate_moving_average(close_prices, 5).iloc[-1], 2),
-            round(self.model.calculate_moving_average(close_prices, 10).iloc[-1], 2),
-            round(self.model.calculate_moving_average(close_prices, 20).iloc[-1], 2),
-            round(self.model.calculate_moving_average(close_prices, 60).iloc[-1], 2),
-            round(self.model.calculate_moving_average(close_prices, 120).iloc[-1], 2),
-        ]
-
-        # 計算周均線的移動平均
-        weekly_sma_values = [
-            round(self.model.calculate_weekly_average(close_prices, 5).iloc[-1], 2),
-            round(self.model.calculate_weekly_average(close_prices, 10).iloc[-1], 2),
-            round(self.model.calculate_weekly_average(close_prices, 20).iloc[-1], 2),
-            round(self.model.calculate_weekly_average(close_prices, 60).iloc[-1], 2),
-            round(self.model.calculate_weekly_average(close_prices, 120).iloc[-1], 2),
-        ]
-
-        # 計算月均線的移動平均
-        monthly_sma_values = [
-            round(self.model.calculate_monthly_average(close_prices, 5).iloc[-1], 2),
-            round(self.model.calculate_monthly_average(close_prices, 10).iloc[-1], 2),
-            round(self.model.calculate_monthly_average(close_prices, 20).iloc[-1], 2),
-            round(self.model.calculate_monthly_average(close_prices, 60).iloc[-1], 2),
-            round(self.model.calculate_monthly_average(close_prices, 120).iloc[-1], 2),
-        ]
-        
+        sma_values, weekly_sma_values, monthly_sma_values, latest_close_prices, latest_dates = self.model.calculate_sma(stock_id)
+            
         # 設定儲存路徑和檔名
         if not os.path.exists(save_path):
             os.makedirs(save_path)
