@@ -335,8 +335,8 @@ class DataAnalysisView(tk.Frame):
         self.ratio_tab = QWidget()
         
         # 将分页添加到tab widget
-        self.tab_widget.addTab(self.daily_tab, "均價")
         self.tab_widget.addTab(self.ratio_tab, "比例價格")
+        self.tab_widget.addTab(self.daily_tab, "均價")
         
         # 在日均价分页中创建网格布局
         daily_layout = QGridLayout()
