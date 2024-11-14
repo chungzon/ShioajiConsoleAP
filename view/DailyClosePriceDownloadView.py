@@ -3,6 +3,7 @@ from tkinter import ttk
 from tkcalendar import DateEntry
 import datetime
 import threading
+import AutoDownloadDailyClosePrice
 
 class DailyClosePriceDownloadView(tk.Frame):
     def __init__(self, parent, controller):
@@ -31,6 +32,8 @@ class DailyClosePriceDownloadView(tk.Frame):
         self.log_text.grid(row=4, column=0, columnspan=3, padx=10, pady=5, sticky="we")
 
         ttk.Button(self, text="下載", command=self.start_download_thread).grid(row=5, column=0, columnspan=2, pady=10)
+
+        ttk.Button(self, text="下載當日收盤價", command=self.start_download_all_thread).grid(row=5, column=1, pady=10)
 
     def start_download_thread(self):
         # 開始一個新線程來處理下載，以防止卡住GUI
@@ -69,3 +72,13 @@ class DailyClosePriceDownloadView(tk.Frame):
         self.log_text.see(tk.END)  # 自動滾動到最後一行
         self.log_text.config(state="disabled")
         self.update_idletasks()
+
+    def start_download_all_thread(self):
+        # 创建一个新线程来运行自动下载
+        thread = threading.Thread(target=self.run_auto_download)
+        thread.start()
+
+    def run_auto_download(self):
+        # 创建 AutoDownloadDailyClosePrice 类的实例
+        auto_downloader = AutoDownloadDailyClosePrice.AutoDownloadDailyClosePrice()
+        auto_downloader.run()
