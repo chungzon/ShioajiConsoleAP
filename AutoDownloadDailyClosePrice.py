@@ -6,12 +6,16 @@ import pymssql
 import csv
 import io
 from datetime import datetime, timedelta
+from Event import EventBus, Event
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 class AutoDownloadDailyClosePrice:
     def __init__(self):
         self.logger = self.setup_logger()
         self.twse_api_url = "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL"
         self.tpex_api_url = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_quotes"
+        self.event_bus = EventBus()
 
     def connect_db(self):
         conn = pymssql.connect(
@@ -57,7 +61,7 @@ class AutoDownloadDailyClosePrice:
             for stock in data:
                 if is_twse:
                     values = (
-                        stock['Code'],
+                        stock['Code'].replace('=', '').replace('"', ''),
                         today,
                         stock['OpeningPrice'],
                         stock['HighestPrice'],
@@ -65,9 +69,11 @@ class AutoDownloadDailyClosePrice:
                         stock['ClosingPrice'],
                         stock['TradeVolume']
                     )
+                    
+                    self.event_bus.publish(Event("log_message", f"儲存數據 {stock['Code']} ({stock['Name']}) {today} 數據"))
                 else:  # TPEx data
                     values = (
-                        stock['SecuritiesCompanyCode'],
+                        stock['SecuritiesCompanyCode'].replace('=', '').replace('"', ''),
                         self.convert_tw_date_to_ad(stock['Date']),
                         self.parse_float(stock['Open']),
                         self.parse_float(stock['High']),
@@ -75,6 +81,7 @@ class AutoDownloadDailyClosePrice:
                         self.parse_float(stock['Close']),
                         self.parse_int(stock['TradingShares'])
                     )
+                    self.event_bus.publish(Event("log_message", f"儲存數據 {stock['SecuritiesCompanyCode']} ({stock['CompanyName']}) {self.convert_tw_date_to_ad(stock['Date'])} 數據"))
                 cursor.execute(sql, values)
 
             conn.commit()
@@ -124,6 +131,7 @@ class AutoDownloadDailyClosePrice:
                 # gregorian_date_str = self.convert_taiwan_date_to_gregorian(row['日期'].strip())
                 try:
                     stock_id = row['證券代號'].strip()
+                    stock_name = row['證券名稱'].strip()
                     if row['開盤價'] is not None:
                         open_price = self.parse_float(row['開盤價'].replace(',', '').strip())
                     else:
@@ -151,6 +159,7 @@ class AutoDownloadDailyClosePrice:
 
                     stock_data = {
                         'Code': stock_id,
+                        'Name': stock_name,
                         'Date': today,
                         'OpeningPrice': open_price,
                         'HighestPrice': high_price,
@@ -159,7 +168,7 @@ class AutoDownloadDailyClosePrice:
                         'TradeVolume': volume
                     }
                     data.append(stock_data)
-                    print(stock_data)
+                    # self.event_bus.publish(Event("log_message", f"成功獲取 {len(data)} 筆 TWSE 數據"))
                 except Exception as e:
                     print(f"錯誤處理{e}")
 
@@ -208,37 +217,48 @@ class AutoDownloadDailyClosePrice:
             success = False
 
         self.logger.info("開始從 TWSE 下載每日收盤價數據")
+        self.event_bus.publish(Event("log_message", "開始從 TWSE 下載每日收盤價數據"))
         data = self.download_data_from_twse()
         if data:
             if self.insert_data_to_database(data, is_twse=True):
                 self.logger.info(f"成功更新TWSE最後下載日期為 {today}")
+                self.event_bus.publish(Event("log_message", f"成功更新TWSE最後下載日期為 {today}"))
                 success = True
             else:
                 self.logger.error("更新最後TWSE下載日期失敗")
+                self.event_bus.publish(Event("log_message", "更新最後TWSE下載日期失敗"))
                 success = False
         else:
             self.logger.error("無法從TWSE獲取數據")
+            self.event_bus.publish(Event("log_message", "無法從TWSE獲取數據"))
             success = False
         self.logger.info("TWSE下載完成")
 
+        self.logger.info("開始從TPEx下載每日收盤價數據")
+        self.event_bus.publish(Event("log_message", "開始從TPEx下載每日收盤價數據"))
         data = self.download_tpex_data()
         if data:
             if self.insert_data_to_database(data, is_twse=False):
                 self.logger.info(f"成功更新TPEx最後下載日期為 {today}")
+                self.event_bus.publish(Event("log_message", f"成功更新TPEx最後下載日期為 {today}"))
                 success = True
             else:
                 self.logger.error("更新最後TPEx下載日期失敗")
+                self.event_bus.publish(Event("log_message", "更新最後TPEx下載日期失敗"))
                 success = False
         else:
             self.logger.error("無法從TPEx獲取數據")
+            self.event_bus.publish(Event("log_message", "無法從TPEx獲取數據"))
             success = False
         self.logger.info("TPEx下載完成")
         
         if self.update_last_download_date(today):
             self.logger.info(f"成功更新最後下載日期為 {today}")
+            self.event_bus.publish(Event("log_message", f"成功更新最後下載日期為 {today}"))
             success = True
         else:
             self.logger.error("更新最後下載日期失敗")
+            self.event_bus.publish(Event("log_message", "更新最後下載日期失敗"))
             success = False
         return success
 

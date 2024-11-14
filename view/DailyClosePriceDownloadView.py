@@ -74,11 +74,15 @@ class DailyClosePriceDownloadView(tk.Frame):
         self.update_idletasks()
 
     def start_download_all_thread(self):
-        # 创建一个新线程来运行自动下载
         thread = threading.Thread(target=self.run_auto_download)
         thread.start()
 
     def run_auto_download(self):
-        # 创建 AutoDownloadDailyClosePrice 类的实例
         auto_downloader = AutoDownloadDailyClosePrice.AutoDownloadDailyClosePrice()
+        # 訂閱日誌消息
+        auto_downloader.event_bus.subscribe("log_message", self.handle_log_message)
         auto_downloader.run()
+
+    def handle_log_message(self, event):
+        # 在GUI中顯示日誌消息
+        self.append_log(event.data)
