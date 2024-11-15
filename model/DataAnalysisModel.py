@@ -566,6 +566,12 @@ class DataAnalysisModel(SelectStockModel):
                 ratio_3618 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 3.618)
                 ratio_3809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 3.809)
                 ratio_4 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 4)
+                ratio_4191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 4.191)
+                ratio_4382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 4.382)
+                ratio_4500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 4.5)
+                ratio_4618 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 4.618)
+                ratio_4809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 4.809)
+                ratio_5 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 5)
 
                 # 計算 ratio_0.618 和 ratio_1
                 ratio_0618 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0.618)
@@ -621,6 +627,12 @@ class DataAnalysisModel(SelectStockModel):
                     'Ratio_3.618': ratio_3618,
                     'Ratio_3.809': ratio_3809,
                     'Ratio_4': ratio_4,
+                    'Ratio_4.191': ratio_4191,
+                    'Ratio_4.382': ratio_4382,
+                    'Ratio_4.5': ratio_4500,
+                    'Ratio_4.618': ratio_4618,
+                    'Ratio_4.809': ratio_4809,
+                    'Ratio_5': ratio_5,
                     'spread_ratio': head_0618_spread_ratio,
                     'latest_close_price-0.191_ratio': current_0191_spread_ratio,
                     'max_value_of_all_waves': max_value_of_all_waves,

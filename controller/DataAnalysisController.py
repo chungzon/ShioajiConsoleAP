@@ -200,7 +200,13 @@ class DataAnalysisController:
                 '3.5': total_segment.get('Ratio_3.5', 'N/A'),
                 '3.618': total_segment.get('Ratio_3.618', 'N/A'),
                 '3.809': total_segment.get('Ratio_3.809', 'N/A'),
-                '4': total_segment.get('Ratio_4', 'N/A')
+                '4': total_segment.get('Ratio_4', 'N/A'),
+                '4.191': total_segment.get('Ratio_4.191', 'N/A'),
+                '4.382': total_segment.get('Ratio_4.382', 'N/A'),
+                '4.5': total_segment.get('Ratio_4.5', 'N/A'),
+                '4.618': total_segment.get('Ratio_4.618', 'N/A'),
+                '4.809': total_segment.get('Ratio_4.809', 'N/A'),
+                '5': total_segment.get('Ratio_5', 'N/A')
             }
         }
 

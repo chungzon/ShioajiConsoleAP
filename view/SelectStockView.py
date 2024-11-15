@@ -376,7 +376,8 @@ class SelectStockView(tk.Frame):
         ratios = ['0', '0.191', '0.382', '0.5', '0.618', '0.809', '1', 
                  '1.191', '1.382', '1.5', '1.618', '1.809', '2',
                  '2.191', '2.382', '2.5', '2.618', '2.809', '3',
-                 '3.191', '3.382', '3.5', '3.618', '3.809', '4']
+                 '3.191', '3.382', '3.5', '3.618', '3.809', '4',
+                 '4.191', '4.382', '4.5', '4.618', '4.809', '5']
         
         # 计算总行数（包括前后和中间的空白行）
         total_rows = (len(ratios) * 2 - 1) + 2  # 加2是为了前后的空白行
@@ -933,14 +934,14 @@ class SelectStockView(tk.Frame):
                 stock_segment['name'],
                 stock_segment['latest_close_price'],
                 stock_segment['wave_type'],
-                round(stock_segment['spread_ratio'], 3),
-                round(stock_segment['latest_close_price-0.191_ratio'], 3),
-                round(stock_segment['Ratio_0.191'], 2),
-                round(stock_segment['Ratio_0.382'], 2),
-                round(stock_segment['Ratio_0.5'], 2),
-                round(stock_segment['Ratio_0.618'], 2),
-                round(stock_segment['Ratio_0.809'], 2),
-                round(stock_segment['Ratio_1'], 2),
+                round(float(stock_segment['spread_ratio']), 3),
+                round(float(stock_segment['latest_close_price-0.191_ratio']), 3),
+                round(float(stock_segment['Ratio_0.191']), 2),
+                round(float(stock_segment['Ratio_0.382']), 2),
+                round(float(stock_segment['Ratio_0.5']), 2),
+                round(float(stock_segment['Ratio_0.618']), 2),
+                round(float(stock_segment['Ratio_0.809']), 2),
+                round(float(stock_segment['Ratio_1']), 2),
                 stock_segment['Max_Value'],
                 stock_segment['Max_Date'],
                 stock_segment['Max_Value'],
