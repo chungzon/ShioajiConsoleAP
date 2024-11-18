@@ -60,28 +60,20 @@ class Math:
     # 計算周均線
     @staticmethod
     def calculate_weekly_average(prices, window):
-        # # 重採樣到週數據，使用最後一個有效值，並向前填充缺失值
-        # weekly_prices = prices.resample('W').last().ffill()
-
-        # # 計算移動平均線
-        # weekly_ma = Math.calculate_moving_average(weekly_prices, window)
-
-        # # 將結果對齊到原始的日期索引
-        # aligned_weekly_ma = weekly_ma.reindex(prices.index, method='ffill')
-
-        # return aligned_weekly_ma
         weekly_prices = prices.resample('W').last()
         return Math.calculate_moving_average(weekly_prices, window)
 
     # 計算月均線
     @staticmethod
     def calculate_monthly_average(prices, window):
-        # monthly_prices = prices.resample('ME').last().ffill()
-        # monthly_ma = Math.calculate_moving_average(monthly_prices, window)
-        # aligned_monthly_ma = monthly_ma.reindex(prices.index, method='ffill')
-        # return aligned_monthly_ma
         monthly_prices = prices.resample('M').last()
         return Math.calculate_moving_average(monthly_prices, window)
+    
+    # 計算15分鐘均線
+    @staticmethod
+    def calculate_15_minutes_average(prices, window):
+        fifteen_minutes_prices = prices.resample('15min').last()
+        return Math.calculate_moving_average(fifteen_minutes_prices, window)
         
     # 根據價格區間，調整各種比例的價格
     @staticmethod

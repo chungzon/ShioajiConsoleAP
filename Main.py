@@ -36,7 +36,11 @@ class MainApplication(tk.Tk):
 
     def __init__(self):
         super().__init__()
-        self.api = self.initialize_api()
+        self.api = None
+        try:
+            self.api = self.initialize_api()
+        except Exception as e:
+            print(f"Error initializing API: {e}")
                 # 設置默認字體大小
         default_font = tkfont.nametofont("TkDefaultFont")
         default_font.configure(size=13)

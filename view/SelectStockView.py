@@ -535,7 +535,8 @@ class SelectStockView(tk.Frame):
         ma_types = {
             '日均線': '日',
             '週均線': '周',
-            '月均線': '月'
+            '月均線': '月',
+            '15分鐘均線': '15K'
         }
         
         for ma_key, prefix in ma_types.items():

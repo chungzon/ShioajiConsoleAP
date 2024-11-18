@@ -48,12 +48,26 @@ class BaseModel:
     def get_stock_kbar_from_db(self, stock_id, start_date, end_date):
         conn = self.connect_db()
         query = f"""
-        SELECT ts, Open_Price, High, Low, Close_Price, Volume
+        SELECT DISTINCT ts, Open_Price, High, Low, Close_Price, Volume
         FROM Kbars
         WHERE stock_id = {stock_id} AND ts >= '{start_date}' AND ts <= DATEADD(day, 1, '{end_date}') ORDER BY ts ASC
         """
         df = pd.read_sql(query, conn)
-        df['ts'] = pd.to_datetime(df['ts']).dt.strftime('%H:%M:%S')
+        df['ts'] = pd.to_datetime(df['ts']).dt.strftime('%Y-%m-%d %H:%M:%S')
+        df['date'] = df['ts']
+        conn.close()
+        return df
+
+    # 分K資料
+    def get_stock_kbar_from_db_top300(self, stock_id):
+        conn = self.connect_db()
+        query = f"""
+        SELECT DISTINCT TOP 300 ts, Open_Price, High, Low, Close_Price, Volume
+        FROM Kbars
+        WHERE stock_id = {stock_id} ORDER BY ts DESC
+        """
+        df = pd.read_sql(query, conn)
+        df['ts'] = pd.to_datetime(df['ts']).dt.strftime('%Y-%m-%d %H:%M:%S')
         df['date'] = df['ts']
         conn.close()
         return df
@@ -196,11 +210,15 @@ class BaseModel:
 
         sma_values, weekly_sma_values, monthly_sma_values, latest_close_prices, latest_dates = self.calculate_sma(stock_id)
         # sma_values, weekly_sma_values, monthly_sma_values = Math.calculate_sma(df['close_price'])
+        
+        k15_sma_values = self.calculate_k15_sma(stock_id)
 
         periods = [5, 10, 20, 60, 120]
         sma_columns = [f'sma_{period}' for period in periods]
         weekly_sma_columns = [f'weekly_sma_{period}' for period in periods]
         monthly_sma_columns = [f'monthly_sma_{period}' for period in periods]
+        k15_periods = [5, 10, 20]
+        k15_sma_columns = [f'k15_sma_{period}' for period in k15_periods]
 
         # 計算CDP中的5個數據，df資料若不夠，也要例外
         try:
@@ -256,6 +274,9 @@ class BaseModel:
                 for value in monthly_sma_values:
                     segment.append(value)
 
+                for value in k15_sma_values:
+                    segment.append(value)
+
                 segment.append(CDP)
                 segment.append(NH)
                 segment.append(NL)
@@ -266,7 +287,7 @@ class BaseModel:
 
             i = k
     
-        return pd.DataFrame(segments, columns=['Max_Date', 'Max_Value', 'Min_Date', 'Min_Value'] + ratio_columns + append_columns + sma_columns + weekly_sma_columns + monthly_sma_columns + cdp_columns)
+        return pd.DataFrame(segments, columns=['Max_Date', 'Max_Value', 'Min_Date', 'Min_Value'] + ratio_columns + append_columns + sma_columns + weekly_sma_columns + monthly_sma_columns + k15_sma_columns + cdp_columns)
     
     def analyze_data(self, stock_id, start_date, end_date, save_path):
         if not stock_id or not start_date or not end_date or not save_path:
@@ -807,4 +828,48 @@ class BaseModel:
         latest_dates = daily_close_prices.index[-5:].strftime('%Y-%m-%d').tolist()
         sma_values, weekly_sma_values, monthly_sma_values = Math.calculate_sma(daily_close_prices)
         return sma_values, weekly_sma_values, monthly_sma_values, latest_close_prices, latest_dates
+
+    def calculate_k15_sma(self, stock_id):
+        # k15_data = self.get_stock_kbar_from_db(stock_id, start_date, end_date)
+        # 獲取K線數據
+        kbars = self.get_stock_kbar_from_db_top300(stock_id)
+
+        if kbars.empty:
+            return ["NaN", "NaN", "NaN"]
         
+        # 轉換時間格式
+        kbars['date'] = pd.to_datetime(kbars['date'])
+        kbars = kbars.set_index('date')
+        
+        # 按日期分組
+        daily_groups = kbars.groupby(kbars.index.date)
+        
+        # 存儲所有15K數據
+        all_k15 = []
+        
+        for date, day_data in daily_groups:
+            # 設定當天的起始時間（0900）
+            start_time = pd.Timestamp(date).replace(hour=9, minute=15)
+            
+            # 重採樣，從0900開始每15分鐘
+            k15_day = day_data.resample('15T', origin=start_time, closed='right', label='right').agg({
+                'Open_Price': 'last',
+                'High': 'last',
+                'Low': 'last',
+                'Close_Price': 'last',
+                'Volume': 'sum'
+            })
+            
+            all_k15.append(k15_day)
+        
+        # 合併所有日期的數據
+        k15 = pd.concat(all_k15)
+
+        # 計算15分鐘K線的SMA
+        k15_sma = [
+            round(k15['Close_Price'].rolling(window=5).mean().iloc[-1], 2),
+            round(k15['Close_Price'].rolling(window=10).mean().iloc[-1], 2),
+            round(k15['Close_Price'].rolling(window=20).mean().iloc[-1], 2)
+        ]
+
+        return k15_sma
