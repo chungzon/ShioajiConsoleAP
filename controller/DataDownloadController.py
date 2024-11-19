@@ -1,6 +1,8 @@
 ﻿from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
+import threading
+from Event import EventBus, Event
 
 class DataDownloadController:
     def __init__(self, model, view):
@@ -66,3 +68,23 @@ class DataDownloadController:
         end_time = time.time()
         duration = end_time - start_time
         return date, duration
+
+    def start_download_all(self, start_date, end_date):
+        # 訂閱日誌消息
+        self.model.event_bus.subscribe("log_message", self.view.handle_log_message)
+        
+        # 創建並啟動下載線程
+        download_thread = threading.Thread(
+            target=self.run_download,
+            args=(start_date, end_date),
+            daemon=True  # 設置為守護線程，這樣主程序結束時線程會自動結束
+        )
+        download_thread.start()
+    
+    def run_download(self, start_date, end_date):
+        try:
+            self.model.get_all_stocks_kbars(start_date, end_date)
+        except Exception as e:
+            # 發送錯誤消息到界面
+            self.model.event_bus.publish(Event("log_message", f"下載過程發生錯誤: {str(e)}"))
+        

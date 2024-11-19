@@ -1,12 +1,16 @@
 ﻿import pymssql
 import pandas as pd
 
+from Event import EventBus, Event
+from model.BaseModel import BaseModel
 
-class DataDownloadModel:
+
+class DataDownloadModel(BaseModel):
 
 
     def __init__(self, api):
         self.api = api
+        self.event_bus = EventBus()
         
     def connect_db(self):
         conn = pymssql.connect(
@@ -50,3 +54,22 @@ class DataDownloadModel:
         conn.commit()
         cursor.close()
         conn.close()
+
+    def get_kbars_data_by_start_end_date(self, stock_id, start_date, end_date):
+        contract = self.api.Contracts.Stocks[str(stock_id)]
+        kbars = self.api.kbars(
+            contract=contract,
+            start=start_date,
+            end=end_date
+        )
+        df = pd.DataFrame({**kbars})
+        df.ts = pd.to_datetime(df.ts)  # 將時間戳轉換為datetime
+        return df
+
+    def get_all_stocks_kbars(self, start_date, end_date):
+        top_stocks = self.get_top_volumn_stocks(5)
+        for stock_id in top_stocks:
+            kbars_df = self.get_kbars_data_by_start_end_date(stock_id, start_date, end_date)
+            self.insert_kbars(kbars_df, stock_id)
+            self.event_bus.publish(Event("log_message", f"下載股票 {stock_id} 的KBar資料"))
+

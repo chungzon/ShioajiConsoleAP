@@ -7,10 +7,18 @@ import os
 from common.Math import Math
 
 class BaseModel:
-
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    resource_dir = os.path.join(current_dir, '..', 'resource')
+    file_path =  os.path.join(resource_dir, 'stock_top.xlsx')
 
     def __init__(self, api):
         self.api = api
+                # 獲取當前文件的目錄
+        # current_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # # 構建相對路徑
+        # resource_dir = os.path.join(current_dir, '..', 'resource')
+        # self.file_path = os.path.join(resource_dir, 'stock_top.xlsx')
         
     def connect_db(self):
         conn = pymssql.connect(
@@ -873,3 +881,25 @@ class BaseModel:
         ]
 
         return k15_sma
+
+    def get_top_volumn_stocks(self, top_n):
+        try:
+            # 從 Excel 文件中讀取數據
+            stock_df = pd.read_excel(self.file_path)
+
+            # 確認列標題是否包含 '股票代號'
+            if '股票代號' in stock_df.columns:
+                top_n = int(top_n)  # 确保 top_n 是整数
+                available_stocks = len(stock_df['股票代號'])
+                if available_stocks < top_n:
+                    return f"錯誤：只有 {available_stocks} 筆資料可用，少於要求的 {top_n} 筆"
+                else:
+                    top_stocks = stock_df['股票代號'][:top_n]
+                    return top_stocks.tolist()
+            else:
+                print("列標題中沒有 '股票代號'")
+                return []
+
+        except Exception as e:
+            print(f"讀取文件時發生錯誤: {e}")
+            return []

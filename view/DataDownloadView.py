@@ -29,6 +29,9 @@ class DataDownloadView(tk.Frame):
 
         ttk.Button(self, text="下載", command=self.start_download).grid(row=4, column=0, columnspan=2, pady=10)
 
+        # 下載全部股票KBar
+        ttk.Button(self, text="下載全部股票分K資料", command=self.start_download_all).grid(row=4, column=2, pady=10)
+
     def start_download(self):
         stock_id = self.stock_id_entry.get()
         start_date = self.start_date_ticks_entry.get()
@@ -53,3 +56,16 @@ class DataDownloadView(tk.Frame):
         
     def set_progress_config(self, dates):
         self.progress.config(maximum=dates)
+
+    # 下載全部股票KBar
+    def start_download_all(self):
+        start_date = self.start_date_ticks_entry.get()
+        end_date = self.end_date_ticks_entry.get()
+        self.controller.start_download_all(start_date, end_date)
+
+    def handle_log_message(self, event):
+        # 使用 after 方法確保在主線程中更新 GUI
+        self.after(0, lambda: self.append_log(event.data))
+
+    def append_log(self, message):
+        print(message)
