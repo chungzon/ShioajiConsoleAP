@@ -67,7 +67,7 @@ class DataDownloadModel(BaseModel):
         return df
 
     def get_all_stocks_kbars(self, start_date, end_date):
-        top_stocks = self.get_top_volumn_stocks(5)
+        top_stocks = self.get_top_volumn_stocks()
         for stock_id in top_stocks:
             kbars_df = self.get_kbars_data_by_start_end_date(stock_id, start_date, end_date)
             self.insert_kbars(kbars_df, stock_id)

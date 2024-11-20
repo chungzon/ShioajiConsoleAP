@@ -882,15 +882,19 @@ class BaseModel:
 
         return k15_sma
 
-    def get_top_volumn_stocks(self, top_n):
+    def get_top_volumn_stocks(self, top_n=None):
         try:
             # 從 Excel 文件中讀取數據
             stock_df = pd.read_excel(self.file_path)
 
             # 確認列標題是否包含 '股票代號'
             if '股票代號' in stock_df.columns:
-                top_n = int(top_n)  # 确保 top_n 是整数
                 available_stocks = len(stock_df['股票代號'])
+                if top_n is None:
+                    top_stocks = stock_df['股票代號']
+                    return top_stocks.tolist()
+                
+                top_n = int(top_n)  # 确保 top_n 是整数
                 if available_stocks < top_n:
                     return f"錯誤：只有 {available_stocks} 筆資料可用，少於要求的 {top_n} 筆"
                 else:
