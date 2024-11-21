@@ -885,7 +885,10 @@ class BaseModel:
     def get_top_volumn_stocks(self, top_n=None):
         try:
             # 從 Excel 文件中讀取數據
-            stock_df = pd.read_excel(self.file_path)
+            stock_df = pd.read_excel(
+                self.file_path, 
+                dtype={'股票代號': str}  # 將股票代號列指定為字串類型
+             )
 
             # 確認列標題是否包含 '股票代號'
             if '股票代號' in stock_df.columns:
