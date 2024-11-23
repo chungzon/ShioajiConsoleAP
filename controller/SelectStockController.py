@@ -50,11 +50,11 @@ class SelectStockController:
                 "120MA": recent_segment.get('monthly_sma_120', 'N/A')
             },
             "15分鐘均線": {
-                "5MA": recent_segment.get('k15_sma_5', 'N/A'),
-                "10MA": recent_segment.get('k15_sma_10', 'N/A'),
-                "20MA": recent_segment.get('k15_sma_20', 'N/A'),
-                "60MA": recent_segment.get('k15_sma_60', 'N/A'),
-                "120MA": recent_segment.get('k15_sma_120', 'N/A')
+                "5MA": recent_segment.get('15min_sma_5', 'N/A'),
+                "10MA": recent_segment.get('15min_sma_10', 'N/A'),
+                "20MA": recent_segment.get('15min_sma_20', 'N/A'),
+                "60MA": recent_segment.get('15min_sma_60', 'N/A'),
+                "120MA": recent_segment.get('15min_sma_120', 'N/A')
             }
         }
 

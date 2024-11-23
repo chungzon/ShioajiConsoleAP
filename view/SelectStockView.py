@@ -116,15 +116,17 @@ class SelectStockView(tk.Frame):
                        120: tk.BooleanVar(value=False)},
             'monthly': {5: tk.BooleanVar(value=False), 10: tk.BooleanVar(value=False), 
                         20: tk.BooleanVar(value=False), 60: tk.BooleanVar(value=True), 
-                        120: tk.BooleanVar(value=False)}
+                        120: tk.BooleanVar(value=False)},
+            '15min': {5: tk.BooleanVar(value=False), 10: tk.BooleanVar(value=False), 
+                     20: tk.BooleanVar(value=False)}
         }
         self.select_all_vars = {
             'daily': tk.BooleanVar(value=False),
             'weekly': tk.BooleanVar(value=False),
-            'monthly': tk.BooleanVar(value=False)
+            'monthly': tk.BooleanVar(value=False),
+            '15min': tk.BooleanVar(value=False)
         }
-        ma_types = [("日均線", 'daily'), ("週均線", 'weekly'), ("月均線", 'monthly')]
-        ma_types = [("日均線", 'daily'), ("週均線", 'weekly'), ("月均線", 'monthly')]
+        ma_types = [("日均線", 'daily'), ("週均線", 'weekly'), ("月均線", 'monthly'), ("15分K", '15min')]
         for i, (ma_type, ma_key) in enumerate(ma_types):
             frame = ttk.Frame(row2_frame)
             frame.pack(padx=5, pady=5, anchor="w")
@@ -138,6 +140,8 @@ class SelectStockView(tk.Frame):
             select_all_cb.pack(side="left", padx=(0, 10))
 
             for period in [5, 10, 20, 60, 120]:
+                if ma_key == '15min' and period not in [5, 10, 20]:
+                    continue
                 cb = ttk.Checkbutton(frame, text=f"{period}", 
                                      variable=self.ma_selections[ma_key][period],
                                      command=lambda k=ma_key: self.update_select_all(k))
@@ -219,7 +223,8 @@ class SelectStockView(tk.Frame):
         ma_selections = {
             'daily': {period: var.get() for period, var in self.ma_selections['daily'].items()},
             'weekly': {period: var.get() for period, var in self.ma_selections['weekly'].items()},
-            'monthly': {period: var.get() for period, var in self.ma_selections['monthly'].items()}
+            'monthly': {period: var.get() for period, var in self.ma_selections['monthly'].items()},
+            '15min': {period: var.get() for period, var in self.ma_selections['15min'].items()}
         }
 
         # 清空 TreeView 中的現有數據

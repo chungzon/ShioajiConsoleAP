@@ -383,7 +383,7 @@ class SelectStockModel(BaseModel):
         is_any_ma_selected = False
         is_above_all_selected_ma = True
 
-        for ma_type in ['daily', 'weekly', 'monthly']:
+        for ma_type in ['daily', 'weekly', 'monthly', '15min']:
             for period, is_selected in ma_selections[ma_type].items():
                 if is_selected:
                     is_any_ma_selected = True

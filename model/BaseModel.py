@@ -226,7 +226,7 @@ class BaseModel:
         weekly_sma_columns = [f'weekly_sma_{period}' for period in periods]
         monthly_sma_columns = [f'monthly_sma_{period}' for period in periods]
         k15_periods = [5, 10, 20]
-        k15_sma_columns = [f'k15_sma_{period}' for period in k15_periods]
+        k15_sma_columns = [f'15min_sma_{period}' for period in k15_periods]
 
         # 計算CDP中的5個數據，df資料若不夠，也要例外
         try:
