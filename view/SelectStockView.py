@@ -388,6 +388,11 @@ class SelectStockView(tk.Frame):
         total_rows = (len(ratios) * 2 - 1) + 2
         table.setRowCount(total_rows)
         table.setHorizontalHeaderLabels(["比例", "總波段", "指標", "最近波段"])
+        header_font = QFont('Microsoft JhengHei', 12, QFont.Bold)
+        table.horizontalHeader().setFont(header_font)
+        font = QFont()
+        font.setPointSize(13)
+        table.setFont(font)
 
         def find_row_for_value(value):
             min_price = float(ratio_prices['總波段']['0'])
