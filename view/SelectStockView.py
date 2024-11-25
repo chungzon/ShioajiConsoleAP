@@ -373,9 +373,9 @@ class SelectStockView(tk.Frame):
         table.resizeColumnsToContents()
         return table
 
-    def create_ratio_table(self, ratio_prices, indicator_prices, organized_ma_data):
+    def create_ratio_table(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices):
         table = QTableWidget()
-        table.setColumnCount(3)  # 改为3列：比例、總波段、指標
+        table.setColumnCount(4)  # 比例、總波段、指標, 最近波段
         
         # 设置固定的比例序列
         ratios = ['0', '0.191', '0.382', '0.5', '0.618', '0.809', '1', 
@@ -384,132 +384,11 @@ class SelectStockView(tk.Frame):
                  '3.191', '3.382', '3.5', '3.618', '3.809', '4',
                  '4.191', '4.382', '4.5', '4.618', '4.809', '5']
         
-        # 计算总行数（包括前后和中间的空白行）
-        total_rows = (len(ratios) * 2 - 1) + 2  # 加2是为了前后的空白行
+        # 計算總行數
+        total_rows = (len(ratios) * 2 - 1) + 2
         table.setRowCount(total_rows)
-        table.setHorizontalHeaderLabels(["比例", "總波段", "指標"])
+        table.setHorizontalHeaderLabels(["比例", "總波段", "指標", "最近波段"])
 
-        font = QFont()
-        font.setPointSize(13)
-        table.setFont(font)
-        table.horizontalHeader().setFont(font)
-        
-        # 辅助函数：添加数据到单元格并按价格排序
-        def add_to_cell(row, col, new_text, is_daily_ma=False):
-            current_item = table.item(row, col)
-            current_text = current_item.text() if current_item else ""
-            
-            # 收集所有价格项及其属性（是否为日均价）
-            all_items = []
-            if current_text:
-                lines = current_text.split('\n')
-                for line in lines:
-                    is_daily = line.startswith('日')
-                    all_items.append((line, is_daily))
-            if new_text:
-                all_items.append((new_text, is_daily_ma))
-            
-            # 提取价格进行排序
-            def extract_price(item_tuple):
-                text = item_tuple[0]
-                try:
-                    # 提取价格，支持多种格式
-                    if '：' in text:
-                        price = float(text.split('：')[-1].split('(')[0])
-                    elif ':' in text:
-                        price = float(text.split(':')[-1].split('(')[0])
-                    else:
-                        price = float(text.split()[-1])
-                    return price  # 直接返回价格，实现从小到大排序
-                except:
-                    return float('inf')  # 无法提取价格的项放到最后
-            
-            # 按价格从小到大排序
-            all_items.sort(key=extract_price)
-            
-            # 创建最终的表格项
-            text_lines = []
-            for text, is_daily in all_items:
-                # 为每一行创建新的表格项
-                item = QTableWidgetItem(text)
-                if is_daily:
-                    item.setForeground(QBrush(QColor("red")))
-                else:
-                    item.setForeground(QBrush(QColor("black")))
-                text_lines.append(item)
-            
-            # 合并所有文本
-            final_text = '\n'.join(item.text() for item in text_lines)
-            new_item = QTableWidgetItem(final_text)
-            
-            # 设置背景色
-            if current_item:
-                new_item.setBackground(current_item.background())
-            else:
-                is_alternate = (row % 2) == 0
-                color = QColor("#F0F0F0") if is_alternate else QColor("#E6F3FF")
-                new_item.setBackground(QBrush(color))
-            
-            # 设置文本颜色
-            if is_daily_ma:
-                new_item.setForeground(QBrush(QColor("red")))
-            
-            table.setItem(row, col, new_item)
-        
-        # 设置交替行颜色
-        def set_row_color(table, row, is_alternate):
-            color = QColor("#FFFFFF") if is_alternate else QColor("#E6F3FF")  # 淺灰色 : 淺藍色
-            for col in range(table.columnCount()):
-                item = table.item(row, col)
-                if item is None:
-                    item = QTableWidgetItem()
-                item.setBackground(QBrush(color))
-                table.setItem(row, col, item)
-        
-        # 首先创建所有单元格并设置颜色
-        for row in range(total_rows):
-            # 第一行和最后一行是浅灰色
-            if row == 0 or row == total_rows - 1:
-                set_row_color(table, row, True)
-            # 其他行交替设置颜色
-            else:
-                is_alternate = (row % 2) == 0  # 偶数行使用浅灰色
-                set_row_color(table, row, is_alternate)
-        
-        # 填充比例和总波段数据（向下偏移一行）
-        for i, ratio in enumerate(ratios):
-            row = (i * 2) + 1  # 偏移一行
-            
-            # 设置比例行的颜色（奇数行）
-            set_row_color(table, row, False)
-            
-            # 设置比例
-            ratio_item = QTableWidgetItem(ratio)
-            is_alternate = (row % 2) == 0
-            color = QColor("#F0F0F0") if is_alternate else QColor("#E6F3FF")
-            ratio_item.setBackground(QBrush(color))
-            table.setItem(row, 0, ratio_item)
-            
-            # 设置总波段价格
-            price = ratio_prices['總波段'].get(ratio, 'N/A')
-            if hasattr(price, 'item'):
-                price = f"{price.item():.2f}"
-            price_item = QTableWidgetItem(str(price))
-            price_item.setBackground(QBrush(color))
-            table.setItem(row, 1, price_item)
-            
-            # 添加空白行并设置颜色（偶数行）
-            if i < len(ratios) - 1:
-                row_between = row + 1
-                set_row_color(table, row_between, True)
-                for col in range(table.columnCount()):
-                    table.setItem(row_between, col, QTableWidgetItem(""))
-        
-        # 设置第一行（0之前的空白行）和最后一行的颜色
-        set_row_color(table, 0, True)  # 第一个空白行
-        set_row_color(table, total_rows - 1, True)  # 最后一个空白行
-        
-        # 辅助函数：确定值应该填入哪一行
         def find_row_for_value(value):
             min_price = float(ratio_prices['總波段']['0'])
             max_price = float(ratio_prices['總波段']['4'])
@@ -536,49 +415,138 @@ class SelectStockView(tk.Frame):
             
             return total_rows - 1  # 如果没找到合适的位置，放在最后
 
-        # 处理均线数据 - 现在添加到指标列
-        ma_types = {
-            '日均線': '日',
-            '週均線': '周',
-            '月均線': '月',
-            '15分鐘均線': '15K'
-        }
-        
-        for ma_key, prefix in ma_types.items():
-            ma_data = organized_ma_data[ma_key]
-            for ma_period in ['5MA', '10MA', '20MA', '60MA', '120MA']:
-                if ma_period not in ma_data or ma_data[ma_period] == 'N/A':
-                    continue
-                    
-                value = ma_data[ma_period]
-                if hasattr(value, 'item'):
-                    value = value.item()
-                
-                period_num = ma_period.replace('MA', '')
-                ma_text = f"{prefix}({period_num})：{value:.2f}"
-                
-                # 找到应该填入的行
-                row = find_row_for_value(value)
-                add_to_cell(row, 2, ma_text)  # 现在添加到指标列(列索引2)
-        
-        # 处理指标数据
-        for indicator_name, value in indicator_prices.items():
+        def format_price_text(name, value, is_recent_ratio=False):
             if hasattr(value, 'item'):
                 value = value.item()
+            return f"{name}：{value:.2f}"
+
+        # 設置比例欄位和總波段欄位
+        def setup_basic_columns():
+            # 設置交替行顏色
+            for row in range(total_rows):
+                is_alternate = (row % 2) == 0
+                color = QColor("#F0F0F0") if is_alternate else QColor("#E6F3FF")
+                
+                # 第一行和最後一行是空白行
+                if row == 0 or row == total_rows - 1:
+                    for col in range(4):
+                        item = QTableWidgetItem("")
+                        item.setBackground(QBrush(color))
+                        table.setItem(row, col, item)
+                    continue
+                
+                # 比例行
+                if (row - 1) % 2 == 0 and (row - 1) // 2 < len(ratios):
+                    ratio_idx = (row - 1) // 2
+                    
+                    # 比例欄位
+                    ratio_item = QTableWidgetItem(ratios[ratio_idx])
+                    ratio_item.setBackground(QBrush(color))
+                    table.setItem(row, 0, ratio_item)
+                    
+                    # 總波段欄位
+                    wave_price = ratio_prices['總波段'][ratios[ratio_idx]]
+                    if hasattr(wave_price, 'item'):
+                        wave_price = wave_price.item()
+                    price_item = QTableWidgetItem(f"{wave_price:.2f}")
+                    price_item.setBackground(QBrush(color))
+                    table.setItem(row, 1, price_item)
+                
+                # 中間的空白行
+                else:
+                    for col in range(4):
+                        item = QTableWidgetItem("")
+                        item.setBackground(QBrush(color))
+                        table.setItem(row, col, item)
+
+        def add_sorted_prices_to_cell(row, prices_list):
+            """將所有價格一起排序後添加到指標列"""
+            # 按價格排序所有價格
+            sorted_prices = sorted(prices_list, key=lambda x: x[1])
             
-            # 找到应该填入的行
+            # 生成顯示文本
+            text_lines = []
+            for name, value, is_recent_ratio in sorted_prices:
+                if is_recent_ratio:
+                    text_lines.append("")  # 最近波段價格的位置用空行表示
+                else:
+                    text_lines.append(format_price_text(name, value))
+            
+            # 創建表格項並設置文本
+            indicator_item = QTableWidgetItem('\n'.join(text_lines))
+            
+            # 設置背景色
+            is_alternate = (row % 2) == 0
+            color = QColor("#F0F0F0") if is_alternate else QColor("#E6F3FF")
+            indicator_item.setBackground(QBrush(color))
+            
+            # 設置到表格中
+            table.setItem(row, 2, indicator_item)
+            
+            # 在最近波段列中顯示最近波段價格
+            recent_lines = []
+            for name, value, is_recent_ratio in sorted_prices:
+                if is_recent_ratio:
+                    recent_lines.append(format_price_text(name, value))
+                else:
+                    recent_lines.append("")  # 指標價格的位置用空行表示
+            
+            recent_item = QTableWidgetItem('\n'.join(recent_lines))
+            recent_item.setBackground(QBrush(color))
+            table.setItem(row, 3, recent_item)
+
+        # 首先設置基本欄位
+        setup_basic_columns()
+
+        # 收集所有價格數據
+        def collect_all_prices():
+            all_prices = []
+            
+            # 添加指標數據
+            for name, value in indicator_prices.items():
+                all_prices.append((name, value, False))
+            
+            # 添加均線數據
+            ma_types = {'日均線': '日', '週均線': '周', '月均線': '月', '15分鐘均線': '15K'}
+            for ma_key, prefix in ma_types.items():
+                ma_data = organized_ma_data[ma_key]
+                for ma_period in ['5MA', '10MA', '20MA', '60MA', '120MA']:
+                    if ma_period in ma_data and ma_data[ma_period] != 'N/A':
+                        value = ma_data[ma_period]
+                        period_num = ma_period.replace('MA', '')
+                        name = f"{prefix}({period_num})"
+                        all_prices.append((name, value, False))
+            
+            # 添加最近波段數據
+            if recent_ratio_prices:
+                for ratio, value in recent_ratio_prices.items():
+                    name = f"比例{ratio}"
+                    all_prices.append((name, value, True))
+            
+            return all_prices
+
+        # 按價格分組到對應的行
+        row_prices = {}
+        for name, value, is_recent_ratio in collect_all_prices():
+            if hasattr(value, 'item'):
+                value = value.item()
             row = find_row_for_value(value)
-            indicator_text = f"{indicator_name}：{value:.2f}"
-            add_to_cell(row, 2, indicator_text)  # 添加到指标列
-        
-        # 调整行高和列宽
-        for row in range(table.rowCount()):
-            table.resizeRowToContents(row)
+            
+            if row not in row_prices:
+                row_prices[row] = []
+            row_prices[row].append((name, value, is_recent_ratio))
+
+        # 填充價格數據
+        for row, prices in row_prices.items():
+            add_sorted_prices_to_cell(row, prices)
+
+        # 調整表格外觀
         table.resizeColumnsToContents()
-        
+        table.resizeRowsToContents()
+
         return table
 
-    def show_sma_data(self, stock_id, stock_name, organized_ma_data, ratio_prices, additional_data, indicator_prices):
+    def show_sma_data(self, stock_id, stock_name, organized_ma_data, ratio_prices, additional_data, indicator_prices, recent_ratio_prices):
         self.detail_window = QWidget()
         self.detail_window.setWindowTitle(f"詳細資料 - {stock_id} ({stock_name})")
         self.detail_window.setGeometry(100, 100, 1000, 750)
@@ -694,7 +662,7 @@ class SelectStockView(tk.Frame):
         
         # 比例价格表格
         ratio_layout = QVBoxLayout()
-        ratio_table = self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data)
+        ratio_table = self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices)
         ratio_layout.addWidget(ratio_table)
         self.ratio_tab.setLayout(ratio_layout)
         
@@ -706,7 +674,7 @@ class SelectStockView(tk.Frame):
         self.detail_window.show()
 
     def insert_table_row(self, table, row, values):
-        """輔助函數：插��一行數據到表格中"""
+        """輔助函數：插一行數據到表格中"""
         for col, value in enumerate(values):
             item = QTableWidgetItem(str(value))
             item.setTextAlignment(Qt.AlignCenter)
@@ -914,7 +882,7 @@ class SelectStockView(tk.Frame):
     def _update_tree_safe(self, stock_segment):
         """在主线程中安全地更新树形视图"""
         try:
-            # 获取当前树形视图中的项目数
+            # 获取当前树形视图的项目数
             current_items = len(self.tree.get_children())
             group_number = current_items // 3
             tag = 'Blue' if group_number % 2 == 0 else 'White'

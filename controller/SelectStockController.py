@@ -58,6 +58,28 @@ class SelectStockController:
             }
         }
 
+        # 最近波段比例價格0.191~3
+        recent_ratio_prices = {
+            '0.191': recent_segment.get('Ratio_0.191', 'N/A'),
+            '0.382': recent_segment.get('Ratio_0.382', 'N/A'),
+            '0.5': recent_segment.get('Ratio_0.5', 'N/A'),
+            '0.618': recent_segment.get('Ratio_0.618', 'N/A'),
+            '0.809': recent_segment.get('Ratio_0.809', 'N/A'),
+            '1': recent_segment.get('Ratio_1', 'N/A'),
+            '1.191': recent_segment.get('Ratio_1.191', 'N/A'),
+            '1.382': recent_segment.get('Ratio_1.382', 'N/A'),
+            '1.5': recent_segment.get('Ratio_1.5', 'N/A'),
+            '1.618': recent_segment.get('Ratio_1.618', 'N/A'),
+            '1.809': recent_segment.get('Ratio_1.809', 'N/A'),
+            '2': recent_segment.get('Ratio_2', 'N/A'),
+            '2.191': recent_segment.get('Ratio_2.191', 'N/A'),
+            '2.382': recent_segment.get('Ratio_2.382', 'N/A'),
+            '2.5': recent_segment.get('Ratio_2.5', 'N/A'),
+            '2.618': recent_segment.get('Ratio_2.618', 'N/A'),
+            '2.809': recent_segment.get('Ratio_2.809', 'N/A'),
+            '3': recent_segment.get('Ratio_3', 'N/A')
+        }
+
         # 整理比例價格數據（包括最近波段和總波段）
         ratio_prices = {
             # "最近波段": {
@@ -141,5 +163,5 @@ class SelectStockController:
             'AL': total_segment.get('AL', 'N/A')
         }
 
-        self.view.show_sma_data(stock_id, stock_name, organized_ma_data, ratio_prices, additional_data, indicator_prices)
+        self.view.show_sma_data(stock_id, stock_name, organized_ma_data, ratio_prices, additional_data, indicator_prices, recent_ratio_prices)
         
