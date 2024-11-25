@@ -109,7 +109,7 @@ class SelectStockView(tk.Frame):
 
         self.ma_selections = {
             'daily': {5: tk.BooleanVar(value=False), 10: tk.BooleanVar(value=False), 
-                      20: tk.BooleanVar(value=False), 60: tk.BooleanVar(value=True), 
+                      20: tk.BooleanVar(value=False), 60: tk.BooleanVar(value=False), 
                       120: tk.BooleanVar(value=False)},
             'weekly': {5: tk.BooleanVar(value=False), 10: tk.BooleanVar(value=False), 
                        20: tk.BooleanVar(value=False), 60: tk.BooleanVar(value=True), 
@@ -117,14 +117,14 @@ class SelectStockView(tk.Frame):
             'monthly': {5: tk.BooleanVar(value=False), 10: tk.BooleanVar(value=False), 
                         20: tk.BooleanVar(value=False), 60: tk.BooleanVar(value=True), 
                         120: tk.BooleanVar(value=False)},
-            '15min': {5: tk.BooleanVar(value=False), 10: tk.BooleanVar(value=False), 
-                     20: tk.BooleanVar(value=False)}
+            '15min': {5: tk.BooleanVar(value=True), 10: tk.BooleanVar(value=True), 
+                     20: tk.BooleanVar(value=True)}
         }
         self.select_all_vars = {
             'daily': tk.BooleanVar(value=False),
             'weekly': tk.BooleanVar(value=False),
             'monthly': tk.BooleanVar(value=False),
-            '15min': tk.BooleanVar(value=False)
+            '15min': tk.BooleanVar(value=True)
         }
         ma_types = [("日均線", 'daily'), ("週均線", 'weekly'), ("月均線", 'monthly'), ("15分K", '15min')]
         for i, (ma_type, ma_key) in enumerate(ma_types):
@@ -525,7 +525,7 @@ class SelectStockView(tk.Frame):
             # 添加最近波段數據
             if recent_ratio_prices:
                 for ratio, value in recent_ratio_prices.items():
-                    name = f"比例{ratio}"
+                    name = f"【{ratio}】"
                     all_prices.append((name, value, True))
             
             return all_prices

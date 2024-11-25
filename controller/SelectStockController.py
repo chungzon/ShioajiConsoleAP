@@ -60,6 +60,7 @@ class SelectStockController:
 
         # 最近波段比例價格0.191~3
         recent_ratio_prices = {
+            '0': recent_segment.get('Ratio_0', 'N/A'),
             '0.191': recent_segment.get('Ratio_0.191', 'N/A'),
             '0.382': recent_segment.get('Ratio_0.382', 'N/A'),
             '0.5': recent_segment.get('Ratio_0.5', 'N/A'),
