@@ -71,6 +71,7 @@ class SelectStockView(tk.Frame):
         ttk.Label(row1_frame, text="0618與Head價差比例").pack(side=tk.LEFT, padx=(10,5))
         ttk.Label(row1_frame, text="±").pack(side=tk.LEFT)
         self.ratio_entry = ttk.Entry(row1_frame, width=10)
+        self.ratio_entry.insert(0, "0.15")  # 設置預設值為 0.15
         self.ratio_entry.pack(side=tk.LEFT, padx=(0,5))
         # 現價-0618比例
         ttk.Label(row1_frame, text="現價-0191比例").pack(side=tk.LEFT, padx=5)
