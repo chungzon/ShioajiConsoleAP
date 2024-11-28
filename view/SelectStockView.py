@@ -51,15 +51,15 @@ class SelectStockView(tk.Frame):
         row1_frame.grid(row=0, column=0, sticky="w", pady=(0, 5))
 
         # 添加日期選擇元件
-        date_frame = ttk.Frame(row1_frame)
-        date_frame.pack(side=tk.LEFT, padx=(0, 10))
+        # date_frame = ttk.Frame(row1_frame)
+        # date_frame.pack(side=tk.LEFT, padx=(0, 10))
 
-        ttk.Label(date_frame, text="開始日期:").pack(side=tk.LEFT)
-        self.start_date = DateEntry(date_frame, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='yyyy-mm-dd')
+        ttk.Label(row1_frame, text="開始日期:").pack(side=tk.LEFT)
+        self.start_date = DateEntry(row1_frame, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='yyyy-mm-dd')
         self.start_date.pack(side=tk.LEFT, padx=(0, 10))
 
-        ttk.Label(date_frame, text="結束日期:").pack(side=tk.LEFT)
-        self.end_date = DateEntry(date_frame, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='yyyy-mm-dd')
+        ttk.Label(row1_frame, text="結束日期:").pack(side=tk.LEFT)
+        self.end_date = DateEntry(row1_frame, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern='yyyy-mm-dd')
         self.end_date.pack(side=tk.LEFT)
 
         # 設置默認日期（例如：最近一年）
@@ -73,19 +73,7 @@ class SelectStockView(tk.Frame):
         self.ratio_entry = ttk.Entry(row1_frame, width=10)
         self.ratio_entry.insert(0, "0.15")  # 設置預設值為 0.15
         self.ratio_entry.pack(side=tk.LEFT, padx=(0,5))
-        # 現價-0618比例
-        ttk.Label(row1_frame, text="現價-0191比例").pack(side=tk.LEFT, padx=5)
-        ttk.Label(row1_frame, text="+").pack(side=tk.LEFT)
-        self.ratio_positive_entry = ttk.Entry(row1_frame, width=5)
-        self.ratio_positive_entry.insert(0, "0.03")  # 設置預設值為 0.03    
-        self.ratio_positive_entry.pack(side=tk.LEFT, padx=(0,5))
-        ttk.Label(row1_frame, text="~").pack(side=tk.LEFT)
-        ttk.Label(row1_frame, text="-").pack(side=tk.LEFT)
-        self.ratio_native_entry = ttk.Entry(row1_frame, width=5)
-        self.ratio_native_entry.insert(0, "0.05")  # 設置預設值為 0.05
-        self.ratio_native_entry.pack(side=tk.LEFT, padx=(0,5))
-
-
+        
         self.recent_wave_var = tk.BooleanVar()
         self.highest_wave_var = tk.BooleanVar()
         self.total_wave_var = tk.BooleanVar()
@@ -128,25 +116,71 @@ class SelectStockView(tk.Frame):
             '15min': tk.BooleanVar(value=True)
         }
         ma_types = [("日均線", 'daily'), ("週均線", 'weekly'), ("月均線", 'monthly'), ("15分K", '15min')]
+        ma_frame = ttk.LabelFrame(row2_frame, text="均線")
+        ma_frame.grid(row=0, column=0, sticky="nw", pady=(0, 5))
         for i, (ma_type, ma_key) in enumerate(ma_types):
-            frame = ttk.Frame(row2_frame)
-            frame.pack(padx=5, pady=5, anchor="w")
+            # frame = ttk.Frame(ma_frame)
+            # frame.pack(padx=5, pady=5, anchor="w")
             
-            ttk.Label(frame, text=ma_type, width=8).pack(side="left")
+            # ttk.Label(ma_frame, text=ma_type, width=8).pack(side="left")
+            ttk.Label(ma_frame, text=ma_type, width=8).grid(row=i, column=0, sticky="w", padx=(0, 5))
             
             # 添加全選 checkbox
-            select_all_cb = ttk.Checkbutton(frame, text="全選", 
+            select_all_cb = ttk.Checkbutton(ma_frame, text="全選", 
                                             variable=self.select_all_vars[ma_key],
                                             command=lambda k=ma_key: self.toggle_all(k))
-            select_all_cb.pack(side="left", padx=(0, 10))
-
+            select_all_cb.grid(row=i, column=1, sticky="w", padx=(0, 10))
+            j = 1
             for period in [5, 10, 20, 60, 120]:
                 if ma_key == '15min' and period not in [5, 10, 20]:
                     continue
-                cb = ttk.Checkbutton(frame, text=f"{period}", 
+                j = j + 1
+                cb = ttk.Checkbutton(ma_frame, text=f"{period}", 
                                      variable=self.ma_selections[ma_key][period],
                                      command=lambda k=ma_key: self.update_select_all(k))
-                cb.pack(side="left", padx=(0, 5))
+                cb.grid(row=i, column=j, sticky="w", padx=(0, 5))
+
+        # self.ratio_checkbox_frame = ttk.Frame(row2_frame)
+        self.ratio_checkbox_frame = ttk.LabelFrame(row2_frame, text="[買價、現價]價差比例")
+        self.ratio_checkbox_frame.grid(row=0, column=1, sticky="nw", pady=(0, 5), padx=(5, 5))
+        ratio_diff_frame = ttk.Frame(self.ratio_checkbox_frame)
+        ratio_diff_frame.grid(row=0, column=0, sticky="w")
+        ttk.Checkbutton(ratio_diff_frame, text="買價").pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Checkbutton(ratio_diff_frame, text="現價").pack(side=tk.LEFT, padx=(0, 5))    
+        ttk.Label(ratio_diff_frame, text="+").pack(side=tk.LEFT)
+        self.ratio_positive_entry = ttk.Entry(ratio_diff_frame, width=5)
+        self.ratio_positive_entry.insert(0, "0.00")  # 設置預設值為 0.03    
+        self.ratio_positive_entry.pack(side=tk.LEFT, padx=(0,5))
+        ttk.Label(ratio_diff_frame, text="~").pack(side=tk.LEFT)
+        ttk.Label(ratio_diff_frame, text="-").pack(side=tk.LEFT)
+        self.ratio_native_entry = ttk.Entry(ratio_diff_frame, width=5)
+        self.ratio_native_entry.insert(0, "0.03")  # 設置預設值為 0.05
+        self.ratio_native_entry.pack(side=tk.LEFT, padx=(0,5))
+
+        ratio_frame = ttk.Frame(self.ratio_checkbox_frame)
+        ratio_frame.grid(row=1, column=0, sticky="w")
+
+        self.ratio_all_vars = {
+            '0.191': tk.BooleanVar(value=True),
+            '0.382': tk.BooleanVar(value=True),
+            '0.5': tk.BooleanVar(value=True),
+            '0.618': tk.BooleanVar(value=True),
+            '0.809': tk.BooleanVar(value=True),
+            '1': tk.BooleanVar(value=True),
+            '1.191': tk.BooleanVar(value=True),
+            '1.382': tk.BooleanVar(value=True),
+            '1.5': tk.BooleanVar(value=True),
+            '1.618': tk.BooleanVar(value=True),
+            '1.809': tk.BooleanVar(value=True),
+            '2': tk.BooleanVar(value=True),
+        }
+        # 比例0.191、0.382、0.5、0.618、0.809、1、1.191、1.382、1.5、1.618、1.809、2的checkbox，共12個
+        for index, ratio in enumerate(self.ratio_all_vars.keys()):
+            cb = ttk.Checkbutton(ratio_frame, text=f"{ratio}", variable=self.ratio_all_vars[ratio])
+            column = index % 6
+            row = index // 6
+            cb.grid(row=row, column=column, sticky="w", padx=(0, 5))
+
 
         # 設置 LabelFrame 來包含 Treeview
         self.table_frame = ttk.LabelFrame(self, text="股票資訊")
