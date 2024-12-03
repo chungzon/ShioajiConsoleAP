@@ -36,6 +36,7 @@ class SelectStockView(tk.Frame):
         self.data_queue = Queue()  # 用于存储待处理的股票数据
         self.processing = False
         self.start_update_thread()
+        self.model.event.register(self.print_stock_list)
 
     def init_ui(self):
         style = ttk.Style()
@@ -98,7 +99,7 @@ class SelectStockView(tk.Frame):
 
         self.ma_selections = {
             'daily': {5: tk.BooleanVar(value=False), 10: tk.BooleanVar(value=False), 
-                      20: tk.BooleanVar(value=False), 60: tk.BooleanVar(value=False), 
+                      20: tk.BooleanVar(value=False), 60: tk.BooleanVar(value=True), 
                       120: tk.BooleanVar(value=False)},
             'weekly': {5: tk.BooleanVar(value=False), 10: tk.BooleanVar(value=False), 
                        20: tk.BooleanVar(value=False), 60: tk.BooleanVar(value=True), 
@@ -145,8 +146,12 @@ class SelectStockView(tk.Frame):
         self.ratio_checkbox_frame.grid(row=0, column=1, sticky="nw", pady=(0, 5), padx=(5, 5))
         ratio_diff_frame = ttk.Frame(self.ratio_checkbox_frame)
         ratio_diff_frame.grid(row=0, column=0, sticky="w")
-        ttk.Checkbutton(ratio_diff_frame, text="買價").pack(side=tk.LEFT, padx=(0, 5))
-        ttk.Checkbutton(ratio_diff_frame, text="現價").pack(side=tk.LEFT, padx=(0, 5))    
+        self.ratio_diff_vars = { 
+            'buy': tk.BooleanVar(value=True),
+            'current': tk.BooleanVar(value=True)
+        }
+        ttk.Checkbutton(ratio_diff_frame, text="買價", variable=self.ratio_diff_vars['buy']).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Checkbutton(ratio_diff_frame, text="現價", variable=self.ratio_diff_vars['current']).pack(side=tk.LEFT, padx=(0, 5))    
         ttk.Label(ratio_diff_frame, text="+").pack(side=tk.LEFT)
         self.ratio_positive_entry = ttk.Entry(ratio_diff_frame, width=5)
         self.ratio_positive_entry.insert(0, "0.00")  # 設置預設值為 0.03    
@@ -186,38 +191,42 @@ class SelectStockView(tk.Frame):
         self.table_frame = ttk.LabelFrame(self, text="股票資訊")
         self.table_frame.grid(row=2, column=0, pady=10, sticky="nsew")
 
-        # 定義欄位名稱
-        columns = ['股票代碼', '股票名稱', '現價','波段', 'Head-0618價差比例', '現價-0191比例', '0.191', '0.382', '0.5', '0.618', '0.809', '頸線', 'Head', 'Max_Date', 'Max_Value', 'Min_Date', 'Min_Value', '下載']
+        # 建立一個notebook，每個notebook均為TreeView
+        self.notebook = ttk.Notebook(self.table_frame)
+        self.notebook.grid(row=0, column=0, sticky="nsew")
 
-        # 設置 Treeview 並定義列
-        self.tree = ttk.Treeview(self.table_frame, columns=columns, show='headings')
-        self.tree.tag_configure('Blue', background="lightblue")
-        self.tree.tag_configure('White', background="white")
+        # # 定義欄位名稱
+        # columns = ['股票代碼', '股票名稱', '現價','波段', 'Head-0618價差比例', '現價-0191比例', '0.191', '0.382', '0.5', '0.618', '0.809', '頸線', 'Head', 'Max_Date', 'Max_Value', 'Min_Date', 'Min_Value', '下載']
 
-        # 定義每個欄位的標題和寬度
-        for col in columns:
-            self.tree.heading(col, text=col)
-            self.tree.column(col, width=100, anchor='center')
+        # # 設置 Treeview 並定義列
+        # self.tree = ttk.Treeview(self.table_frame, columns=columns, show='headings')
+        # self.tree.tag_configure('Blue', background="lightblue")
+        # self.tree.tag_configure('White', background="white")
 
-        self.tree.heading("下載", text="下載")
-        self.tree.column("下載", width=60, anchor="center")  # 設置下載列的寬度和對齊方式
+        # # 定義每個欄位的標題和寬度
+        # for col in columns:
+        #     self.tree.heading(col, text=col)
+        #     self.tree.column(col, width=100, anchor='center')
 
-        # 將 Treeview 放置在 LabelFrame 
-        self.tree.grid(row=0, column=0, sticky="nsew")
+        # self.tree.heading("下載", text="下載")
+        # self.tree.column("下載", width=60, anchor="center")  # 設置下載列的寬度和對齊方式
 
-        # 綁定事件
-        self.tree.bind("<Double-1>", self.on_double_click)
-        self.tree.bind("<Button-1>", self.on_click)
+        # # 將 Treeview 放置在 LabelFrame 
+        # self.tree.grid(row=0, column=0, sticky="nsew")
 
-        # 添加垂直滾動條
-        vsb = ttk.Scrollbar(self.table_frame, orient="vertical", command=self.tree.yview)
-        vsb.grid(row=0, column=1, sticky="ns")
-        self.tree.configure(yscrollcommand=vsb.set)
+        # # 綁定事件
+        # self.tree.bind("<Double-1>", self.on_double_click)
+        # self.tree.bind("<Button-1>", self.on_click)
 
-        # 添加水平滾動條
-        hsb = ttk.Scrollbar(self.table_frame, orient="horizontal", command=self.tree.xview)
-        hsb.grid(row=1, column=0, sticky="ew")
-        self.tree.configure(xscrollcommand=hsb.set)
+        # # 添加垂直滾動條
+        # vsb = ttk.Scrollbar(self.table_frame, orient="vertical", command=self.tree.yview)
+        # vsb.grid(row=0, column=1, sticky="ns")
+        # self.tree.configure(yscrollcommand=vsb.set)
+
+        # # 添加水平滾動條
+        # hsb = ttk.Scrollbar(self.table_frame, orient="horizontal", command=self.tree.xview)
+        # hsb.grid(row=1, column=0, sticky="ew")
+        # self.tree.configure(xscrollcommand=hsb.set)
 
         # 設置框架的網格配置，使其能夠隨著窗口調整大小
         self.grid_rowconfigure(2, weight=1)
@@ -229,6 +238,10 @@ class SelectStockView(tk.Frame):
         if self.processing:
             messagebox.showinfo("提示", "正在處理中，請稍候...")
             return
+        
+        # 清空notebook中的所有分頁
+        for page in self.notebook.winfo_children():
+            page.destroy()
             
         start_date = self.start_date.get_date().strftime('%Y-%m-%d')
         end_date = self.end_date.get_date().strftime('%Y-%m-%d')
@@ -262,9 +275,16 @@ class SelectStockView(tk.Frame):
             '15min': {period: var.get() for period, var in self.ma_selections['15min'].items()}
         }
 
+        ratio_all_vars = {ratio: var.get() for ratio, var in self.ratio_all_vars.items()}
+
+        ratio_type_vars = {
+            'buy': self.ratio_diff_vars['buy'].get(),
+            'current': self.ratio_diff_vars['current'].get()
+        }
+
         # 清空 TreeView 中的現有數據
-        for item in self.tree.get_children():
-            self.tree.delete(item)
+        # for item in self.tree.get_children():
+        #     self.tree.delete(item)
         
         self.processing = True
         
@@ -273,7 +293,7 @@ class SelectStockView(tk.Frame):
             target=self.process_calculation,
             args=(start_date, end_date, ratio, positive_ratio, native_ratio,
                   top_n, recent_wave_var, highest_wave_var, total_wave_var,
-                  ma_selections)
+                  ma_selections, ratio_all_vars, ratio_type_vars)
         )
         process_thread.daemon = True
         process_thread.start()
@@ -287,7 +307,7 @@ class SelectStockView(tk.Frame):
             self.tree.after(0, messagebox.showerror, "錯誤", f"計算過程中發生錯誤：{str(e)}")
         finally:
             self.processing = False
-            self.tree.after(0, self._calculation_finished)
+            self.notebook.after(0, self._calculation_finished)
 
     def _calculation_finished(self):
         """计算完成后的处理"""
@@ -319,7 +339,7 @@ class SelectStockView(tk.Frame):
                 self.show_detail_data(stock_id, stock_name)
 
     def show_copy_message(self, stock_code):
-        # 創建一個臨時標來顯示複製成功的消息
+        # 創建一個時標來顯示複製成功的消息
         msg = ttk.Label(self, text=f"已複製股票代碼: {stock_code}", foreground="green")
         msg.grid(row=3, column=0, columnspan=2, pady=5)
         
@@ -419,7 +439,7 @@ class SelectStockView(tk.Frame):
                  '3.191', '3.382', '3.5', '3.618', '3.809', '4',
                  '4.191', '4.382', '4.5', '4.618', '4.809', '5']
         
-        # 計算總行數
+        # 計算總行
         total_rows = (len(ratios) * 2 - 1) + 2
         table.setRowCount(total_rows)
         table.setHorizontalHeaderLabels(["比例", "總波段", "指標", "最近波段"])
@@ -905,7 +925,7 @@ class SelectStockView(tk.Frame):
                     break
                     
                 # 在主线程中更新UI
-                self.tree.after(0, self._update_tree_safe, stock_segment)
+                self.notebook.after(0, self._update_tree_safe, stock_segment)
                 self.data_queue.task_done()
             except Exception as e:
                 print(f"Error in process_data_queue: {e}")
@@ -920,51 +940,147 @@ class SelectStockView(tk.Frame):
             # print(f"Stock segment data: {stock_segment}")
 
     def _update_tree_safe(self, stock_segment):
-        """在主线程中安全地更新树形视图"""
+        """在主線程中安全地更新樹形視圖"""
         try:
-            # 获取当前树形视图的项目数
-            current_items = len(self.tree.get_children())
-            group_number = current_items // 3
-            tag = 'Blue' if group_number % 2 == 0 else 'White'
-
-            # 准备数据
-            values = self._prepare_tree_values(stock_segment)
+            matched_ratios = stock_segment['matched_ratios']
             
-            # 插入数据
-            self.tree.insert('', 'end', values=values, tags=(tag,))
-            
-            # 确保视图滚动到最新项目
-            self.tree.yview_moveto(1)
+            # 檢查是否已經存在該比例的頁面
+            for ratio in matched_ratios:
+                tab_name = f"比例 {ratio}"
+                
+                # 檢查是否已存在該分頁
+                existing_tree = None
+                for tab_id in range(self.notebook.index('end')):
+                    if self.notebook.tab(tab_id, "text") == tab_name:
+                        existing_tree = self.notebook.winfo_children()[tab_id].winfo_children()[0]
+                        break
+                
+                if existing_tree is None:
+                    # 如果分頁不存在，創建新分頁
+                    page = ttk.Frame(self.notebook)
+                    tree = self.create_page(page)
+                    self.notebook.add(page, text=tab_name)
+                    existing_tree = tree
+                
+                # 更新TreeView的數據
+                self._update_tree_data(existing_tree, stock_segment)
             
         except Exception as e:
             print(f"Error in _update_tree_safe: {e}")
-            # print(f"Stock segment data: {stock_segment}")
 
-    def _prepare_tree_values(self, stock_segment):
+    def create_page(self, page):
+        """創建TreeView的頁面"""
+        # 創建TreeView並添加到分頁中
+        tree = ttk.Treeview(page, columns=("stock_id", "name", "latest_close_price", "wave_type", 
+                                          "spread_ratio", "latest_close_price-0.191_ratio", 
+                                          "Ratio_0.191", "Ratio_0.382", "Ratio_0.5", 
+                                          "Ratio_0.618", "Ratio_0.809", "Ratio_1", 
+                                          "Max_Value", "Max_Date", "Min_Value", "Min_Date", "Download"))
+        
+        # 設置TreeView的列寬和標題
+        self._setup_tree_columns(tree)
+        
+        # 添加滾動條
+        scrollbar = ttk.Scrollbar(page, orient="vertical", command=tree.yview)
+        tree.configure(yscrollcommand=scrollbar.set)
+
+        # 使用grid布局管理器
+        tree.grid(row=0, column=0, sticky="nsew")
+        scrollbar.grid(row=0, column=1, sticky="ns")
+
+        # 配置grid權重
+        page.grid_columnconfigure(0, weight=1)
+        page.grid_rowconfigure(0, weight=1)
+
+        return tree
+
+    def _setup_tree_columns(self, tree):
+        """設置TreeView的列寬和標題"""
+        columns = {
+            "#0": ("", 0),
+            "stock_id": ("股票代號", 100),
+            "name": ("股票名稱", 100),
+            "latest_close_price": ("最新收盤價", 100),
+            "wave_type": ("波段類型", 100),
+            "spread_ratio": ("波段比例", 100),
+            "latest_close_price-0.191_ratio": ("最新收盤價-0.191比例", 100),
+            "Ratio_0.191": ("0.191比例", 100),
+            "Ratio_0.382": ("0.382比例", 100),
+            "Ratio_0.5": ("0.5比例", 100),
+            "Ratio_0.618": ("0.618比例", 100),
+            "Ratio_0.809": ("0.809比例", 100),
+            "Ratio_1": ("1比例", 100),
+            "Max_Value": ("最高價", 100),
+            "Max_Date": ("最高價日期", 100),
+            "Min_Value": ("最低價", 100),
+            "Min_Date": ("最低價日期", 100),
+            "Download": ("下載", 100)
+        }
+        
+        for col, (text, width) in columns.items():
+            tree.column(col, width=width)
+            if col != "#0":
+                tree.heading(col, text=text)
+
+    def _update_tree_data(self, tree, stock_segment):
+        """更新TreeView的數據"""
+        try:
+            # 准备 recent_segment 数据
+            recent_values = self._prepare_tree_values(stock_segment['stock_data']['recent_segment'], '最近波段')
+            if recent_values:
+                self._insert_tree_item(tree, recent_values)
+
+            # 准备 highest_segment 数据
+            highest_values = self._prepare_tree_values(stock_segment['stock_data']['highest_segment'], '最高波段')
+            if highest_values:
+                self._insert_tree_item(tree, highest_values)
+
+            # 准备 total_segment 数据
+            total_values = self._prepare_tree_values(stock_segment['stock_data']['total_segment'], '總波段')
+            if total_values:
+                self._insert_tree_item(tree, total_values)
+
+        except Exception as e:
+            print(f"Error in _update_tree_data: {e}")
+
+    def _prepare_tree_values(self, segment_data, wave_type):
         """准备树形视图的数据"""
         try:
             return (
-                stock_segment['stock_id'],
-                stock_segment['name'],
-                stock_segment['latest_close_price'],
-                stock_segment['wave_type'],
-                round(float(stock_segment['spread_ratio']), 3),
-                round(float(stock_segment['latest_close_price-0.191_ratio']), 3),
-                round(float(stock_segment['Ratio_0.191']), 2),
-                round(float(stock_segment['Ratio_0.382']), 2),
-                round(float(stock_segment['Ratio_0.5']), 2),
-                round(float(stock_segment['Ratio_0.618']), 2),
-                round(float(stock_segment['Ratio_0.809']), 2),
-                round(float(stock_segment['Ratio_1']), 2),
-                stock_segment['Max_Value'],
-                stock_segment['Max_Date'],
-                stock_segment['Max_Value'],
-                stock_segment['Min_Date'],
-                stock_segment['Min_Value'],
-                '下載' if stock_segment['wave_type'] == '最高波段' else '詳細資料'
+                segment_data['stock_id'],
+                segment_data['name'],
+                segment_data['latest_close_price'],
+                wave_type,
+                round(float(segment_data['spread_ratio']), 3),
+                round(float(segment_data['latest_close_price-0.191_ratio']), 3),
+                round(float(segment_data['Ratio_0.191']), 2),
+                round(float(segment_data['Ratio_0.382']), 2),
+                round(float(segment_data['Ratio_0.5']), 2),
+                round(float(segment_data['Ratio_0.618']), 2),
+                round(float(segment_data['Ratio_0.809']), 2),
+                round(float(segment_data['Ratio_1']), 2),
+                segment_data['Max_Value'],
+                segment_data['Max_Date'],
+                segment_data['Min_Value'],
+                segment_data['Min_Date'],
+                '下載' if wave_type == '最高波段' else '詳細資料'
             )
         except Exception as e:
             print(f"Error in _prepare_tree_values: {e}")
-            # print(f"Stock segment data: {stock_segment}")
             return None
+
+    def _insert_tree_item(self, tree, values):
+        """插入数据到TreeView"""
+        try:
+            # 獲取當前項目數來決定標籤
+            current_items = len(tree.get_children())
+            tag = 'Blue' if current_items % 2 == 0 else 'White'
+            
+            # 插入數據
+            tree.insert('', 'end', values=values, tags=(tag,))
+            
+            # 確保視圖滾動到最新項目
+            tree.yview_moveto(1)
+        except Exception as e:
+            print(f"Error in _insert_tree_item: {e}")
 

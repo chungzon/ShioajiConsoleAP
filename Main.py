@@ -88,7 +88,7 @@ class MainApplication(tk.Tk):
         self.select_stock_model = SelectStockModel(self.api)
         self.select_stock_view = SelectStockView(self.tab_control, None, self.select_stock_model)
         self.select_stock_controller = SelectStockController(self.select_stock_model, self.select_stock_view)
-        self.select_stock_model.event.register(self.select_stock_view.print_stock_list)
+        # self.select_stock_model.event.register(self.select_stock_view.print_stock_list)
 
         self.tab_control.add(self.data_analysis_view, text="資料分析")
         self.tab_control.add(self.data_download_view, text="資料下載")
