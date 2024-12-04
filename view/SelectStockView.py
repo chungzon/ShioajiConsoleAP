@@ -1025,20 +1025,28 @@ class SelectStockView(tk.Frame):
     def _update_tree_data(self, tree, stock_segment):
         """更新TreeView的數據"""
         try:
-            # 准备 recent_segment 数据
-            recent_values = self._prepare_tree_values(stock_segment['stock_data']['recent_segment'], '最近波段')
-            if recent_values:
-                self._insert_tree_item(tree, recent_values)
-
-            # 准备 highest_segment 数据
-            highest_values = self._prepare_tree_values(stock_segment['stock_data']['highest_segment'], '最高波段')
-            if highest_values:
-                self._insert_tree_item(tree, highest_values)
-
-            # 准备 total_segment 数据
-            total_values = self._prepare_tree_values(stock_segment['stock_data']['total_segment'], '總波段')
-            if total_values:
-                self._insert_tree_item(tree, total_values)
+            # 為每個新的股票組合創建一個新的標籤組
+            group_tag = f"group_{len(tree.get_children()) // 3}"
+            
+            # 設置兩種不同的底色標籤
+            if int(group_tag.split('_')[1]) % 2 == 0:
+                tree.tag_configure(f"{group_tag}_even", background="#B8DBCA")  # 淺灰色
+            else:
+                tree.tag_configure(f"{group_tag}_odd", background="#E8E8E8")   # 更淺的灰色
+            
+            # 准备并插入所有波段数据
+            segments = [
+                (stock_segment['stock_data']['recent_segment'], '最近波段'),
+                (stock_segment['stock_data']['highest_segment'], '最高波段'),
+                (stock_segment['stock_data']['total_segment'], '總波段')
+            ]
+            
+            for segment_data, wave_type in segments:
+                values = self._prepare_tree_values(segment_data, wave_type)
+                if values:
+                    # 使用對應的標籤
+                    tag = f"{group_tag}_even" if int(group_tag.split('_')[1]) % 2 == 0 else f"{group_tag}_odd"
+                    self._insert_tree_item(tree, values, tag)
 
         except Exception as e:
             print(f"Error in _update_tree_data: {e}")
@@ -1069,14 +1077,10 @@ class SelectStockView(tk.Frame):
             print(f"Error in _prepare_tree_values: {e}")
             return None
 
-    def _insert_tree_item(self, tree, values):
+    def _insert_tree_item(self, tree, values, tag):
         """插入数据到TreeView"""
         try:
-            # 獲取當前項目數來決定標籤
-            current_items = len(tree.get_children())
-            tag = 'Blue' if current_items % 2 == 0 else 'White'
-            
-            # 插入數據
+            # 插入數據並使用指定的標籤
             tree.insert('', 'end', values=values, tags=(tag,))
             
             # 確保視圖滾動到最新項目

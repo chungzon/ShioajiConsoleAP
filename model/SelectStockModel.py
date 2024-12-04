@@ -390,19 +390,205 @@ class SelectStockModel(BaseModel):
 
                         is_ma_selected, is_more_than_ma = self.check_price_above_selected_ma(latest_close_price, recent_segment, ma_selections)
                         if not is_ma_selected:
-                            if ((float(ratio) < recent_segment['spread_ratio'] or float(ratio) * -1 > recent_segment['spread_ratio'])\
-                                and (recent_wave_var and (float(positive_ratio) >= recent_segment['latest_close_price-0.191_ratio'] \
-                                and float(native_ratio) * -1 <= recent_segment['latest_close_price-0.191_ratio'])))\
-                                or ((float(ratio) < highest_segment['spread_ratio'] or float(ratio) * -1 > highest_segment['spread_ratio'])\
-                                and (highest_wave_var and (float(positive_ratio) >= highest_segment['latest_close_price-0.191_ratio'] \
-                                and float(native_ratio) * -1 <= highest_segment['latest_close_price-0.191_ratio'])))\
-                                or ((float(ratio) < head_0618_spread_ratio or float(ratio) * -1 > head_0618_spread_ratio)\
-                                and (total_wave_var and (float(positive_ratio) >= current_0191_spread_ratio \
-                                and float(native_ratio) * -1 <= current_0191_spread_ratio))):
-                                self.add_wave_segment(recent_segment, '最近波段', max_value_of_all_waves, min_value_after_max)
-                                self.add_wave_segment(highest_segment, '最高波段', max_value_of_all_waves, min_value_after_max)
-                                self.add_wave_segment(segment, '總波段', max_value_of_all_waves, min_value_after_max)
+                            # if ((float(ratio) < recent_segment['spread_ratio'] or float(ratio) * -1 > recent_segment['spread_ratio'])\
+                            #     and (recent_wave_var and (float(positive_ratio) >= recent_segment['latest_close_price-0.191_ratio'] \
+                            #     and float(native_ratio) * -1 <= recent_segment['latest_close_price-0.191_ratio'])))\
+                            #     or ((float(ratio) < highest_segment['spread_ratio'] or float(ratio) * -1 > highest_segment['spread_ratio'])\
+                            #     and (highest_wave_var and (float(positive_ratio) >= highest_segment['latest_close_price-0.191_ratio'] \
+                            #     and float(native_ratio) * -1 <= highest_segment['latest_close_price-0.191_ratio'])))\
+                            #     or ((float(ratio) < head_0618_spread_ratio or float(ratio) * -1 > head_0618_spread_ratio)\
+                            #     and (total_wave_var and (float(positive_ratio) >= current_0191_spread_ratio \
+                            #     and float(native_ratio) * -1 <= current_0191_spread_ratio))):
+                            #     self.add_wave_segment(recent_segment, '最近波段', max_value_of_all_waves, min_value_after_max)
+                            #     self.add_wave_segment(highest_segment, '最高波段', max_value_of_all_waves, min_value_after_max)
+                            #     self.add_wave_segment(segment, '總波段', max_value_of_all_waves, min_value_after_max)
+                            if (float(ratio) <= recent_segment['spread_ratio'] or float(ratio) * -1 >= recent_segment['spread_ratio'])\
+                                and (recent_wave_var):
+                                # 判斷是否為買價，如果是，則逐一檢查recent_segment['buy_ratio']的價格是否在positive_ratio和native_ratio之間
+                                if ratio_type_vars['buy']:
+                                    ratios_to_check = {
+                                        '0.191': recent_segment['buy_0191'],
+                                        '0.382': recent_segment['buy_0382'],
+                                        '0.500': recent_segment['buy_0500'],
+                                        '0.618': recent_segment['buy_0618'],
+                                        '0.809': recent_segment['buy_0809'],
+                                        '1.000': recent_segment['buy_1'],
+                                        '1.191': recent_segment['buy_1191'],
+                                        '1.382': recent_segment['buy_1382'],
+                                        '1.500': recent_segment['buy_1500'],
+                                        '1.618': recent_segment['buy_1618'],
+                                        '1.809': recent_segment['buy_1809'],
+                                        '2.000': recent_segment['buy_2']
+                                    }
+                                    matched_ratios = {}
+                                    for ratio_key, ratio_value in ratios_to_check.items():
+                                        if (ratio_all_vars.get(ratio_key, False) and  # 该比例被选中
+                                                float(positive_ratio) >= ratio_value and  # 在正比例范围内
+                                                float(native_ratio) * -1 <= ratio_value): # 在负比例范围内
+                                                
+                                                # 将股票信息添加到对应比例的匹配结果中
+                                                matched_ratios[ratio_key] = {
+                                                    'stock_data': {
+                                                        'recent_segment': recent_segment,
+                                                        'highest_segment': highest_segment,
+                                                        'total_segment': segment
+                                                    },
+                                                    'ratio_value': ratio_value
+                                                }
 
+                                    if matched_ratios:
+                                        stock_segment = {
+                                            'stock_id': stock_id,
+                                            'matched_ratios': matched_ratios,
+                                            'stock_data': {
+                                                'recent_segment': recent_segment,
+                                                'highest_segment': highest_segment,
+                                                'total_segment': segment
+                                            }
+                                        }
+                                    self.event.notify(stock_segment)
+                                    continue
+
+                                if ratio_type_vars['current']:
+                                        ratios_to_check = {
+                                            '0.191': recent_segment['current_0191'],
+                                            '0.382': recent_segment['current_0382'],
+                                            '0.500': recent_segment['current_0500'],
+                                            '0.618': recent_segment['current_0618'],
+                                            '0.809': recent_segment['current_0809'],
+                                            '1.000': recent_segment['current_1'],
+                                            '1.191': recent_segment['current_1191'],
+                                            '1.382': recent_segment['current_1382'],
+                                            '1.500': recent_segment['current_1500'],
+                                            '1.618': recent_segment['current_1618'],
+                                            '1.809': recent_segment['current_1809'],
+                                            '2.000': recent_segment['current_2']
+                                        }
+
+                                        # 记录每个比例区间的匹配情况
+                                        matched_ratios = {}
+                                        
+                                        for ratio_key, ratio_value in ratios_to_check.items():
+                                            # 检查该比例是否被选中且值在允许范围内
+                                            if (ratio_all_vars.get(ratio_key, False) and  # 该比例被选中
+                                                float(positive_ratio) >= ratio_value and  # 在正比例范围内
+                                                float(native_ratio) * -1 <= ratio_value): # 在负比例范围内
+                                                
+                                                # 将股票信息添加到对应比例的匹配结果中
+                                                matched_ratios[ratio_key] = {
+                                                    'stock_data': {
+                                                        'recent_segment': recent_segment,
+                                                        'highest_segment': highest_segment,
+                                                        'total_segment': segment
+                                                    },
+                                                    'ratio_value': ratio_value
+                                                }
+
+                                        # 如果有匹配的比例，发送通知
+                                        if matched_ratios:
+                                            stock_segment = {
+                                                'stock_id': stock_id,
+                                                'matched_ratios': matched_ratios,
+                                                'stock_data': {
+                                                    'recent_segment': recent_segment,
+                                                    'highest_segment': highest_segment,
+                                                    'total_segment': segment
+                                                }
+                                            }
+                                        self.event.notify(stock_segment)
+                                        # continue
+                            elif (float(ratio) < highest_segment['spread_ratio'] or float(ratio) * -1 > highest_segment['spread_ratio'])\
+                                and (highest_wave_var):
+                                # 判斷是否為買價，如果是，則逐一檢查highest_segment['buy_ratio']的價格是否在positive_ratio和native_ratio之間
+                                if ratio_type_vars['buy']:
+                                    ratios_to_check = {
+                                        '0.191': recent_segment['buy_0191'],
+                                        '0.382': recent_segment['buy_0382'],
+                                        '0.500': recent_segment['buy_0500'],
+                                        '0.618': recent_segment['buy_0618'],
+                                        '0.809': recent_segment['buy_0809'],
+                                        '1.000': recent_segment['buy_1'],
+                                        '1.191': recent_segment['buy_1191'],
+                                        '1.382': recent_segment['buy_1382'],
+                                        '1.500': recent_segment['buy_1500'],
+                                        '1.618': recent_segment['buy_1618'],
+                                        '1.809': recent_segment['buy_1809'],
+                                        '2.000': recent_segment['buy_2']
+                                    }
+                                    matched_ratios = {}
+                                    for ratio_key, ratio_value in ratios_to_check.items():
+                                        if (ratio_all_vars.get(ratio_key, False) and  # 该比例被选中
+                                                float(positive_ratio) >= ratio_value and  # 在正比例范围内
+                                                float(native_ratio) * -1 <= ratio_value): # 在负比例范围内
+                                                
+                                                # 将股票信息添加到对应比例的匹配结果中
+                                                matched_ratios[ratio_key] = {
+                                                    'stock_data': {
+                                                        'recent_segment': recent_segment,
+                                                        'highest_segment': highest_segment,
+                                                        'total_segment': segment
+                                                    },
+                                                    'ratio_value': ratio_value
+                                                }
+
+                                    if matched_ratios:
+                                        stock_segment = {
+                                            'stock_id': stock_id,
+                                            'matched_ratios': matched_ratios,
+                                            'stock_data': {
+                                                'recent_segment': recent_segment,
+                                                'highest_segment': highest_segment,
+                                                'total_segment': segment
+                                            }
+                                        }
+                                    self.event.notify(stock_segment)
+                                    continue
+
+                            elif (float(ratio) < head_0618_spread_ratio or float(ratio) * -1 > head_0618_spread_ratio)\
+                                and (total_wave_var):
+                                if ratio_type_vars['buy']:
+                                    ratios_to_check = {
+                                        '0.191': recent_segment['buy_0191'],
+                                        '0.382': recent_segment['buy_0382'],
+                                        '0.500': recent_segment['buy_0500'],
+                                        '0.618': recent_segment['buy_0618'],
+                                        '0.809': recent_segment['buy_0809'],
+                                        '1.000': recent_segment['buy_1'],
+                                        '1.191': recent_segment['buy_1191'],
+                                        '1.382': recent_segment['buy_1382'],
+                                        '1.500': recent_segment['buy_1500'],
+                                        '1.618': recent_segment['buy_1618'],
+                                        '1.809': recent_segment['buy_1809'],
+                                        '2.000': recent_segment['buy_2']
+                                    }
+                                    matched_ratios = {}
+                                    for ratio_key, ratio_value in ratios_to_check.items():
+                                        if (ratio_all_vars.get(ratio_key, False) and  # 该比例被选中
+                                                float(positive_ratio) >= ratio_value and  # 在正比例范围内
+                                                float(native_ratio) * -1 <= ratio_value): # 在负比例范围内
+                                                
+                                                # 将股票信息添加到对应比例的匹配结果中
+                                                matched_ratios[ratio_key] = {
+                                                    'stock_data': {
+                                                        'recent_segment': recent_segment,
+                                                        'highest_segment': highest_segment,
+                                                        'total_segment': segment
+                                                    },
+                                                    'ratio_value': ratio_value
+                                                }
+
+                                    if matched_ratios:
+                                        stock_segment = {
+                                            'stock_id': stock_id,
+                                            'matched_ratios': matched_ratios,
+                                            'stock_data': {
+                                                'recent_segment': recent_segment,
+                                                'highest_segment': highest_segment,
+                                                'total_segment': segment
+                                            }
+                                        }
+                                    self.event.notify(stock_segment)
+                                    continue
                         elif is_more_than_ma:
                             if (float(ratio) <= recent_segment['spread_ratio'] or float(ratio) * -1 >= recent_segment['spread_ratio'])\
                                 and (recent_wave_var):
