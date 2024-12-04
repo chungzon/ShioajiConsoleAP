@@ -213,7 +213,7 @@ class BaseModel:
         ratios = [0, 0.191, 0.382, 0.5, 0.618, 0.809, 1, 1.191, 1.382, 1.5, 1.618, 1.809, 2, 2.191, 2.382, 2.5, 2.618, 2.809, 3, 
                   3.191, 3.382, 3.5, 3.618, 3.809, 4]
         ratio_columns = [f'Ratio_{ratio}' for ratio in ratios]
-        append_columns =[f'spread_ratio', f'latest_close_price', f'latest_close_price-0.191_ratio', f'latest_close_prices', f'latest_dates']
+        append_columns =[f'spread_ratio', f'latest_close_price', f'latest_close_price-0.191_ratio', f'latest_close_price-0.618_ratio', f'latest_close_prices', f'latest_dates']
         cdp_columns = [f'CDP', 'NH', 'NL', 'AH', 'AL']
 
         sma_values, weekly_sma_values, monthly_sma_values, latest_close_prices, latest_dates = self.calculate_sma(stock_id)
@@ -270,7 +270,8 @@ class BaseModel:
                 
                 segment.append((max_value - segment[4]) / segment[4])   # (Head - ratio_0.618) / ratio_0.618
                 segment.append(latest_close_price)  # 現價
-                segment.append((latest_close_price - segment[4]) / latest_close_price)   # (現價 - ratio_0.618) / 現價
+                segment.append((latest_close_price - segment[5]) / latest_close_price)   # (現價 - ratio_0.191) / 現價
+                segment.append((latest_close_price - segment[8]) / latest_close_price)   # (現價 - ratio_0.618) / 現價
 
                 segment.append(latest_close_prices)
                 segment.append(latest_dates)

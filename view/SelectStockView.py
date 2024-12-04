@@ -324,17 +324,20 @@ class SelectStockView(tk.Frame):
         self.show_copy_message(stock_code)
 
     def on_click(self, event):
-        region = self.tree.identify("region", event.x, event.y)
+        # 從事件對象獲取觸發事件的 TreeView
+        tree = event.widget
+        
+        region = tree.identify("region", event.x, event.y)
         if region == "cell":
-            column = self.tree.identify_column(event.x)
-            item = self.tree.identify_row(event.y)
-            if column == f"#{len(self.tree['columns'])}" and self.tree.item(item, "values")[17] == '下載':  # 最後一列
-                stock_id = self.tree.item(item, "values")[0]  # 假設股票代碼是第一列
-                max_date = self.tree.item(item, "values")[9]  # 最高價波段日期
+            column = tree.identify_column(event.x)
+            item = tree.identify_row(event.y)
+            if column == f"#{len(tree['columns'])}" and tree.item(item, "values")[16] == '下載':  # 最後一列
+                stock_id = tree.item(item, "values")[0]  # 假設股票代碼是第一列
+                max_date = tree.item(item, "values")[13]  # 最高價波段日期
                 self.download_detail_data(stock_id, max_date)
-            elif column == f"#{len(self.tree['columns'])}" and self.tree.item(item, "values")[17] == '詳細資料':  # 最後一列
-                stock_id = self.tree.item(item, "values")[0]  # 假設股票代碼是第一列
-                stock_name = self.tree.item(item, "values")[1]  # 股票名稱
+            elif column == f"#{len(tree['columns'])}" and tree.item(item, "values")[16] == '詳細資料':  # 最後一列
+                stock_id = tree.item(item, "values")[0]  # 假設股票代碼是第一列
+                stock_name = tree.item(item, "values")[1]  # 股票名稱
                 # 點擊詳細資料，顯示詳細資料會彈跳出一個視窗顯示詳細資料
                 self.show_detail_data(stock_id, stock_name)
 
@@ -979,6 +982,10 @@ class SelectStockView(tk.Frame):
         
         # 設置TreeView的列寬和標題
         self._setup_tree_columns(tree)
+        
+        # 添加事件綁定
+        tree.bind("<Button-1>", self.on_click)  # 添加點擊事件綁定
+        tree.bind("<Double-1>", self.on_double_click)  # 添加雙擊事件綁定
         
         # 添加滾動條
         scrollbar = ttk.Scrollbar(page, orient="vertical", command=tree.yview)

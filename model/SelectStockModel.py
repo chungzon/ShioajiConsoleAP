@@ -447,6 +447,9 @@ class SelectStockModel(BaseModel):
                                             }
                                         }
                                     self.event.notify(stock_segment)
+                                    self.all_wave_extremes.append(recent_segment)
+                                    self.all_wave_extremes.append(highest_segment)
+                                    self.all_wave_extremes.append(segment)
                                     continue
 
                                 if ratio_type_vars['current']:
@@ -496,7 +499,10 @@ class SelectStockModel(BaseModel):
                                                 }
                                             }
                                         self.event.notify(stock_segment)
-                                        # continue
+                                        self.all_wave_extremes.append(recent_segment)
+                                        self.all_wave_extremes.append(highest_segment)
+                                        self.all_wave_extremes.append(segment)
+                                        continue
                             elif (float(ratio) < highest_segment['spread_ratio'] or float(ratio) * -1 > highest_segment['spread_ratio'])\
                                 and (highest_wave_var):
                                 # 判斷是否為買價，如果是，則逐一檢查highest_segment['buy_ratio']的價格是否在positive_ratio和native_ratio之間
@@ -542,6 +548,9 @@ class SelectStockModel(BaseModel):
                                             }
                                         }
                                     self.event.notify(stock_segment)
+                                    self.all_wave_extremes.append(recent_segment)
+                                    self.all_wave_extremes.append(highest_segment)
+                                    self.all_wave_extremes.append(segment)
                                     continue
 
                             elif (float(ratio) < head_0618_spread_ratio or float(ratio) * -1 > head_0618_spread_ratio)\
@@ -588,6 +597,9 @@ class SelectStockModel(BaseModel):
                                             }
                                         }
                                     self.event.notify(stock_segment)
+                                    self.all_wave_extremes.append(recent_segment)
+                                    self.all_wave_extremes.append(highest_segment)
+                                    self.all_wave_extremes.append(segment)
                                     continue
                         elif is_more_than_ma:
                             if (float(ratio) <= recent_segment['spread_ratio'] or float(ratio) * -1 >= recent_segment['spread_ratio'])\
@@ -635,6 +647,9 @@ class SelectStockModel(BaseModel):
                                             }
                                         }
                                     self.event.notify(stock_segment)
+                                    self.all_wave_extremes.append(recent_segment)
+                                    self.all_wave_extremes.append(highest_segment)
+                                    self.all_wave_extremes.append(segment)
                                     continue
 
                                 if ratio_type_vars['current']:
@@ -684,7 +699,10 @@ class SelectStockModel(BaseModel):
                                                 }
                                             }
                                         self.event.notify(stock_segment)
-                                        # continue
+                                        self.all_wave_extremes.append(recent_segment)
+                                        self.all_wave_extremes.append(highest_segment)
+                                        self.all_wave_extremes.append(segment)
+                                        continue
                             elif (float(ratio) < highest_segment['spread_ratio'] or float(ratio) * -1 > highest_segment['spread_ratio'])\
                                 and (highest_wave_var):
                                 # 判斷是否為買價，如果是，則逐一檢查highest_segment['buy_ratio']的價格是否在positive_ratio和native_ratio之間
@@ -730,6 +748,9 @@ class SelectStockModel(BaseModel):
                                             }
                                         }
                                     self.event.notify(stock_segment)
+                                    self.all_wave_extremes.append(recent_segment)
+                                    self.all_wave_extremes.append(highest_segment)
+                                    self.all_wave_extremes.append(segment)
                                     continue
 
                             elif (float(ratio) < head_0618_spread_ratio or float(ratio) * -1 > head_0618_spread_ratio)\
@@ -776,6 +797,9 @@ class SelectStockModel(BaseModel):
                                             }
                                         }
                                     self.event.notify(stock_segment)
+                                    self.all_wave_extremes.append(recent_segment)
+                                    self.all_wave_extremes.append(highest_segment)
+                                    self.all_wave_extremes.append(segment)
                                     continue
 
                             # 如果选择了现价，检查每个比例区间
