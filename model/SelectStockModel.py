@@ -421,22 +421,34 @@ class SelectStockModel(BaseModel):
                                         '2.000': recent_segment['buy_2']
                                     }
                                     matched_ratios = {}
+                                    closest_ratio_key = None
+                                    closest_ratio_value = float('inf')
                                     for ratio_key, ratio_value in ratios_to_check.items():
                                         if (ratio_all_vars.get(ratio_key, False) and  # 该比例被选中
                                                 float(positive_ratio) >= ratio_value and  # 在正比例范围内
                                                 float(native_ratio) * -1 <= ratio_value): # 在负比例范围内
-                                                
-                                                # 将股票信息添加到对应比例的匹配结果中
-                                                matched_ratios[ratio_key] = {
-                                                    'stock_data': {
-                                                        'recent_segment': recent_segment,
-                                                        'highest_segment': highest_segment,
-                                                        'total_segment': segment
-                                                    },
-                                                    'ratio_value': ratio_value
-                                                }
+                                            
+                                            # 计算接近程度
+                                            proximity = min(abs(float(positive_ratio) - ratio_value), abs(float(native_ratio) * -1 - ratio_value))
+                                            
+                                            # 更新最接近的比例
+                                            if proximity < closest_ratio_value or (proximity == closest_ratio_value and float(ratio_key) < float(closest_ratio_key)):
+                                                closest_ratio_key = ratio_key
+                                                closest_ratio_value = proximity
 
-                                    if matched_ratios:
+                                    # 将最接近的比例添加到匹配结果中
+                                    if closest_ratio_key is not None:
+                                        matched_ratios[closest_ratio_key] = {
+                                            'stock_id': stock_id,
+                                            'matched_ratios': [closest_ratio_key],
+                                            'stock_data': {
+                                                'recent_segment': recent_segment,
+                                                'highest_segment': highest_segment,
+                                                'total_segment': segment
+                                            }
+                                        }
+
+                                    if matched_ratios and closest_ratio_key is not None:
                                         stock_segment = {
                                             'stock_id': stock_id,
                                             'matched_ratios': matched_ratios,
@@ -446,11 +458,11 @@ class SelectStockModel(BaseModel):
                                                 'total_segment': segment
                                             }
                                         }
-                                    self.event.notify(stock_segment)
-                                    self.all_wave_extremes.append(recent_segment)
-                                    self.all_wave_extremes.append(highest_segment)
-                                    self.all_wave_extremes.append(segment)
-                                    continue
+                                        self.event.notify(stock_segment)
+                                        self.all_wave_extremes.append(recent_segment)
+                                        self.all_wave_extremes.append(highest_segment)
+                                        self.all_wave_extremes.append(segment)
+                                        continue
 
                                 if ratio_type_vars['current']:
                                         ratios_to_check = {
@@ -467,28 +479,35 @@ class SelectStockModel(BaseModel):
                                             '1.809': recent_segment['current_1809'],
                                             '2.000': recent_segment['current_2']
                                         }
-
-                                        # 记录每个比例区间的匹配情况
                                         matched_ratios = {}
-                                        
+                                        closest_ratio_key = None
+                                        closest_ratio_value = float('inf')
                                         for ratio_key, ratio_value in ratios_to_check.items():
-                                            # 检查该比例是否被选中且值在允许范围内
                                             if (ratio_all_vars.get(ratio_key, False) and  # 该比例被选中
-                                                float(positive_ratio) >= ratio_value and  # 在正比例范围内
-                                                float(native_ratio) * -1 <= ratio_value): # 在负比例范围内
+                                                    float(positive_ratio) >= ratio_value and  # 在正比例范围内
+                                                    float(native_ratio) * -1 <= ratio_value): # 在负比例范围内
                                                 
-                                                # 将股票信息添加到对应比例的匹配结果中
-                                                matched_ratios[ratio_key] = {
-                                                    'stock_data': {
-                                                        'recent_segment': recent_segment,
-                                                        'highest_segment': highest_segment,
-                                                        'total_segment': segment
-                                                    },
-                                                    'ratio_value': ratio_value
-                                                }
+                                                # 计算接近程度
+                                                proximity = min(abs(float(positive_ratio) - ratio_value), abs(float(native_ratio) * -1 - ratio_value))
+                                                
+                                                # 更新最接近的比例
+                                                if proximity < closest_ratio_value or (proximity == closest_ratio_value and float(ratio_key) < float(closest_ratio_key)):
+                                                    closest_ratio_key = ratio_key
+                                                    closest_ratio_value = proximity
 
-                                        # 如果有匹配的比例，发送通知
-                                        if matched_ratios:
+                                        # 将最接近的比例添加到匹配结果中
+                                        if closest_ratio_key is not None:
+                                            matched_ratios[closest_ratio_key] = {
+                                                'stock_id': stock_id,
+                                                'matched_ratios': [closest_ratio_key],
+                                                'stock_data': {
+                                                    'recent_segment': recent_segment,
+                                                    'highest_segment': highest_segment,
+                                                    'total_segment': segment
+                                                }
+                                            }
+
+                                        if matched_ratios and closest_ratio_key is not None:
                                             stock_segment = {
                                                 'stock_id': stock_id,
                                                 'matched_ratios': matched_ratios,
@@ -498,12 +517,12 @@ class SelectStockModel(BaseModel):
                                                     'total_segment': segment
                                                 }
                                             }
-                                        self.event.notify(stock_segment)
-                                        self.all_wave_extremes.append(recent_segment)
-                                        self.all_wave_extremes.append(highest_segment)
-                                        self.all_wave_extremes.append(segment)
-                                        continue
-                            elif (float(ratio) < highest_segment['spread_ratio'] or float(ratio) * -1 > highest_segment['spread_ratio'])\
+                                            self.event.notify(stock_segment)
+                                            self.all_wave_extremes.append(recent_segment)
+                                            self.all_wave_extremes.append(highest_segment)
+                                            self.all_wave_extremes.append(segment)
+                                            continue
+                            elif (float(ratio) <= highest_segment['spread_ratio'] or float(ratio) * -1 >= highest_segment['spread_ratio'])\
                                 and (highest_wave_var):
                                 # 判斷是否為買價，如果是，則逐一檢查highest_segment['buy_ratio']的價格是否在positive_ratio和native_ratio之間
                                 if ratio_type_vars['buy']:
@@ -522,22 +541,34 @@ class SelectStockModel(BaseModel):
                                         '2.000': recent_segment['buy_2']
                                     }
                                     matched_ratios = {}
+                                    closest_ratio_key = None
+                                    closest_ratio_value = float('inf')
                                     for ratio_key, ratio_value in ratios_to_check.items():
                                         if (ratio_all_vars.get(ratio_key, False) and  # 该比例被选中
                                                 float(positive_ratio) >= ratio_value and  # 在正比例范围内
                                                 float(native_ratio) * -1 <= ratio_value): # 在负比例范围内
-                                                
-                                                # 将股票信息添加到对应比例的匹配结果中
-                                                matched_ratios[ratio_key] = {
-                                                    'stock_data': {
-                                                        'recent_segment': recent_segment,
-                                                        'highest_segment': highest_segment,
-                                                        'total_segment': segment
-                                                    },
-                                                    'ratio_value': ratio_value
-                                                }
+                                            
+                                            # 计算接近程度
+                                            proximity = min(abs(float(positive_ratio) - ratio_value), abs(float(native_ratio) * -1 - ratio_value))
+                                            
+                                            # 更新最接近的比例
+                                            if proximity < closest_ratio_value or (proximity == closest_ratio_value and float(ratio_key) < float(closest_ratio_key)):
+                                                closest_ratio_key = ratio_key
+                                                closest_ratio_value = proximity
 
-                                    if matched_ratios:
+                                    # 将最接近的比例添加到匹配结果中
+                                    if closest_ratio_key is not None:
+                                        matched_ratios[closest_ratio_key] = {
+                                            'stock_id': stock_id,
+                                            'matched_ratios': [closest_ratio_key],
+                                            'stock_data': {
+                                                'recent_segment': recent_segment,
+                                                'highest_segment': highest_segment,
+                                                'total_segment': segment
+                                            }
+                                        }
+
+                                    if matched_ratios and closest_ratio_key is not None:
                                         stock_segment = {
                                             'stock_id': stock_id,
                                             'matched_ratios': matched_ratios,
@@ -547,13 +578,13 @@ class SelectStockModel(BaseModel):
                                                 'total_segment': segment
                                             }
                                         }
-                                    self.event.notify(stock_segment)
-                                    self.all_wave_extremes.append(recent_segment)
-                                    self.all_wave_extremes.append(highest_segment)
-                                    self.all_wave_extremes.append(segment)
-                                    continue
+                                        self.event.notify(stock_segment)
+                                        self.all_wave_extremes.append(recent_segment)
+                                        self.all_wave_extremes.append(highest_segment)
+                                        self.all_wave_extremes.append(segment)
+                                        continue
 
-                            elif (float(ratio) < head_0618_spread_ratio or float(ratio) * -1 > head_0618_spread_ratio)\
+                            elif (float(ratio) <= head_0618_spread_ratio or float(ratio) * -1 >= head_0618_spread_ratio)\
                                 and (total_wave_var):
                                 if ratio_type_vars['buy']:
                                     ratios_to_check = {
@@ -571,22 +602,34 @@ class SelectStockModel(BaseModel):
                                         '2.000': recent_segment['buy_2']
                                     }
                                     matched_ratios = {}
+                                    closest_ratio_key = None
+                                    closest_ratio_value = float('inf')
                                     for ratio_key, ratio_value in ratios_to_check.items():
                                         if (ratio_all_vars.get(ratio_key, False) and  # 该比例被选中
                                                 float(positive_ratio) >= ratio_value and  # 在正比例范围内
                                                 float(native_ratio) * -1 <= ratio_value): # 在负比例范围内
-                                                
-                                                # 将股票信息添加到对应比例的匹配结果中
-                                                matched_ratios[ratio_key] = {
-                                                    'stock_data': {
-                                                        'recent_segment': recent_segment,
-                                                        'highest_segment': highest_segment,
-                                                        'total_segment': segment
-                                                    },
-                                                    'ratio_value': ratio_value
-                                                }
+                                            
+                                            # 计算接近程度
+                                            proximity = min(abs(float(positive_ratio) - ratio_value), abs(float(native_ratio) * -1 - ratio_value))
+                                            
+                                            # 更新最接近的比例
+                                            if proximity < closest_ratio_value or (proximity == closest_ratio_value and float(ratio_key) < float(closest_ratio_key)):
+                                                closest_ratio_key = ratio_key
+                                                closest_ratio_value = proximity
 
-                                    if matched_ratios:
+                                    # 将最接近的比例添加到匹配结果中
+                                    if closest_ratio_key is not None:
+                                        matched_ratios[closest_ratio_key] = {
+                                            'stock_id': stock_id,
+                                            'matched_ratios': [closest_ratio_key],
+                                            'stock_data': {
+                                                'recent_segment': recent_segment,
+                                                'highest_segment': highest_segment,
+                                                'total_segment': segment
+                                            }
+                                        }
+
+                                    if matched_ratios and closest_ratio_key is not None:
                                         stock_segment = {
                                             'stock_id': stock_id,
                                             'matched_ratios': matched_ratios,
@@ -596,11 +639,11 @@ class SelectStockModel(BaseModel):
                                                 'total_segment': segment
                                             }
                                         }
-                                    self.event.notify(stock_segment)
-                                    self.all_wave_extremes.append(recent_segment)
-                                    self.all_wave_extremes.append(highest_segment)
-                                    self.all_wave_extremes.append(segment)
-                                    continue
+                                        self.event.notify(stock_segment)
+                                        self.all_wave_extremes.append(recent_segment)
+                                        self.all_wave_extremes.append(highest_segment)
+                                        self.all_wave_extremes.append(segment)
+                                        continue
                         elif is_more_than_ma:
                             if (float(ratio) <= recent_segment['spread_ratio'] or float(ratio) * -1 >= recent_segment['spread_ratio'])\
                                 and (recent_wave_var):
@@ -621,22 +664,34 @@ class SelectStockModel(BaseModel):
                                         '2.000': recent_segment['buy_2']
                                     }
                                     matched_ratios = {}
+                                    closest_ratio_key = None
+                                    closest_ratio_value = float('inf')
                                     for ratio_key, ratio_value in ratios_to_check.items():
                                         if (ratio_all_vars.get(ratio_key, False) and  # 该比例被选中
                                                 float(positive_ratio) >= ratio_value and  # 在正比例范围内
                                                 float(native_ratio) * -1 <= ratio_value): # 在负比例范围内
-                                                
-                                                # 将股票信息添加到对应比例的匹配结果中
-                                                matched_ratios[ratio_key] = {
-                                                    'stock_data': {
-                                                        'recent_segment': recent_segment,
-                                                        'highest_segment': highest_segment,
-                                                        'total_segment': segment
-                                                    },
-                                                    'ratio_value': ratio_value
-                                                }
+                                            
+                                            # 计算接近程度
+                                            proximity = min(abs(float(positive_ratio) - ratio_value), abs(float(native_ratio) * -1 - ratio_value))
+                                            
+                                            # 更新最接近的比例
+                                            if proximity < closest_ratio_value or (proximity == closest_ratio_value and float(ratio_key) < float(closest_ratio_key)):
+                                                closest_ratio_key = ratio_key
+                                                closest_ratio_value = proximity
 
-                                    if matched_ratios:
+                                    # 将最接近的比例添加到匹配结果中
+                                    if closest_ratio_key is not None:
+                                        matched_ratios[closest_ratio_key] = {
+                                            'stock_id': stock_id,
+                                            'matched_ratios': [closest_ratio_key],
+                                            'stock_data': {
+                                                'recent_segment': recent_segment,
+                                                'highest_segment': highest_segment,
+                                                'total_segment': segment
+                                            }
+                                        }
+
+                                    if matched_ratios and closest_ratio_key is not None:
                                         stock_segment = {
                                             'stock_id': stock_id,
                                             'matched_ratios': matched_ratios,
@@ -646,11 +701,11 @@ class SelectStockModel(BaseModel):
                                                 'total_segment': segment
                                             }
                                         }
-                                    self.event.notify(stock_segment)
-                                    self.all_wave_extremes.append(recent_segment)
-                                    self.all_wave_extremes.append(highest_segment)
-                                    self.all_wave_extremes.append(segment)
-                                    continue
+                                        self.event.notify(stock_segment)
+                                        self.all_wave_extremes.append(recent_segment)
+                                        self.all_wave_extremes.append(highest_segment)
+                                        self.all_wave_extremes.append(segment)
+                                        continue
 
                                 if ratio_type_vars['current']:
                                         ratios_to_check = {
@@ -670,25 +725,34 @@ class SelectStockModel(BaseModel):
 
                                         # 记录每个比例区间的匹配情况
                                         matched_ratios = {}
-                                        
+                                        closest_ratio_key = None
+                                        closest_ratio_value = float('inf')
                                         for ratio_key, ratio_value in ratios_to_check.items():
-                                            # 检查该比例是否被选中且值在允许范围内
                                             if (ratio_all_vars.get(ratio_key, False) and  # 该比例被选中
-                                                float(positive_ratio) >= ratio_value and  # 在正比例范围内
-                                                float(native_ratio) * -1 <= ratio_value): # 在负比例范围内
+                                                    float(positive_ratio) >= ratio_value and  # 在正比例范围内
+                                                    float(native_ratio) * -1 <= ratio_value): # 在负比例范围内
                                                 
-                                                # 将股票信息添加到对应比例的匹配结果中
-                                                matched_ratios[ratio_key] = {
-                                                    'stock_data': {
-                                                        'recent_segment': recent_segment,
-                                                        'highest_segment': highest_segment,
-                                                        'total_segment': segment
-                                                    },
-                                                    'ratio_value': ratio_value
-                                                }
+                                                # 计算接近程度
+                                                proximity = min(abs(float(positive_ratio) - ratio_value), abs(float(native_ratio) * -1 - ratio_value))
+                                                
+                                                # 更新最接近的比例
+                                                if proximity < closest_ratio_value or (proximity == closest_ratio_value and float(ratio_key) < float(closest_ratio_key)):
+                                                    closest_ratio_key = ratio_key
+                                                    closest_ratio_value = proximity
 
-                                        # 如果有匹配的比例，发送通知
-                                        if matched_ratios:
+                                        # 将最接近的比例添加到匹配结果中
+                                        if closest_ratio_key is not None:
+                                            matched_ratios[closest_ratio_key] = {
+                                                'stock_id': stock_id,
+                                                'matched_ratios': [closest_ratio_key],
+                                                'stock_data': {
+                                                    'recent_segment': recent_segment,
+                                                    'highest_segment': highest_segment,
+                                                    'total_segment': segment
+                                                }
+                                            }
+
+                                        if matched_ratios and closest_ratio_key is not None:
                                             stock_segment = {
                                                 'stock_id': stock_id,
                                                 'matched_ratios': matched_ratios,
@@ -698,12 +762,12 @@ class SelectStockModel(BaseModel):
                                                     'total_segment': segment
                                                 }
                                             }
-                                        self.event.notify(stock_segment)
-                                        self.all_wave_extremes.append(recent_segment)
-                                        self.all_wave_extremes.append(highest_segment)
-                                        self.all_wave_extremes.append(segment)
-                                        continue
-                            elif (float(ratio) < highest_segment['spread_ratio'] or float(ratio) * -1 > highest_segment['spread_ratio'])\
+                                            self.event.notify(stock_segment)
+                                            self.all_wave_extremes.append(recent_segment)
+                                            self.all_wave_extremes.append(highest_segment)
+                                            self.all_wave_extremes.append(segment)
+                                            continue
+                            elif (float(ratio) <= highest_segment['spread_ratio'] or float(ratio) * -1 >= highest_segment['spread_ratio'])\
                                 and (highest_wave_var):
                                 # 判斷是否為買價，如果是，則逐一檢查highest_segment['buy_ratio']的價格是否在positive_ratio和native_ratio之間
                                 if ratio_type_vars['buy']:
@@ -722,22 +786,34 @@ class SelectStockModel(BaseModel):
                                         '2.000': highest_segment['buy_2']
                                     }
                                     matched_ratios = {}
+                                    closest_ratio_key = None
+                                    closest_ratio_value = float('inf')
                                     for ratio_key, ratio_value in ratios_to_check.items():
                                         if (ratio_all_vars.get(ratio_key, False) and  # 该比例被选中
                                                 float(positive_ratio) >= ratio_value and  # 在正比例范围内
                                                 float(native_ratio) * -1 <= ratio_value): # 在负比例范围内
-                                                
-                                                # 将股票信息添加到对应比例的匹配结果中
-                                                matched_ratios[ratio_key] = {
-                                                    'stock_data': {
-                                                        'recent_segment': recent_segment,
-                                                        'highest_segment': highest_segment,
-                                                        'total_segment': segment
-                                                    },
-                                                    'ratio_value': ratio_value
-                                                }
+                                            
+                                            # 计算接近程度
+                                            proximity = min(abs(float(positive_ratio) - ratio_value), abs(float(native_ratio) * -1 - ratio_value))
+                                            
+                                            # 更新最接近的比例
+                                            if proximity < closest_ratio_value or (proximity == closest_ratio_value and float(ratio_key) < float(closest_ratio_key)):
+                                                closest_ratio_key = ratio_key
+                                                closest_ratio_value = proximity
 
-                                    if matched_ratios:
+                                    # 将最接近的比例添加到匹配结果中
+                                    if closest_ratio_key is not None:
+                                        matched_ratios[closest_ratio_key] = {
+                                            'stock_id': stock_id,
+                                            'matched_ratios': [closest_ratio_key],
+                                            'stock_data': {
+                                                'recent_segment': recent_segment,
+                                                'highest_segment': highest_segment,
+                                                'total_segment': segment
+                                            }
+                                        }
+
+                                    if matched_ratios and closest_ratio_key is not None:
                                         stock_segment = {
                                             'stock_id': stock_id,
                                             'matched_ratios': matched_ratios,
@@ -747,11 +823,11 @@ class SelectStockModel(BaseModel):
                                                 'total_segment': segment
                                             }
                                         }
-                                    self.event.notify(stock_segment)
-                                    self.all_wave_extremes.append(recent_segment)
-                                    self.all_wave_extremes.append(highest_segment)
-                                    self.all_wave_extremes.append(segment)
-                                    continue
+                                        self.event.notify(stock_segment)
+                                        self.all_wave_extremes.append(recent_segment)
+                                        self.all_wave_extremes.append(highest_segment)
+                                        self.all_wave_extremes.append(segment)
+                                        continue
 
                                 if ratio_type_vars['current']:
                                     ratios_to_check = {
@@ -769,22 +845,34 @@ class SelectStockModel(BaseModel):
                                         '2.000': highest_segment['current_2']
                                     }
                                     matched_ratios = {}
+                                    closest_ratio_key = None
+                                    closest_ratio_value = float('inf')
                                     for ratio_key, ratio_value in ratios_to_check.items():
                                         if (ratio_all_vars.get(ratio_key, False) and  # 该比例被选中
                                                 float(positive_ratio) >= ratio_value and  # 在正比例范围内
                                                 float(native_ratio) * -1 <= ratio_value): # 在负比例范围内
-                                                
-                                                # 将股票信息添加到对应比例的匹配结果中
-                                                matched_ratios[ratio_key] = {
-                                                    'stock_data': {
-                                                        'recent_segment': recent_segment,
-                                                        'highest_segment': highest_segment,
-                                                        'total_segment': segment
-                                                    },
-                                                    'ratio_value': ratio_value
-                                                }
+                                            
+                                            # 计算接近程度
+                                            proximity = min(abs(float(positive_ratio) - ratio_value), abs(float(native_ratio) * -1 - ratio_value))
+                                            
+                                            # 更新最接近的比例
+                                            if proximity < closest_ratio_value or (proximity == closest_ratio_value and float(ratio_key) < float(closest_ratio_key)):
+                                                closest_ratio_key = ratio_key
+                                                closest_ratio_value = proximity
 
-                                    if matched_ratios:
+                                    # 将最接近的比例添加到匹配结果中
+                                    if closest_ratio_key is not None:
+                                        matched_ratios[closest_ratio_key] = {
+                                            'stock_id': stock_id,
+                                            'matched_ratios': [closest_ratio_key],
+                                            'stock_data': {
+                                                'recent_segment': recent_segment,
+                                                'highest_segment': highest_segment,
+                                                'total_segment': segment
+                                            }
+                                        }
+
+                                    if matched_ratios and closest_ratio_key is not None:
                                         stock_segment = {
                                             'stock_id': stock_id,
                                             'matched_ratios': matched_ratios,
@@ -794,13 +882,13 @@ class SelectStockModel(BaseModel):
                                                 'total_segment': segment
                                             }
                                         }
-                                    self.event.notify(stock_segment)
-                                    self.all_wave_extremes.append(recent_segment)
-                                    self.all_wave_extremes.append(highest_segment)
-                                    self.all_wave_extremes.append(segment)
-                                    continue
+                                        self.event.notify(stock_segment)
+                                        self.all_wave_extremes.append(recent_segment)
+                                        self.all_wave_extremes.append(highest_segment)
+                                        self.all_wave_extremes.append(segment)
+                                        continue
 
-                            elif (float(ratio) < head_0618_spread_ratio or float(ratio) * -1 > head_0618_spread_ratio)\
+                            elif (float(ratio) <= head_0618_spread_ratio or float(ratio) * -1 >= head_0618_spread_ratio)\
                                 and (total_wave_var):
                                 if ratio_type_vars['buy']:
                                     ratios_to_check = {
@@ -818,22 +906,34 @@ class SelectStockModel(BaseModel):
                                         '2.000': buy_2_spread_ratio
                                     }
                                     matched_ratios = {}
+                                    closest_ratio_key = None
+                                    closest_ratio_value = float('inf')
                                     for ratio_key, ratio_value in ratios_to_check.items():
                                         if (ratio_all_vars.get(ratio_key, False) and  # 该比例被选中
                                                 float(positive_ratio) >= ratio_value and  # 在正比例范围内
                                                 float(native_ratio) * -1 <= ratio_value): # 在负比例范围内
-                                                
-                                                # 将股票信息添加到对应比例的匹配结果中
-                                                matched_ratios[ratio_key] = {
-                                                    'stock_data': {
-                                                        'recent_segment': recent_segment,
-                                                        'highest_segment': highest_segment,
-                                                        'total_segment': segment
-                                                    },
-                                                    'ratio_value': ratio_value
-                                                }
+                                            
+                                            # 计算接近程度
+                                            proximity = min(abs(float(positive_ratio) - ratio_value), abs(float(native_ratio) * -1 - ratio_value))
+                                            
+                                            # 更新最接近的比例
+                                            if proximity < closest_ratio_value or (proximity == closest_ratio_value and float(ratio_key) < float(closest_ratio_key)):
+                                                closest_ratio_key = ratio_key
+                                                closest_ratio_value = proximity
 
-                                    if matched_ratios:
+                                    # 将最接近的比例添加到匹配结果中
+                                    if closest_ratio_key is not None:
+                                        matched_ratios[closest_ratio_key] = {
+                                            'stock_id': stock_id,
+                                            'matched_ratios': [closest_ratio_key],
+                                            'stock_data': {
+                                                'recent_segment': recent_segment,
+                                                'highest_segment': highest_segment,
+                                                'total_segment': segment
+                                            }
+                                        }
+
+                                    if matched_ratios and closest_ratio_key is not None:
                                         stock_segment = {
                                             'stock_id': stock_id,
                                             'matched_ratios': matched_ratios,
@@ -843,11 +943,11 @@ class SelectStockModel(BaseModel):
                                                 'total_segment': segment
                                             }
                                         }
-                                    self.event.notify(stock_segment)
-                                    self.all_wave_extremes.append(recent_segment)
-                                    self.all_wave_extremes.append(highest_segment)
-                                    self.all_wave_extremes.append(segment)
-                                    continue
+                                        self.event.notify(stock_segment)
+                                        self.all_wave_extremes.append(recent_segment)
+                                        self.all_wave_extremes.append(highest_segment)
+                                        self.all_wave_extremes.append(segment)
+                                        continue
                                 if ratio_type_vars['current']:
                                         ratios_to_check = {
                                             '0.191': current_0191_spread_ratio,
@@ -864,22 +964,34 @@ class SelectStockModel(BaseModel):
                                             '2.000': current_2_spread_ratio
                                         }
                                         matched_ratios = {}
+                                        closest_ratio_key = None
+                                        closest_ratio_value = float('inf')
                                         for ratio_key, ratio_value in ratios_to_check.items():
                                             if (ratio_all_vars.get(ratio_key, False) and  # 该比例被选中
                                                     float(positive_ratio) >= ratio_value and  # 在正比例范围内
                                                     float(native_ratio) * -1 <= ratio_value): # 在负比例范围内
-                                                    
-                                                    # 将股票信息添加到对应比例的匹配结果中
-                                                    matched_ratios[ratio_key] = {
-                                                        'stock_data': {
-                                                            'recent_segment': recent_segment,
-                                                            'highest_segment': highest_segment,
-                                                            'total_segment': segment
-                                                        },
-                                                        'ratio_value': ratio_value
-                                                    }
+                                                
+                                                # 计算接近程度
+                                                proximity = min(abs(float(positive_ratio) - ratio_value), abs(float(native_ratio) * -1 - ratio_value))
+                                                
+                                                # 更新最接近的比例
+                                                if proximity < closest_ratio_value or (proximity == closest_ratio_value and float(ratio_key) < float(closest_ratio_key)):
+                                                    closest_ratio_key = ratio_key
+                                                    closest_ratio_value = proximity
 
-                                        if matched_ratios:
+                                        # 将最接近的比例添加到匹配结果中
+                                        if closest_ratio_key is not None:
+                                            matched_ratios[closest_ratio_key] = {
+                                                'stock_id': stock_id,
+                                                'matched_ratios': [closest_ratio_key],
+                                                'stock_data': {
+                                                    'recent_segment': recent_segment,
+                                                    'highest_segment': highest_segment,
+                                                    'total_segment': segment
+                                                }
+                                            }
+
+                                        if matched_ratios and closest_ratio_key is not None:
                                             stock_segment = {
                                                 'stock_id': stock_id,
                                                 'matched_ratios': matched_ratios,
@@ -889,11 +1001,11 @@ class SelectStockModel(BaseModel):
                                                     'total_segment': segment
                                                 }
                                             }
-                                        self.event.notify(stock_segment)
-                                        self.all_wave_extremes.append(recent_segment)
-                                        self.all_wave_extremes.append(highest_segment)
-                                        self.all_wave_extremes.append(segment)
-                                        continue
+                                            self.event.notify(stock_segment)
+                                            self.all_wave_extremes.append(recent_segment)
+                                            self.all_wave_extremes.append(highest_segment)
+                                            self.all_wave_extremes.append(segment)
+                                            continue
                             # 如果选择了现价，检查每个比例区间
                             
                 except Exception as e:

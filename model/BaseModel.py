@@ -268,7 +268,7 @@ class BaseModel:
                 for ratio in ratios:
                     segment.append(Math.calculate_ratio_value(max_value, min_value, ratio))
                 
-                segment.append((max_value - segment[4]) / segment[4])   # (Head - ratio_0.618) / ratio_0.618
+                segment.append((max_value - segment[4]) / max_value)   # (Head - ratio_0.618) / ratio_0.618
                 segment.append(latest_close_price)  # 現價
                 segment.append((latest_close_price - segment[5]) / latest_close_price)   # (現價 - ratio_0.191) / 現價
                 segment.append((latest_close_price - segment[8]) / latest_close_price)   # (現價 - ratio_0.618) / 現價
