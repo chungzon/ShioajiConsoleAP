@@ -38,6 +38,9 @@ class SelectStockView(tk.Frame):
         self.start_update_thread()
         self.model.event.register(self.print_stock_list)
 
+        # 初始化分頁
+        self.setup_ratio_tabs()
+
     def init_ui(self):
         style = ttk.Style()
         style.configure('Treeview',
@@ -240,9 +243,16 @@ class SelectStockView(tk.Frame):
             return
         
         # 清空notebook中的所有分頁
+        # for page in self.notebook.winfo_children():
+        #     page.destroy()
+
+        #清空notebook中的所有分頁內的TreeView
         for page in self.notebook.winfo_children():
-            page.destroy()
-            
+            if isinstance(page, ttk.Frame):
+                for child in page.winfo_children():
+                    if isinstance(child, ttk.Treeview):
+                        child.delete(*child.get_children())
+
         start_date = self.start_date.get_date().strftime('%Y-%m-%d')
         end_date = self.end_date.get_date().strftime('%Y-%m-%d')
         ratio = self.ratio_entry.get()
@@ -1095,3 +1105,43 @@ class SelectStockView(tk.Frame):
         except Exception as e:
             print(f"Error in _insert_tree_item: {e}")
 
+    def setup_ratio_tabs(self):
+        """初始化所有比例分頁"""
+        # 預設的比例列表（從小到大排序）
+        ratios = ['0.191', '0.382', '0.5', '0.618', '0.809', '1', 
+                '1.191', '1.382', '1.5', '1.618', '1.809', '2']
+        
+        # 為每個比例創建分頁和表格
+        for ratio in ratios:
+            tab = ttk.Frame(self.notebook)
+            tree = self.create_empty_tree(tab)
+            
+            # 設置網格布局
+            tree.grid(row=0, column=0, sticky="nsew")
+            scrollbar = ttk.Scrollbar(tab, orient="vertical", command=tree.yview)
+            scrollbar.grid(row=0, column=1, sticky="ns")
+            tree.configure(yscrollcommand=scrollbar.set)
+            
+            # 配置網格權重
+            tab.grid_columnconfigure(0, weight=1)
+            tab.grid_rowconfigure(0, weight=1)
+            
+            # 添加分頁
+            self.notebook.add(tab, text=f"比例 {ratio}")
+
+    def create_empty_tree(self, parent):
+        """創建空的表格"""
+        tree = ttk.Treeview(parent, columns=("stock_id", "name", "latest_close_price", "wave_type", 
+                                        "spread_ratio", "latest_close_price-0.191_ratio", 
+                                        "Ratio_0.191", "Ratio_0.382", "Ratio_0.5", 
+                                        "Ratio_0.618", "Ratio_0.809", "Ratio_1", 
+                                        "Max_Value", "Max_Date", "Min_Value", "Min_Date", "Download"))
+        
+        # 設置列寬和標題
+        self._setup_tree_columns(tree)
+        
+        # 添加事件綁定
+        tree.bind("<Button-1>", self.on_click)
+        tree.bind("<Double-1>", self.on_double_click)
+        
+        return tree
