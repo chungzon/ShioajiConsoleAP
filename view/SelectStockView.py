@@ -38,7 +38,6 @@ class SelectStockView(tk.Frame):
         self.start_update_thread()
         self.model.event.register(self.print_stock_list)
 
-        # 初始化分頁
         self.setup_ratio_tabs()
 
     def init_ui(self):
@@ -360,16 +359,37 @@ class SelectStockView(tk.Frame):
         self.after(2000, msg.destroy)
 
     def export_stock_codes(self):
-        # 獲取所有股票代碼，保持原始順序
-        stock_codes = OrderedDict()
-        for item in self.tree.get_children():
-            stock_code = self.tree.item(item, "values")[0]
-            if stock_code not in stock_codes:
-                stock_codes[stock_code] = None
+        # 獲取所有分頁的數據，並按比例排序（實際上已經排序好了）
+        all_data = []
+        for tab in self.notebook.tabs():
+            tab_title = self.notebook.tab(tab, "text")
+            ratio = tab_title.split()[1]  # 獲取比例數值
+            
+            # 獲取該分頁的TreeView
+            tab_frame = self.notebook.children[tab.split('.')[-1]]  # 正確獲取分頁frame
+            tree = None
+            for child in tab_frame.winfo_children():
+                if isinstance(child, ttk.Treeview):
+                    tree = child
+                    break
+            
+            if tree:
+                # 獲取該分頁中的所有股票代碼，保持原始順序
+                stock_codes = OrderedDict()
+                for item in tree.get_children():
+                    stock_code = tree.item(item, "values")[0]
+                    if stock_code not in stock_codes:
+                        stock_codes[stock_code] = None
+                
+                if stock_codes:  # 只添加有數據的分頁
+                    all_data.append({
+                        'ratio': ratio,
+                        'codes': list(stock_codes.keys())
+                    })
 
-        # 將股票代碼分組，每組最多60個
-        stock_codes = list(stock_codes.keys())
-        lines = ["\t".join(stock_codes[i:i+60]) for i in range(0, len(stock_codes), 60)]
+        if not all_data:
+            messagebox.showinfo("提示", "沒有可匯出的數據")
+            return
 
         # 獲取下載資料夾路徑
         downloads_path = os.path.join(os.path.expanduser("~"), "Downloads")
@@ -377,7 +397,7 @@ class SelectStockView(tk.Frame):
         # 設置默認文件名
         default_filename = "stock_codes.txt"
         
-        # 選擇文件保存位置，設置初始目錄為下載資料夾
+        # 選擇文件保存位置
         file_path = filedialog.asksaveasfilename(
             initialdir=downloads_path,
             initialfile=default_filename,
@@ -387,8 +407,21 @@ class SelectStockView(tk.Frame):
         
         if file_path:
             with open(file_path, "w", encoding="utf-8") as file:
-                file.write("\n".join(lines))
-        self.show_copy_message("股票代碼已匯出")
+                for data in all_data:
+                    # 寫入比例標記
+                    file.write(f"# 比例 {data['ratio']}\n")
+                    
+                    # 將股票代碼分組，每組最多60個
+                    codes = data['codes']
+                    lines = ["\t".join(codes[i:i+60]) for i in range(0, len(codes), 60)]
+                    
+                    # 寫入該比例的所有股票代碼
+                    file.write("\n".join(lines))
+                    
+                    # 添加空白行分隔不同比例的數據
+                    file.write("\n\n")
+                
+            self.show_copy_message("股票代碼已匯出")
 
     def download_detail_data(self, stock_id, max_date):
         print(stock_id)
@@ -1104,7 +1137,6 @@ class SelectStockView(tk.Frame):
             tree.yview_moveto(1)
         except Exception as e:
             print(f"Error in _insert_tree_item: {e}")
-
     def setup_ratio_tabs(self):
         """初始化所有比例分頁"""
         # 預設的比例列表（從小到大排序）
