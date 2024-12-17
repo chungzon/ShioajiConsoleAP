@@ -661,7 +661,7 @@ class DataAnalysisModel(SelectStockModel):
                     'monthly_sma_60': recent_segment.get('monthly_sma_60', 'N/A'),
                     'monthly_sma_120': recent_segment.get('monthly_sma_120', 'N/A'),
                 }
-                return segment
+                return segment, recent_segment
 
     def get_recent_segment(self, segments_df):
         # 获取最近一次波段数据
