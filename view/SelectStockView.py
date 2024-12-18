@@ -496,8 +496,8 @@ class SelectStockView(tk.Frame):
         table.setFont(font)
 
         def find_row_for_value(value):
-            min_price = float(ratio_prices['總波段']['0'])
-            max_price = float(ratio_prices['總波段']['4'])
+            min_price = float(ratio_prices['0'])
+            max_price = float(ratio_prices['5'])
             
             # 如果价格小于最小比例价格
             if value < min_price:
@@ -509,8 +509,8 @@ class SelectStockView(tk.Frame):
             
             # 在比例价格之间查找位置
             for i, ratio in enumerate(ratios[:-1]):
-                current_price = float(ratio_prices['總波段'][ratio])
-                next_price = float(ratio_prices['總波段'][ratios[i + 1]])
+                current_price = float(ratio_prices[ratio])
+                next_price = float(ratio_prices[ratios[i + 1]])
                 
                 row = (i * 2) + 1  # 考虑偏移
                 
@@ -551,7 +551,7 @@ class SelectStockView(tk.Frame):
                     table.setItem(row, 0, ratio_item)
                     
                     # 總波段欄位
-                    wave_price = ratio_prices['總波段'][ratios[ratio_idx]]
+                    wave_price = ratio_prices[ratios[ratio_idx]]
                     if hasattr(wave_price, 'item'):
                         wave_price = wave_price.item()
                     price_item = QTableWidgetItem(f"{wave_price:.2f}")

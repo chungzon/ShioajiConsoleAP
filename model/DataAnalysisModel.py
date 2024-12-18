@@ -3,6 +3,7 @@ import pandas as pd
 from tkinter import messagebox
 from model.SelectStockModel import SelectStockModel
 from common.Math import Math
+from datetime import datetime
 
 class DataAnalysisModel(SelectStockModel):
   
@@ -519,7 +520,7 @@ class DataAnalysisModel(SelectStockModel):
         return contract['name']
     
 
-    def get_stock_data_from_all_wave_extremes(self, stock_id, start_date, end_date):
+    def get_stock_data_from_all_wave_extremes(self, stock_id, start_date, end_date, recent_start_date, recent_end_date):
         stock_data_df = self.get_stock_data(stock_id, start_date, end_date)
         if stock_data_df is not None and not stock_data_df.empty:
             latest_close_price = self.get_latest_close_price(stock_id)
@@ -528,7 +529,7 @@ class DataAnalysisModel(SelectStockModel):
             if wave_extremes_df is not None and not wave_extremes_df.empty:
                 wave_extremes_df['stock_id'] = stock_id  # 加入股票代號
                 wave_extremes_df['name'] = self.get_stock_name(stock_id)
-                recent_segment, highest_segment = self.evaluate_segment(wave_extremes_df)
+                recent_segment, highest_segment = self.evaluate_segment(wave_extremes_df, recent_start_date, recent_end_date)
                 max_value_of_all_waves = wave_extremes_df['Max_Value'].max()
                 max_value_index = wave_extremes_df['Max_Value'].idxmax()
 
@@ -663,10 +664,26 @@ class DataAnalysisModel(SelectStockModel):
                 }
                 return segment, recent_segment
 
-    def get_recent_segment(self, segments_df):
-        # 获取最近一次波段数据
-        if not segments_df.empty:
-            return segments_df.iloc[-1]  # 最近一次波段数据在最后一行
+    def get_recent_segment(self, segments_df, recent_start_date, recent_end_date):
+        """獲取日期區間內的最近波段"""
+        # 將 Min_Date 和 Max_Date 轉換為 datetime.date 類型
+        segments_df['Min_Date'] = pd.to_datetime(segments_df['Min_Date']).dt.date
+        segments_df['Max_Date'] = pd.to_datetime(segments_df['Max_Date']).dt.date
+        
+        # 確保 recent_start_date 和 recent_end_date 也是 datetime.date 類型
+        if isinstance(recent_start_date, str):
+            recent_start_date = datetime.strptime(recent_start_date, '%Y-%m-%d').date()
+        if isinstance(recent_end_date, str):
+            recent_end_date = datetime.strptime(recent_end_date, '%Y-%m-%d').date()
+        
+        # 進行日期比較
+        recent_segment = segments_df[
+            (segments_df['Min_Date'] >= recent_start_date) & 
+            (segments_df['Max_Date'] <= recent_end_date)
+        ]
+        
+        if not recent_segment.empty:
+            return recent_segment.iloc[-1]
         else:
             return None
 
@@ -678,8 +695,8 @@ class DataAnalysisModel(SelectStockModel):
         else:
             return None
         
-    def evaluate_segment(self, segments_df):
-        recent_segment = self.get_recent_segment(segments_df)
+    def evaluate_segment(self, segments_df, recent_start_date, recent_end_date):
+        recent_segment = self.get_recent_segment(segments_df, recent_start_date, recent_end_date)
         highest_segment = self.get_highest_segment(segments_df)
         
         return recent_segment, highest_segment
