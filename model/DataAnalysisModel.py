@@ -678,8 +678,10 @@ class DataAnalysisModel(SelectStockModel):
         
         # 進行日期比較
         recent_segment = segments_df[
-            (segments_df['Min_Date'] >= recent_start_date) & 
-            (segments_df['Max_Date'] <= recent_end_date)
+            (segments_df['Max_Date'] >= recent_start_date) & 
+            (segments_df['Max_Date'] <= recent_end_date) &
+            (segments_df['Min_Date'] >= recent_start_date) &
+            (segments_df['Min_Date'] <= recent_end_date)
         ]
         
         if not recent_segment.empty:

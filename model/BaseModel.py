@@ -245,17 +245,84 @@ class BaseModel:
             max_date = df['date'].iloc[i]
         
             j = i + 1
+            # 檢查是否到達最後一筆資料
+            if j >= len(df):
+                # 如果最後一筆的最高價高於前一波段的最高價
+                if segments and max_value > segments[-1][1]:
+                    segment = [max_date, max_value, max_date, max_value]  # 使用同一天作為高點和低點
+                    for ratio in ratios:
+                        segment.append(Math.calculate_ratio_value(max_value, max_value, ratio))
+                    
+                    segment.append((max_value - segment[4]) / max_value)
+                    segment.append(latest_close_price)
+                    segment.append((latest_close_price - segment[5]) / latest_close_price)
+                    segment.append((latest_close_price - segment[8]) / latest_close_price)
+
+                    segment.append(latest_close_prices)
+                    segment.append(latest_dates)
+                    
+                    for value in sma_values:
+                        segment.append(value)
+                    for value in weekly_sma_values:
+                        segment.append(value)
+                    for value in monthly_sma_values:
+                        segment.append(value)
+
+                    for value in k15_sma_values:
+                        segment.append(value)
+
+                    segment.append(CDP)
+                    segment.append(NH)
+                    segment.append(NL)
+                    segment.append(AH)
+                    segment.append(AL)
+
+                    segments.append(segment)
+                break
+
+            # 尋找最高點
             while j < len(df) and df['high_price'].iloc[j] >= max_value:
                 max_value = df['high_price'].iloc[j]
                 max_date = df['date'].iloc[j]
                 j += 1
         
-            if j < len(df):
-                min_value = df['low_price'].iloc[j]
-                min_date = df['date'].iloc[j]
-            else:
-                min_value = df['low_price'].iloc[j-1]
-                min_date = df['date'].iloc[j-1]
+            # 如果已經到達最後一筆資料
+            if j >= len(df):
+                # 如果最後一筆的最高價高於前一波段的最高價
+                if segments and max_value > segments[-1][1]:
+                    segment = [max_date, max_value, max_date, df['low_price'].iloc[-1]]
+                    for ratio in ratios:
+                        segment.append(Math.calculate_ratio_value(max_value, df['low_price'].iloc[-1], ratio))
+                    
+                    segment.append((max_value - segment[4]) / max_value)
+                    segment.append(latest_close_price)
+                    segment.append((latest_close_price - segment[5]) / latest_close_price)
+                    segment.append((latest_close_price - segment[8]) / latest_close_price)
+
+                    segment.append(latest_close_prices)
+                    segment.append(latest_dates)
+                    
+                    for value in sma_values:
+                        segment.append(value)
+                    for value in weekly_sma_values:
+                        segment.append(value)
+                    for value in monthly_sma_values:
+                        segment.append(value)
+
+                    for value in k15_sma_values:
+                        segment.append(value)
+
+                    segment.append(CDP)
+                    segment.append(NH)
+                    segment.append(NL)
+                    segment.append(AH)
+                    segment.append(AL)
+
+                    segments.append(segment)
+                break
+        
+            min_value = df['low_price'].iloc[j]
+            min_date = df['date'].iloc[j]
         
             k = j
             while k < len(df) and df['low_price'].iloc[k] <= min_value:
