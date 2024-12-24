@@ -1,4 +1,5 @@
-﻿import pymssql
+﻿import numpy as np
+import pymssql
 import pandas as pd
 import shioaji as sj
 import time
@@ -911,7 +912,7 @@ class BaseModel:
         kbars = self.get_stock_kbar_from_db_top300(stock_id)
 
         if kbars.empty:
-            return ["NaN", "NaN", "NaN"]
+            return [np.nan, np.nan, np.nan]
         
         # 轉換時間格式
         kbars['date'] = pd.to_datetime(kbars['date'])

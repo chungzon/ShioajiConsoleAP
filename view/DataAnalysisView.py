@@ -160,6 +160,10 @@ class DataAnalysisView(tk.Frame):
             min_price = float(ratio_prices['0'])
             max_price = float(ratio_prices['5'])
             
+            # 如果value是字串，轉換為浮點數
+            if isinstance(value, str):
+                value = float(value)
+
             # 如果价格小于最小比例价格
             if value < min_price:
                 return 0  # 第一个空白行
@@ -185,7 +189,11 @@ class DataAnalysisView(tk.Frame):
         def format_price_text(name, value, is_recent_ratio=False):
             if hasattr(value, 'item'):
                 value = value.item()
-            return f"{name}：{value:.2f}"
+
+            if isinstance(value, float):
+                return f"{name}：{value:.2f}"
+            else:
+                return f"{name}：{value}"
 
         # 設置比例欄位和總波段欄位
         def setup_basic_columns():
@@ -229,7 +237,7 @@ class DataAnalysisView(tk.Frame):
         def add_sorted_prices_to_cell(row, prices_list):
             """將所有價格一起排序後添加到指標列"""
             # 按價格排序所有價格
-            sorted_prices = sorted(prices_list, key=lambda x: x[1])
+            sorted_prices = sorted(prices_list, key=lambda x: float(x[1]))
             
             # 生成顯示文本
             text_lines = []
