@@ -166,13 +166,13 @@ class SelectStockModel(BaseModel):
 
                         # 獲取最高價的日期
                         max_value_date = wave_extremes_df.loc[max_value_index, 'Max_Date']
-                           # 在最高價之後找最低價
-                        min_after_max_series = wave_extremes_df.loc[max_value_index:, 'Min_Value']
-                        min_value_after_max = min_after_max_series.min()
-                        min_after_max_index = min_after_max_series.idxmin()
-
-                        # 獲取最低價的日期
-                        min_value_date = wave_extremes_df.loc[min_after_max_index, 'Min_Date']
+                        # 在最高價之後找最低價
+                        # min_after_max_series = wave_extremes_df.loc[max_value_index:, 'Min_Value']
+                        # min_value_after_max = min_after_max_series.min()
+                        # min_after_max_index = min_after_max_series.idxmin()
+                        min_value_of_all_waves = wave_extremes_df['Min_Value'].min()
+                        min_value_index = wave_extremes_df['Min_Value'].idxmin()
+                        min_value_date = wave_extremes_df.loc[min_value_index, 'Min_Date']
 
                         # 計算現價分別減去最高波段的 ratio_0.191、ratio_0.382、ratio_0.5、ratio_0.618、ratio_0.809、ratio_1、ratio_1.191、ratio_1.382、ratio_1.5、ratio_1.618、ratio_1.809、ratio_2
                         highest_segment['current_0191'] = latest_close_price - highest_segment['Ratio_0.191']
@@ -232,39 +232,39 @@ class SelectStockModel(BaseModel):
 
 
                         # 計算 ratio_0.191、ratio_0.382、ratio_0.5、ratio_0.618、ratio_0.809、ratio_1
-                        ratio_0 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0)
-                        ratio_0191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0.191)
-                        ratio_0382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0.382)
-                        ratio_0500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0.5)
-                        ratio_0809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0.809)
-                        ratio_1191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 1.191)
-                        ratio_1382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 1.382)
-                        ratio_1500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 1.5)
-                        ratio_1618 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 1.618)
-                        ratio_1809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 1.809)
-                        ratio_2 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 2)
-                        ratio_2191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 2.191)
-                        ratio_2382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 2.382)
-                        ratio_2500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 2.5)
-                        ratio_2618 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 2.618)
-                        ratio_2809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 2.809)
-                        ratio_3 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 3)
-                        ratio_3191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 3.191)
-                        ratio_3382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 3.382)
-                        ratio_3500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 3.5)
-                        ratio_3618 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 3.618)
-                        ratio_3809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 3.809)
-                        ratio_4 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 4)
-                        ratio_4191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 4.191)
-                        ratio_4382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 4.382)
-                        ratio_4500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 4.5)
-                        ratio_4618 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 4.618)
-                        ratio_4809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 4.809)
-                        ratio_5 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 5)
+                        ratio_0 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 0)
+                        ratio_0191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 0.191)
+                        ratio_0382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 0.382)
+                        ratio_0500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 0.5)
+                        ratio_0809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 0.809)
+                        ratio_1191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 1.191)
+                        ratio_1382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 1.382)
+                        ratio_1500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 1.5)
+                        ratio_1618 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 1.618)
+                        ratio_1809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 1.809)
+                        ratio_2 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 2)
+                        ratio_2191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 2.191)
+                        ratio_2382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 2.382)
+                        ratio_2500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 2.5)
+                        ratio_2618 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 2.618)
+                        ratio_2809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 2.809)
+                        ratio_3 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 3)
+                        ratio_3191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 3.191)
+                        ratio_3382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 3.382)
+                        ratio_3500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 3.5)
+                        ratio_3618 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 3.618)
+                        ratio_3809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 3.809)
+                        ratio_4 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 4)
+                        ratio_4191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 4.191)
+                        ratio_4382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 4.382)
+                        ratio_4500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 4.5)
+                        ratio_4618 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 4.618)
+                        ratio_4809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 4.809)
+                        ratio_5 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 5)
 
                         # 計算 ratio_0.618 和 ratio_1
-                        ratio_0618 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0.618)
-                        ratio_1 = Math.calculate_ratio_1(max_value_of_all_waves, min_value_after_max)
+                        ratio_0618 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_of_all_waves, 0.618)
+                        ratio_1 = Math.calculate_ratio_1(max_value_of_all_waves, min_value_of_all_waves)
 
                         # 計算 Head-0.618 價差比例
                         head_0618_spread_ratio = round((max_value_of_all_waves - ratio_0618) / ratio_0618, 3)
@@ -318,7 +318,7 @@ class SelectStockModel(BaseModel):
                             'Max_Date': max_value_date,
                             'Min_Date': min_value_date,
                             'Max_Value': max_value_of_all_waves,
-                            'Min_Value': min_value_after_max,
+                            'Min_Value': min_value_of_all_waves,
                             'Ratio_0': ratio_0,
                             'Ratio_0.191': ratio_0191,
                             'Ratio_0.382': ratio_0382,
@@ -353,7 +353,7 @@ class SelectStockModel(BaseModel):
                             'spread_ratio': head_0618_spread_ratio,
                             'latest_close_price-0.191_ratio': current_0191_spread_ratio,
                             'max_value_of_all_waves': max_value_of_all_waves,
-                            'min_value_after_max': min_value_after_max,
+                            'min_value_after_max': min_value_of_all_waves,
                             'wave_type': '',
                             'CDP': CDP,
                             'NH': NH,

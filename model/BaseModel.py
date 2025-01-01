@@ -217,9 +217,8 @@ class BaseModel:
         append_columns =[f'spread_ratio', f'latest_close_price', f'latest_close_price-0.191_ratio', f'latest_close_price-0.618_ratio', f'latest_close_prices', f'latest_dates']
         cdp_columns = [f'CDP', 'NH', 'NL', 'AH', 'AL']
 
+        # 取得SMA值
         sma_values, weekly_sma_values, monthly_sma_values, latest_close_prices, latest_dates = self.calculate_sma(stock_id)
-        # sma_values, weekly_sma_values, monthly_sma_values = Math.calculate_sma(df['close_price'])
-        
         k15_sma_values = self.calculate_k15_sma(stock_id)
 
         periods = [5, 10, 20, 60, 120]
@@ -229,7 +228,7 @@ class BaseModel:
         k15_periods = [5, 10, 20]
         k15_sma_columns = [f'15min_sma_{period}' for period in k15_periods]
 
-        # 計算CDP中的5個數據，df資料若不夠，也要例外
+        # 計算CDP
         try:
             CDP = Math.calculate_CDP(
                 df['high_price'].iloc[-1], 
@@ -239,133 +238,107 @@ class BaseModel:
             CDP, NL, NH, AL, AH = Math.calculate_CDP_5_values(CDP, df['high_price'].iloc[-1], df['low_price'].iloc[-1])
         except:
             CDP = None
-    
-        i = 0
-        while i < len(df):
-            max_value = df['high_price'].iloc[i]
-            max_date = df['date'].iloc[i]
-        
-            j = i + 1
-            # 檢查是否到達最後一筆資料
-            if j >= len(df):
-                # 如果最後一筆的最高價高於前一波段的最高價
-                if segments and max_value > segments[-1][1]:
-                    segment = [max_date, max_value, max_date, max_value]  # 使用同一天作為高點和低點
+
+        # 新的波段判斷邏輯
+        wave_start_idx = 0
+        prev_low = df['low_price'].iloc[0]
+
+        for i in range(1, len(df)):
+            current_low = df['low_price'].iloc[i]
+            
+            # 當現在的最低價高於前一個最低價時，表示前一個波段結束
+            if current_low > prev_low:
+                # 計算該波段的最高價
+                segment = df.iloc[wave_start_idx:i]
+                max_value = segment['high_price'].max()
+                max_date = segment[segment['high_price'] == max_value]['date'].iloc[0]
+                min_value = prev_low
+                min_date = df['date'].iloc[wave_start_idx]
+
+                if max_value > min_value:
+                    segment_data = [max_date, max_value, min_date, min_value]
+                    
+                    # 添加比例價格
                     for ratio in ratios:
-                        segment.append(Math.calculate_ratio_value(max_value, max_value, ratio))
+                        segment_data.append(Math.calculate_ratio_value(max_value, min_value, ratio))
                     
-                    segment.append((max_value - segment[4]) / max_value)
-                    segment.append(latest_close_price)
-                    segment.append((latest_close_price - segment[5]) / latest_close_price)
-                    segment.append((latest_close_price - segment[8]) / latest_close_price)
-
-                    segment.append(latest_close_prices)
-                    segment.append(latest_dates)
+                    # 添加其他計算值
+                    segment_data.append((max_value - segment_data[4]) / max_value)
+                    segment_data.append(latest_close_price)
+                    segment_data.append((latest_close_price - segment_data[5]) / latest_close_price)
+                    segment_data.append((latest_close_price - segment_data[8]) / latest_close_price)
                     
+                    # 添加其他必要資訊
+                    segment_data.append(latest_close_prices)
+                    segment_data.append(latest_dates)
+                    
+                    # 添加所有SMA值
                     for value in sma_values:
-                        segment.append(value)
+                        segment_data.append(value)
                     for value in weekly_sma_values:
-                        segment.append(value)
+                        segment_data.append(value)
                     for value in monthly_sma_values:
-                        segment.append(value)
-
+                        segment_data.append(value)
                     for value in k15_sma_values:
-                        segment.append(value)
-
-                    segment.append(CDP)
-                    segment.append(NH)
-                    segment.append(NL)
-                    segment.append(AH)
-                    segment.append(AL)
-
-                    segments.append(segment)
-                break
-
-            # 尋找最高點
-            while j < len(df) and df['high_price'].iloc[j] >= max_value:
-                max_value = df['high_price'].iloc[j]
-                max_date = df['date'].iloc[j]
-                j += 1
-        
-            # 如果已經到達最後一筆資料
-            if j >= len(df):
-                # 如果最後一筆的最高價高於前一波段的最高價
-                if segments and max_value > segments[-1][1]:
-                    segment = [max_date, max_value, max_date, df['low_price'].iloc[-1]]
-                    for ratio in ratios:
-                        segment.append(Math.calculate_ratio_value(max_value, df['low_price'].iloc[-1], ratio))
+                        segment_data.append(value)
                     
-                    segment.append((max_value - segment[4]) / max_value)
-                    segment.append(latest_close_price)
-                    segment.append((latest_close_price - segment[5]) / latest_close_price)
-                    segment.append((latest_close_price - segment[8]) / latest_close_price)
-
-                    segment.append(latest_close_prices)
-                    segment.append(latest_dates)
+                    # 添加CDP值
+                    segment_data.append(CDP)
+                    segment_data.append(NH)
+                    segment_data.append(NL)
+                    segment_data.append(AH)
+                    segment_data.append(AL)
                     
-                    for value in sma_values:
-                        segment.append(value)
-                    for value in weekly_sma_values:
-                        segment.append(value)
-                    for value in monthly_sma_values:
-                        segment.append(value)
-
-                    for value in k15_sma_values:
-                        segment.append(value)
-
-                    segment.append(CDP)
-                    segment.append(NH)
-                    segment.append(NL)
-                    segment.append(AH)
-                    segment.append(AL)
-
-                    segments.append(segment)
-                break
-        
-            min_value = df['low_price'].iloc[j]
-            min_date = df['date'].iloc[j]
-        
-            k = j
-            while k < len(df) and df['low_price'].iloc[k] <= min_value:
-                min_value = df['low_price'].iloc[k]
-                min_date = df['date'].iloc[k]
-                k += 1
-        
-            if max_value > min_value:
-                segment = [max_date, max_value, min_date, min_value]
-                for ratio in ratios:
-                    segment.append(Math.calculate_ratio_value(max_value, min_value, ratio))
+                    segments.append(segment_data)
                 
-                segment.append((max_value - segment[4]) / max_value)   # (Head - ratio_0.618) / ratio_0.618
-                segment.append(latest_close_price)  # 現價
-                segment.append((latest_close_price - segment[5]) / latest_close_price)   # (現價 - ratio_0.191) / 現價
-                segment.append((latest_close_price - segment[8]) / latest_close_price)   # (現價 - ratio_0.618) / 現價
+                wave_start_idx = i
+            
+            prev_low = current_low
 
-                segment.append(latest_close_prices)
-                segment.append(latest_dates)
+        # 處理最後一個波段
+        if wave_start_idx < len(df):
+            segment = df.iloc[wave_start_idx:]
+            max_value = segment['high_price'].max()
+            max_date = segment[segment['high_price'] == max_value]['date'].iloc[0]
+            min_value = prev_low
+            min_date = df['date'].iloc[wave_start_idx]
+            
+            if max_value > min_value:
+                final_segment = [max_date, max_value, min_date, min_value]
+                
+                # 添加所有必要的計算值（與上面相同的邏輯）
+                for ratio in ratios:
+                    final_segment.append(Math.calculate_ratio_value(max_value, min_value, ratio))
+                
+                final_segment.append((max_value - final_segment[4]) / max_value)
+                final_segment.append(latest_close_price)
+                final_segment.append((latest_close_price - final_segment[5]) / latest_close_price)
+                final_segment.append((latest_close_price - final_segment[8]) / latest_close_price)
+                
+                final_segment.append(latest_close_prices)
+                final_segment.append(latest_dates)
                 
                 for value in sma_values:
-                    segment.append(value)
+                    final_segment.append(value)
                 for value in weekly_sma_values:
-                    segment.append(value)
+                    final_segment.append(value)
                 for value in monthly_sma_values:
-                    segment.append(value)
-
+                    final_segment.append(value)
                 for value in k15_sma_values:
-                    segment.append(value)
+                    final_segment.append(value)
+                
+                final_segment.append(CDP)
+                final_segment.append(NH)
+                final_segment.append(NL)
+                final_segment.append(AH)
+                final_segment.append(AL)
+                
+                segments.append(final_segment)
 
-                segment.append(CDP)
-                segment.append(NH)
-                segment.append(NL)
-                segment.append(AH)
-                segment.append(AL)
+        return pd.DataFrame(segments, columns=['Max_Date', 'Max_Value', 'Min_Date', 'Min_Value'] + 
+                          ratio_columns + append_columns + sma_columns + weekly_sma_columns + 
+                          monthly_sma_columns + k15_sma_columns + cdp_columns)
 
-                segments.append(segment)
-
-            i = k
-    
-        return pd.DataFrame(segments, columns=['Max_Date', 'Max_Value', 'Min_Date', 'Min_Value'] + ratio_columns + append_columns + sma_columns + weekly_sma_columns + monthly_sma_columns + k15_sma_columns + cdp_columns)
-    
     def analyze_data(self, stock_id, start_date, end_date, save_path):
         if not stock_id or not start_date or not end_date or not save_path:
             raise Exception("下載失敗")
@@ -813,7 +786,7 @@ class BaseModel:
                 }
             })
 
-            # 設定第一張圖表標題和軸標籤
+            # 設定第一張圖表標題��軸標籤
             line_chart1.set_title({'name': 'Stock Price Analysis (Sorted)'})
             line_chart1.set_x_axis({'name': 'Index'})
             line_chart1.set_y_axis({'name': 'Value'})
