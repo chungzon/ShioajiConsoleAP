@@ -530,6 +530,12 @@ class DataAnalysisModel(SelectStockModel):
                 wave_extremes_df['stock_id'] = stock_id  # 加入股票代號
                 wave_extremes_df['name'] = self.get_stock_name(stock_id)
                 recent_segment, highest_segment = self.evaluate_segment(wave_extremes_df, recent_start_date, recent_end_date)
+                recent_data_df = self.get_stock_data(stock_id, recent_start_date, recent_end_date)
+                recent_segments = self.find_peaks_troughs_v34_small(stock_id, recent_data_df, latest_close_price)
+                if not recent_segments.empty:
+                    recent_segment = recent_segments.iloc[-1]
+                else:
+                    return
                 max_value_of_all_waves = wave_extremes_df['Max_Value'].max()
                 max_value_index = wave_extremes_df['Max_Value'].idxmax()
 

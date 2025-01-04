@@ -26,19 +26,12 @@ class SelectStockModel(BaseModel):
 
             # 查詢語句
             query = f"""
-            SELECT DISTINCT stock_id, date, high_price, low_price, close_price
-            FROM stock_data
-            WHERE stock_id = '{stock_id}'
-            AND date >= '{start_date}'
-            AND date <= '{end_date}'
-            ORDER BY date ASC
+                SELECT distinct date, open_price, high_price, low_price, close_price, volume
+                FROM stock_data
+                WHERE stock_id = '{stock_id}' AND date >= '{start_date}' AND date <= '{end_date}'
             """
-
-            # 執���查詢並讀取數據到 DataFrame
             df = pd.read_sql(query, conn)
-            df['ID_date'] = pd.to_datetime(df['date'])
-            df.set_index('ID_date', inplace=True)
-            df = df.sort_index()  # 按日期排序
+            df['date'] = pd.to_datetime(df['date'])
             # 關閉連接
             conn.close()
 
