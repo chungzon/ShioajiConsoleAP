@@ -170,17 +170,23 @@ def find_peaks_troughs_v34_small(df):
     # 第一階段：找出所有原始波段
     wave_start_idx = 0
     prev_low = df.iloc[0]['low_price']
+    prev_low_date = df.iloc[0]['date']
     
     for i in range(1, len(df)):
         current_low = df.iloc[i]['low_price']
         
         if current_low > prev_low:
-            segment = df.iloc[wave_start_idx:i]
+            # 在這個區間內找出最高點
+            segment = df.iloc[wave_start_idx:i+1]  # 包含當前點
             wave_high = segment['high_price'].max()
-            wave_high_date = segment[segment['high_price'] == wave_high]['date'].iloc[0]
+            
+            # 找出最高價對應的日期
+            high_price_mask = segment['high_price'] == wave_high
+            wave_high_date = segment.loc[high_price_mask, 'date'].iloc[0]
+            high_idx = segment[high_price_mask].index[0]
             
             troughs.append({
-                'date': df.iloc[wave_start_idx]['date'],
+                'date': prev_low_date,  # 使用保存的低點日期
                 'price': prev_low,
                 'idx': wave_start_idx
             })
@@ -188,9 +194,16 @@ def find_peaks_troughs_v34_small(df):
             peaks.append({
                 'date': wave_high_date,
                 'price': wave_high,
-                'idx': segment[segment['high_price'] == wave_high].index[0]
+                'idx': high_idx
             })
             
+            wave_start_idx = i
+            prev_low_date = df.iloc[i]['date']  # 更新低點日期
+            
+        elif current_low < prev_low:
+            # 如果找到更低的點，更新低點和日期
+            prev_low = current_low
+            prev_low_date = df.iloc[i]['date']
             wave_start_idx = i
             
         prev_low = current_low
@@ -198,10 +211,14 @@ def find_peaks_troughs_v34_small(df):
     # 處理最後一個波段
     segment = df.iloc[wave_start_idx:]
     wave_high = segment['high_price'].max()
-    wave_high_date = segment[segment['high_price'] == wave_high]['date'].iloc[0]
+    
+    # 找出最後波段的最高價日期
+    high_price_mask = segment['high_price'] == wave_high
+    wave_high_date = segment.loc[high_price_mask, 'date'].iloc[0]
+    high_idx = segment[high_price_mask].index[0]
     
     troughs.append({
-        'date': df.iloc[wave_start_idx]['date'],
+        'date': prev_low_date,  # 使用保存的低點日期
         'price': prev_low,
         'idx': wave_start_idx
     })
@@ -209,7 +226,7 @@ def find_peaks_troughs_v34_small(df):
     peaks.append({
         'date': wave_high_date,
         'price': wave_high,
-        'idx': segment[segment['high_price'] == wave_high].index[0]
+        'idx': high_idx
     })
     
     # 轉換為DataFrame並排序
@@ -226,16 +243,34 @@ def find_peaks_troughs_v34_small(df):
         start_idx = troughs_df.iloc[i]['idx']
         end_idx = peaks_df.iloc[i]['idx']
         
+        # 初始化當前波段的最低價
+        current_low = troughs_df.iloc[i]['price']
+        current_low_date = troughs_df.iloc[i]['date']
+        
         # 向後查找較低的高點
         j = i + 1
         while j < len(peaks_df) and peaks_df.iloc[j]['price'] <= current_high:
             end_idx = peaks_df.iloc[j]['idx']
+            
+            # 檢查下一個波段的最低價
+            if j < len(troughs_df) and troughs_df.iloc[j]['price'] < current_low:
+                current_low = troughs_df.iloc[j]['price']
+                current_low_date = troughs_df.iloc[j]['date']
+            
             j += 1
         
-        # 在合併的波段區間內找出最低價
-        segment = df.iloc[start_idx:end_idx+1]
-        low_price = segment['low_price'].min()
-        low_price_date = segment[segment['low_price'] == low_price]['date'].iloc[0]
+        # 在合併的波段區間內再次確認最低價（包含結束日期後的一天）
+        segment = df.iloc[start_idx:end_idx+2]  # +2 來包含結束日期的下一天
+        segment_low = segment['low_price'].min()
+        
+        # 獲取最低價對應的日期
+        low_price_mask = segment['low_price'] == segment_low
+        segment_low_date = segment.loc[low_price_mask, 'date'].iloc[0]
+        
+        # 比較並使用最低的價格
+        if segment_low <= current_low:
+            current_low = segment_low
+            current_low_date = segment_low_date
         
         # 記錄波段
         merged_waves.append({
@@ -243,8 +278,8 @@ def find_peaks_troughs_v34_small(df):
             'wave_end_date': df.iloc[end_idx]['date'],
             'high_price': current_high,
             'high_price_date': current_high_date,
-            'low_price': low_price,
-            'low_price_date': low_price_date
+            'low_price': current_low,
+            'low_price_date': current_low_date
         })
         
         i = j if j < len(peaks_df) else len(peaks_df)
@@ -266,7 +301,7 @@ def find_peaks_troughs_v34_small(df):
 # 主函數
 def main(stock_code):
     # get_wave_extremes(stock_code)
-    df = get_stock_data(stock_code, '2024-01-01', '2024-12-26')
+    df = get_stock_data(stock_code, '2024-12-01', '2025-01-05')
     find_peaks_troughs_v34_small(df)
     # subscribe_realtime_data(stock_code)
     # try:
@@ -275,5 +310,5 @@ def main(stock_code):
     #     unsubscribe_realtime_data(stock_code)
 
 if __name__ == "__main__":
-    stock_code = '3013'  # 替換為您想要查詢的股票代碼
+    stock_code = '8064'  # 替換為您想要查詢的股票代碼
     main(stock_code)

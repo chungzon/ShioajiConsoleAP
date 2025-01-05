@@ -437,6 +437,16 @@ class DataAnalysisView(tk.Frame):
         
         # 比例价格表格
         ratio_layout = QVBoxLayout()
+        
+        # 添加日期信息标签
+        date_info = QLabel(
+            # f"最近波段期間: {additional_data['Start_Date']} ~ {additional_data['End_Date']}\n"
+            f"最高價日期: {additional_data['最近波段最高價日期']} \n"
+            f"最低價日期: {additional_data['最近波段最低價日期']} "
+        )
+        date_info.setFont(font)
+        ratio_layout.addWidget(date_info)
+        
         ratio_table = self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices)
         ratio_layout.addWidget(ratio_table)
         self.ratio_tab.setLayout(ratio_layout)

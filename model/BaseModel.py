@@ -306,10 +306,19 @@ class BaseModel:
                 j += 1
             
             # 在合併的波段區間內找出最低價
-            segment = df.iloc[start_idx:end_idx+1]
-            low_price = segment['low_price'].min()
-            low_price_date = segment[segment['low_price'] == low_price]['date'].iloc[0]
+            # 在合併的波段區間內再次確認最低價（包含結束日期後的一天）
+            segment = df.iloc[start_idx:end_idx+2]  # +2 來包含結束日期的下一天
+            segment_low = segment['low_price'].min()
             
+            # 獲取最低價對應的日期
+            low_price_mask = segment['low_price'] == segment_low
+            segment_low_date = segment.loc[low_price_mask, 'date'].iloc[0]
+            
+            # 比較並使用最低的價格
+            if segment_low <= current_low:
+                current_low = segment_low
+                current_low_date = segment_low_date
+
             # 建立波段資料 - 確保順序與列名完全對應
             segment_data = []
             
@@ -317,14 +326,14 @@ class BaseModel:
             segment_data.extend([
                 current_high_date,  # Max_Date
                 current_high,       # Max_Value
-                low_price_date,     # Min_Date
-                low_price          # Min_Value
+                current_low_date,   # Min_Date
+                current_low         # Min_Value
             ])
             
             # 2. 比例價格 [Ratio_0, Ratio_0.191, ...]
             ratio_prices = []
             for ratio in ratios:
-                ratio_price = Math.calculate_ratio_value(current_high, low_price, ratio)
+                ratio_price = Math.calculate_ratio_value(current_high, current_low, ratio)
                 ratio_prices.append(ratio_price)
             segment_data.extend(ratio_prices)
             
