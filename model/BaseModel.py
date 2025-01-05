@@ -243,7 +243,10 @@ class BaseModel:
         peaks = []
         troughs = []
         wave_start_idx = 0
+        wave_start_date = df.iloc[0]['date']
         prev_low = df.iloc[0]['low_price']
+        prev_low_date = df.iloc[0]['date']
+        current_low_date = prev_low_date
         
         for i in range(1, len(df)):
             current_low = df.iloc[i]['low_price']
@@ -254,7 +257,7 @@ class BaseModel:
                 wave_high_date = segment[segment['high_price'] == wave_high]['date'].iloc[0]
                 
                 troughs.append({
-                    'date': df.iloc[wave_start_idx]['date'],
+                    'date': prev_low_date,
                     'price': prev_low,
                     'idx': wave_start_idx
                 })
@@ -262,9 +265,14 @@ class BaseModel:
                 peaks.append({
                     'date': wave_high_date,
                     'price': wave_high,
-                    'idx': segment[segment['high_price'] == wave_high].index[0]
+                    'idx': df[df['date'] == wave_high_date].index[0]
                 })
                 
+                wave_start_idx = i
+                prev_low_date = df.iloc[i]['date']
+            elif current_low < prev_low:
+                prev_low = current_low
+                prev_low_date = df.iloc[i]['date']
                 wave_start_idx = i
                 
             prev_low = current_low
@@ -275,7 +283,7 @@ class BaseModel:
         wave_high_date = segment[segment['high_price'] == wave_high]['date'].iloc[0]
         
         troughs.append({
-            'date': df.iloc[wave_start_idx]['date'],
+            'date': prev_low_date,
             'price': prev_low,
             'idx': wave_start_idx
         })
@@ -296,16 +304,25 @@ class BaseModel:
             current_high = peaks_df.iloc[i]['price']
             current_high_date = peaks_df.iloc[i]['date']
             start_date = troughs_df.iloc[i]['date']
-            start_idx = int(troughs_df.iloc[i]['idx'])
-            end_idx = int(peaks_df.iloc[i]['idx'])
+            start_idx = troughs_df.iloc[i]['idx']
+            end_idx = peaks_df.iloc[i]['idx']
+            
+            # 初始化當前波段的最低價和日期
+            current_low = troughs_df.iloc[i]['price']
+            current_low_date = troughs_df.iloc[i]['date']
             
             # 向後查找較低的高點
             j = i + 1
             while j < len(peaks_df) and peaks_df.iloc[j]['price'] <= current_high:
-                end_idx = int(peaks_df.iloc[j]['idx'])
+                end_idx = peaks_df.iloc[j]['idx']
+                
+                # 檢查下一個波段的最低價
+                if j < len(troughs_df) and troughs_df.iloc[j]['price'] < current_low:
+                    current_low = troughs_df.iloc[j]['price']
+                    current_low_date = troughs_df.iloc[j]['date']
+                
                 j += 1
             
-            # 在合併的波段區間內找出最低價
             # 在合併的波段區間內再次確認最低價（包含結束日期後的一天）
             segment = df.iloc[start_idx:end_idx+2]  # +2 來包含結束日期的下一天
             segment_low = segment['low_price'].min()
@@ -322,12 +339,14 @@ class BaseModel:
             # 建立波段資料 - 確保順序與列名完全對應
             segment_data = []
             
-            # 1. 基本波段資訊 [Max_Date, Max_Value, Min_Date, Min_Value]
+            # 1. 基本波段資訊 [Max_Date, Max_Value, Min_Date, Min_Value, Start_Date, End_Date]
             segment_data.extend([
                 current_high_date,  # Max_Date
                 current_high,       # Max_Value
                 current_low_date,   # Min_Date
-                current_low         # Min_Value
+                current_low,        # Min_Value
+                start_date,         # Start_Date
+                df.iloc[end_idx]['date']  # End_Date
             ])
             
             # 2. 比例價格 [Ratio_0, Ratio_0.191, ...]
@@ -363,7 +382,7 @@ class BaseModel:
             segment_data.extend([CDP, NH, NL, AH, AL])
             
             # 驗證數據長度
-            expected_length = (4 +                    # 基本波段資訊
+            expected_length = (6 +                    # 基本波段資訊 (包含起始和結束日期)
                              len(ratio_columns) +     # 比例價格
                              len(append_columns) +    # 附加資訊
                              len(sma_columns) +       # 日線SMA
@@ -380,7 +399,7 @@ class BaseModel:
             i = j if j < len(peaks_df) else len(peaks_df)
         
         # 創建最終的DataFrame
-        columns = (['Max_Date', 'Max_Value', 'Min_Date', 'Min_Value'] + 
+        columns = (['Max_Date', 'Max_Value', 'Min_Date', 'Min_Value', 'Start_Date', 'End_Date'] + 
                   ratio_columns + append_columns + sma_columns + 
                   weekly_sma_columns + monthly_sma_columns + 
                   k15_sma_columns + cdp_columns)
