@@ -214,7 +214,7 @@ class BaseModel:
         ratios = [0, 0.191, 0.382, 0.5, 0.618, 0.809, 1, 1.191, 1.382, 1.5, 1.618, 1.809, 2, 2.191, 2.382, 2.5, 2.618, 2.809, 3, 
                   3.191, 3.382, 3.5, 3.618, 3.809, 4, 4.191, 4.382, 4.5, 4.618, 4.809, 5]
         ratio_columns = [f'Ratio_{ratio}' for ratio in ratios]
-        append_columns =[f'spread_ratio', f'latest_close_price', f'latest_close_price-0.191_ratio', f'latest_close_price-0.618_ratio', f'latest_close_prices', f'latest_dates']
+        append_columns = [f'spread_ratio', f'latest_close_price', f'latest_close_price-0.191_ratio', f'latest_close_price-0.618_ratio', f'latest_close_prices', f'latest_dates']
         cdp_columns = [f'CDP', 'NH', 'NL', 'AH', 'AL']
 
         # 取得SMA值
@@ -239,126 +239,94 @@ class BaseModel:
         except:
             CDP = None
 
-        # 第一階段：找出所有原始波段
+        # 第一階段：找出所有波段
         peaks = []
         troughs = []
         wave_start_idx = 0
-        prev_low = df.iloc[0]['low_price']
-        prev_low_date = df.iloc[0]['date']
+        current_wave_high = df.iloc[0]['high_price']
+        current_wave_high_date = df.iloc[0]['date']
+        current_wave_low = df.iloc[0]['low_price']
+        current_wave_low_date = df.iloc[0]['date']
         
         for i in range(1, len(df)):
-            current_low = df.iloc[i]['low_price']
+            today_high = df.iloc[i]['high_price']
+            today_low = df.iloc[i]['low_price']
+            yesterday_low = df.iloc[i-1]['low_price']
             
-            if current_low > prev_low:
-                segment = df.iloc[wave_start_idx:i+1]
-                wave_high = segment['high_price'].max()
-                high_price_mask = segment['high_price'] == wave_high
-                wave_high_date = segment.loc[high_price_mask, 'date'].iloc[0]
-                high_idx = segment[high_price_mask].index[0]
+            # 如果今天最低價比前一天高，表示新波段開始
+            if today_low > yesterday_low:
+                # 記錄前一個波段
+                if i > 1:  # 確保不是第一天
+                    troughs.append({
+                        'date': current_wave_low_date,
+                        'price': current_wave_low,
+                        'idx': wave_start_idx
+                    })
+                    
+                    peaks.append({
+                        'date': current_wave_high_date,
+                        'price': current_wave_high,
+                        'idx': df[df['date'] == current_wave_high_date].index[0]
+                    })
                 
-                troughs.append({
-                    'date': prev_low_date,
-                    'price': prev_low,
-                    'idx': wave_start_idx
-                })
+                # 開始新波段
+                wave_start_idx = i-1  # 從前一天開始算起
+                current_wave_high = today_high
+                current_wave_high_date = df.iloc[i]['date']
+                current_wave_low = today_low
+                current_wave_low_date = df.iloc[i]['date']
                 
-                peaks.append({
-                    'date': wave_high_date,
-                    'price': wave_high,
-                    'idx': high_idx
-                })
-                
-                wave_start_idx = i
-                prev_low_date = df.iloc[i]['date']
-                
-            elif current_low < prev_low:
-                prev_low = current_low
-                prev_low_date = df.iloc[i]['date']
-                wave_start_idx = i
-                
-            prev_low = current_low
-        
+            else:
+                # 更新當前波段的最高價和最低價
+                if today_high > current_wave_high:
+                    current_wave_high = today_high
+                    current_wave_high_date = df.iloc[i]['date']
+                if today_low < current_wave_low:
+                    current_wave_low = today_low
+                    current_wave_low_date = df.iloc[i]['date']
+
         # 處理最後一個波段
-        segment = df.iloc[wave_start_idx:]
-        wave_high = segment['high_price'].max()
-        high_price_mask = segment['high_price'] == wave_high
-        wave_high_date = segment.loc[high_price_mask, 'date'].iloc[0]
-        high_idx = segment[high_price_mask].index[0]
-        
         troughs.append({
-            'date': prev_low_date,
-            'price': prev_low,
+            'date': current_wave_low_date,
+            'price': current_wave_low,
             'idx': wave_start_idx
         })
         
         peaks.append({
-            'date': wave_high_date,
-            'price': wave_high,
-            'idx': high_idx
+            'date': current_wave_high_date,
+            'price': current_wave_high,
+            'idx': df[df['date'] == current_wave_high_date].index[0]
         })
-        
+
         # 轉換為DataFrame並排序
         peaks_df = pd.DataFrame(peaks).sort_values('idx').reset_index(drop=True)
         troughs_df = pd.DataFrame(troughs).sort_values('idx').reset_index(drop=True)
-        
-        # 第二階段：整理波段
-        i = 0
-        while i < len(peaks_df):
+
+        # 第二階段：整理波段並計算其他指標
+        for i in range(len(peaks_df)):
             current_high = peaks_df.iloc[i]['price']
             current_high_date = peaks_df.iloc[i]['date']
             start_date = troughs_df.iloc[i]['date']
             start_idx = troughs_df.iloc[i]['idx']
             end_idx = peaks_df.iloc[i]['idx']
             
-            # 初始化當前波段的最低價
             current_low = troughs_df.iloc[i]['price']
             current_low_date = troughs_df.iloc[i]['date']
-            
-            # 向後查找較低的高點
-            j = i + 1
-            while j < len(peaks_df) and peaks_df.iloc[j]['price'] <= current_high:
-                end_idx = peaks_df.iloc[j]['idx']
-                
-                # 檢查下一個波段的最低價
-                if j < len(troughs_df):
-                    next_low = troughs_df.iloc[j]['price']
-                    # 如果下一個低點比當前低點高，則使用前一個波段的最高點
-                    if next_low > current_low:
-                        break
-                    # 如果下一個低點更低，則更新當前低點
-                    elif next_low < current_low:
-                        current_low = next_low
-                        current_low_date = troughs_df.iloc[j]['date']
-                
-                j += 1
-            
-            # 在合併的波段區間內再次確認最低價（包含結束日期後的一天）
-            segment = df.iloc[start_idx:end_idx+2]  # +2 來包含結束日期的下一天
-            segment_low = segment['low_price'].min()
-            
-            # 獲取最低價對應的日期
-            low_price_mask = segment['low_price'] == segment_low
-            segment_low_date = segment.loc[low_price_mask, 'date'].iloc[0]
-            
-            # 比較並使用最低的價格
-            if segment_low <= current_low:
-                current_low = segment_low
-                current_low_date = segment_low_date
 
-            # 建立波段資料 - 確保順序與列名完全對應
+            # 建立波段資料
             segment_data = []
             
-            # 1. 基本波段資訊 [Max_Date, Max_Value, Min_Date, Min_Value, Start_Date, End_Date]
+            # 1. 基本波段資訊
             segment_data.extend([
-                current_high_date,  # Max_Date
-                current_high,       # Max_Value
-                current_low_date,   # Min_Date
-                current_low,        # Min_Value
-                start_date,         # Start_Date
-                df.iloc[end_idx]['date']  # End_Date
+                current_high_date,
+                current_high,
+                current_low_date,
+                current_low,
+                start_date,
+                df.iloc[end_idx]['date']
             ])
             
-            # 2. 比例價格 [Ratio_0, Ratio_0.191, ...]
+            # 2. 比例價格
             ratio_prices = []
             for ratio in ratios:
                 ratio_price = Math.calculate_ratio_value(current_high, current_low, ratio)
@@ -366,10 +334,9 @@ class BaseModel:
             segment_data.extend(ratio_prices)
             
             # 3. 附加資訊
-            # [spread_ratio, latest_close_price, latest_close_price-0.191_ratio, latest_close_price-0.618_ratio, latest_close_prices, latest_dates]
-            spread_ratio = (current_high - ratio_prices[4]) / current_high  # 使用0.618的比例價格
-            latest_close_price_0191_ratio = (latest_close_price - ratio_prices[1]) / latest_close_price  # 0.191比例
-            latest_close_price_0618_ratio = (latest_close_price - ratio_prices[4]) / latest_close_price  # 0.618比例
+            spread_ratio = (current_high - ratio_prices[4]) / current_high
+            latest_close_price_0191_ratio = (latest_close_price - ratio_prices[1]) / latest_close_price
+            latest_close_price_0618_ratio = (latest_close_price - ratio_prices[4]) / latest_close_price
             
             segment_data.extend([
                 spread_ratio,
@@ -381,32 +348,16 @@ class BaseModel:
             ])
             
             # 4. SMA值
-            # [sma_5, sma_10, ...], [weekly_sma_5, weekly_sma_10, ...], [monthly_sma_5, monthly_sma_10, ...], [15min_sma_5, 15min_sma_10, ...]
-            segment_data.extend(sma_values)          # 日線 SMA
-            segment_data.extend(weekly_sma_values)   # 週線 SMA
-            segment_data.extend(monthly_sma_values)  # 月線 SMA
-            segment_data.extend(k15_sma_values)      # 15分鐘 SMA
+            segment_data.extend(sma_values)
+            segment_data.extend(weekly_sma_values)
+            segment_data.extend(monthly_sma_values)
+            segment_data.extend(k15_sma_values)
             
-            # 5. CDP值 [CDP, NH, NL, AH, AL]
+            # 5. CDP值
             segment_data.extend([CDP, NH, NL, AH, AL])
             
-            # 驗證數據長度
-            expected_length = (6 +                    # 基本波段資訊 (包含起始和結束日期)
-                             len(ratio_columns) +     # 比例價格
-                             len(append_columns) +    # 附加資訊
-                             len(sma_columns) +       # 日線SMA
-                             len(weekly_sma_columns) + # 週線SMA
-                             len(monthly_sma_columns) + # 月線SMA
-                             len(k15_sma_columns) +    # 15分鐘SMA
-                             len(cdp_columns))         # CDP值
-            
-            if len(segment_data) != expected_length:
-                print(f"Warning: Data length mismatch. Expected {expected_length}, got {len(segment_data)}")
-                continue
-            
             segments.append(segment_data)
-            i = j if j < len(peaks_df) else len(peaks_df)
-        
+
         # 創建最終的DataFrame
         columns = (['Max_Date', 'Max_Value', 'Min_Date', 'Min_Value', 'Start_Date', 'End_Date'] + 
                   ratio_columns + append_columns + sma_columns + 
