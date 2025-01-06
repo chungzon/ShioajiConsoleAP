@@ -243,18 +243,18 @@ class BaseModel:
         peaks = []
         troughs = []
         wave_start_idx = 0
-        wave_start_date = df.iloc[0]['date']
         prev_low = df.iloc[0]['low_price']
         prev_low_date = df.iloc[0]['date']
-        current_low_date = prev_low_date
         
         for i in range(1, len(df)):
             current_low = df.iloc[i]['low_price']
             
             if current_low > prev_low:
-                segment = df.iloc[wave_start_idx:i]
+                segment = df.iloc[wave_start_idx:i+1]
                 wave_high = segment['high_price'].max()
-                wave_high_date = segment[segment['high_price'] == wave_high]['date'].iloc[0]
+                high_price_mask = segment['high_price'] == wave_high
+                wave_high_date = segment.loc[high_price_mask, 'date'].iloc[0]
+                high_idx = segment[high_price_mask].index[0]
                 
                 troughs.append({
                     'date': prev_low_date,
@@ -265,11 +265,12 @@ class BaseModel:
                 peaks.append({
                     'date': wave_high_date,
                     'price': wave_high,
-                    'idx': df[df['date'] == wave_high_date].index[0]
+                    'idx': high_idx
                 })
                 
                 wave_start_idx = i
                 prev_low_date = df.iloc[i]['date']
+                
             elif current_low < prev_low:
                 prev_low = current_low
                 prev_low_date = df.iloc[i]['date']
@@ -280,7 +281,9 @@ class BaseModel:
         # 處理最後一個波段
         segment = df.iloc[wave_start_idx:]
         wave_high = segment['high_price'].max()
-        wave_high_date = segment[segment['high_price'] == wave_high]['date'].iloc[0]
+        high_price_mask = segment['high_price'] == wave_high
+        wave_high_date = segment.loc[high_price_mask, 'date'].iloc[0]
+        high_idx = segment[high_price_mask].index[0]
         
         troughs.append({
             'date': prev_low_date,
@@ -291,14 +294,14 @@ class BaseModel:
         peaks.append({
             'date': wave_high_date,
             'price': wave_high,
-            'idx': df[df['date'] == wave_high_date].index[0]
+            'idx': high_idx
         })
         
         # 轉換為DataFrame並排序
         peaks_df = pd.DataFrame(peaks).sort_values('idx').reset_index(drop=True)
         troughs_df = pd.DataFrame(troughs).sort_values('idx').reset_index(drop=True)
         
-        # 第二階段：整理波段並添加其他數據
+        # 第二階段：整理波段
         i = 0
         while i < len(peaks_df):
             current_high = peaks_df.iloc[i]['price']
@@ -307,7 +310,7 @@ class BaseModel:
             start_idx = troughs_df.iloc[i]['idx']
             end_idx = peaks_df.iloc[i]['idx']
             
-            # 初始化當前波段的最低價和日期
+            # 初始化當前波段的最低價
             current_low = troughs_df.iloc[i]['price']
             current_low_date = troughs_df.iloc[i]['date']
             
@@ -317,9 +320,15 @@ class BaseModel:
                 end_idx = peaks_df.iloc[j]['idx']
                 
                 # 檢查下一個波段的最低價
-                if j < len(troughs_df) and troughs_df.iloc[j]['price'] < current_low:
-                    current_low = troughs_df.iloc[j]['price']
-                    current_low_date = troughs_df.iloc[j]['date']
+                if j < len(troughs_df):
+                    next_low = troughs_df.iloc[j]['price']
+                    # 如果下一個低點比當前低點高，則使用前一個波段的最高點
+                    if next_low > current_low:
+                        break
+                    # 如果下一個低點更低，則更新當前低點
+                    elif next_low < current_low:
+                        current_low = next_low
+                        current_low_date = troughs_df.iloc[j]['date']
                 
                 j += 1
             

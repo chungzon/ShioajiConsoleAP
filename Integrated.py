@@ -253,9 +253,15 @@ def find_peaks_troughs_v34_small(df):
             end_idx = peaks_df.iloc[j]['idx']
             
             # 檢查下一個波段的最低價
-            if j < len(troughs_df) and troughs_df.iloc[j]['price'] < current_low:
-                current_low = troughs_df.iloc[j]['price']
-                current_low_date = troughs_df.iloc[j]['date']
+            if j < len(troughs_df):
+                next_low = troughs_df.iloc[j]['price']
+                # 如果下一個低點比當前低點高，則使用前一個波段的最高點
+                if next_low > current_low:
+                    break
+                # 如果下一個低點更低，則更新當前低點
+                elif next_low < current_low:
+                    current_low = next_low
+                    current_low_date = troughs_df.iloc[j]['date']
             
             j += 1
         
@@ -301,7 +307,7 @@ def find_peaks_troughs_v34_small(df):
 # 主函數
 def main(stock_code):
     # get_wave_extremes(stock_code)
-    df = get_stock_data(stock_code, '2024-12-01', '2025-01-05')
+    df = get_stock_data(stock_code, '2024-12-24', '2025-01-05')
     find_peaks_troughs_v34_small(df)
     # subscribe_realtime_data(stock_code)
     # try:
@@ -310,5 +316,5 @@ def main(stock_code):
     #     unsubscribe_realtime_data(stock_code)
 
 if __name__ == "__main__":
-    stock_code = '8064'  # 替換為您想要查詢的股票代碼
+    stock_code = '2467'  # 替換為您想要查詢的股票代碼
     main(stock_code)
