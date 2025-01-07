@@ -28,7 +28,7 @@ class SelectStockModel(BaseModel):
             query = f"""
                 SELECT distinct date, open_price, high_price, low_price, close_price, volume
                 FROM stock_data
-                WHERE stock_id = '{stock_id}' AND date >= '{start_date}' AND date <= '{end_date}'
+                WHERE stock_id = '{stock_id}' AND date >= '{start_date}' AND date <= '{end_date}' ORDER BY date ASC
             """
             df = pd.read_sql(query, conn)
             df['date'] = pd.to_datetime(df['date'])
