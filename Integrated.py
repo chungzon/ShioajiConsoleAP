@@ -257,7 +257,7 @@ def find_peaks_troughs_v34_small(df):
 # 主函數
 def main(stock_code):
     # get_wave_extremes(stock_code)
-    df = get_stock_data(stock_code, '2024-01-07', '2025-01-06')
+    df = get_stock_data(stock_code, '2024-12-08', '2025-01-07')
     find_peaks_troughs_v34_small(df)
     # subscribe_realtime_data(stock_code)
     # try:
@@ -266,5 +266,5 @@ def main(stock_code):
     #     unsubscribe_realtime_data(stock_code)
 
 if __name__ == "__main__":
-    stock_code = '2467'  # 替換為您想要查詢的股票代碼
+    stock_code = '8047'  # 替換為您想要查詢的股票代碼
     main(stock_code)
