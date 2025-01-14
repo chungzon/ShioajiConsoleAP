@@ -242,21 +242,22 @@ class BaseModel:
         # 第一階段：找出所有波段
         peaks = []
         troughs = []
+        
         wave_start_idx = 0
         current_wave_high = df.iloc[0]['high_price']
         current_wave_high_date = df.iloc[0]['date']
         current_wave_low = df.iloc[0]['low_price']
         current_wave_low_date = df.iloc[0]['date']
+        last_wave_start_idx = 0  # 記錄波段起始位置
         
+        # 從第二天開始分析
         for i in range(1, len(df)):
             today_high = df.iloc[i]['high_price']
             today_low = df.iloc[i]['low_price']
             yesterday_low = df.iloc[i-1]['low_price']
             
-            # 如果今天最低價比前一天高，表示新波段開始
             if today_low > yesterday_low:
-                # 記錄前一個波段
-                if i > 1:  # 確保不是第一天
+                if i > 1:
                     troughs.append({
                         'date': current_wave_low_date,
                         'price': current_wave_low,
@@ -269,15 +270,13 @@ class BaseModel:
                         'idx': df[df['date'] == current_wave_high_date].index[0]
                     })
                 
-                # 開始新波段
-                wave_start_idx = i-1  # 從前一天開始算起
+                wave_start_idx = i-1
+                last_wave_start_idx = i  # 記錄新波段的起始位置
                 current_wave_high = today_high
                 current_wave_high_date = df.iloc[i]['date']
                 current_wave_low = today_low
                 current_wave_low_date = df.iloc[i]['date']
-                
             else:
-                # 更新當前波段的最高價和最低價
                 if today_high > current_wave_high:
                     current_wave_high = today_high
                     current_wave_high_date = df.iloc[i]['date']
@@ -301,6 +300,28 @@ class BaseModel:
         # 轉換為DataFrame並排序
         peaks_df = pd.DataFrame(peaks).sort_values('idx').reset_index(drop=True)
         troughs_df = pd.DataFrame(troughs).sort_values('idx').reset_index(drop=True)
+
+        # 檢查最後一個波段是否只有一筆資料
+        if len(df) - last_wave_start_idx == 1:  # 如果最後一個波段只有一筆資料
+            if len(peaks_df) > 1:  # 確保有前一個波段
+                last_data = df.iloc[-1]
+                prev_data = df.iloc[-2]
+                prev_peak_price = peaks_df.iloc[-2]['price']
+                
+                # 檢查條件：最高價是否高於前一波段最高價或最低價是否低於前一天最低價
+                if not (last_data['high_price'] > prev_peak_price or 
+                       last_data['low_price'] < prev_data['low_price']):
+                    # 合併到前一個波段
+                    peaks_df = peaks_df.iloc[:-1]
+                    troughs_df = troughs_df.iloc[:-1]
+                    
+                    # 更新前一個波段的資訊
+                    if last_data['high_price'] > peaks_df.iloc[-1]['price']:
+                        peaks_df.at[len(peaks_df)-1, 'price'] = last_data['high_price']
+                        peaks_df.at[len(peaks_df)-1, 'date'] = last_data['date']
+                    if last_data['low_price'] < troughs_df.iloc[-1]['price']:
+                        troughs_df.at[len(troughs_df)-1, 'price'] = last_data['low_price']
+                        troughs_df.at[len(troughs_df)-1, 'date'] = last_data['date']
 
         # 第二階段：整理波段並計算其他指標
         for i in range(len(peaks_df)):
@@ -511,7 +532,7 @@ class BaseModel:
 
             # 查詢語句
             query = f"""
-            SELECT stock_id, date, high_price, low_price 
+            SELECT DISTINCT stock_id, date, high_price, low_price 
             FROM stock_data
             WHERE stock_id = '{stock_id}'
             AND date >= '{start_date}'

@@ -150,9 +150,9 @@ def connect_db():
 
 def get_stock_data_from_db(conn, stock_code, start_date, end_date):
     query = f"""
-    SELECT distinct date, open_price, high_price, low_price, close_price, volume
+    SELECT distinct date, open_price, high_price, low_price, close_price
     FROM stock_data
-    WHERE stock_id = '{stock_code}' AND date >= '{start_date}' AND date <= '{end_date}'
+    WHERE stock_id = '{stock_code}' AND date >= '{start_date}' AND date <= '{end_date}' order by date asc
     """
     df = pd.read_sql(query, conn)
     df['date'] = pd.to_datetime(df['date'])
@@ -164,6 +164,15 @@ def get_stock_data(stock_code, start_date, end_date):
     return df
 
 def find_peaks_troughs_v34_small(df):
+    """
+    找尋波段的高點和低點。
+    
+    :param df: DataFrame，包含 date, high_price, low_price 等欄位
+    :return: 波段高低點資訊的 DataFrame
+    """
+    # 將資料按日期排序
+    df = df.sort_values('date').reset_index(drop=True)
+    
     peaks = []
     troughs = []
     
@@ -228,7 +237,28 @@ def find_peaks_troughs_v34_small(df):
     peaks_df = pd.DataFrame(peaks).sort_values('idx').reset_index(drop=True)
     troughs_df = pd.DataFrame(troughs).sort_values('idx').reset_index(drop=True)
     
-    # 第二階段：整理波段
+    # 檢查最後一個波段是否只有一筆資料
+    if len(troughs_df) > 1:  # 確保至少有兩個波段
+        last_trough = troughs_df.iloc[-1]
+        last_peak = peaks_df.iloc[-1]
+        prev_peak = peaks_df.iloc[-2]
+        
+        # 如果最後一個波段的高點和低點是同一天，表示只有一筆資料
+        if last_trough['date'] == last_peak['date']:
+            last_idx = df[df['date'] == last_trough['date']].index[0]
+            prev_idx = last_idx - 1
+            
+            last_data = df.iloc[last_idx]
+            prev_data = df.iloc[prev_idx]
+            
+            # 檢查是否滿足條件：最高價高於前一波段最高價或最低價低於前一天最低價
+            if not (last_data['high_price'] > prev_peak['price'] or 
+                   last_data['low_price'] < prev_data['low_price']):
+                # 不滿足條件，移除最後一個波段
+                troughs_df = troughs_df.iloc[:-1]
+                peaks_df = peaks_df.iloc[:-1]
+    
+    # 整理波段資訊
     merged_waves = []
     for i in range(len(peaks_df)):
         merged_waves.append({
@@ -257,7 +287,7 @@ def find_peaks_troughs_v34_small(df):
 # 主函數
 def main(stock_code):
     # get_wave_extremes(stock_code)
-    df = get_stock_data(stock_code, '2024-12-08', '2025-01-07')
+    df = get_stock_data(stock_code, '2024-12-08', '2025-01-10')
     find_peaks_troughs_v34_small(df)
     # subscribe_realtime_data(stock_code)
     # try:
@@ -266,5 +296,5 @@ def main(stock_code):
     #     unsubscribe_realtime_data(stock_code)
 
 if __name__ == "__main__":
-    stock_code = '8047'  # 替換為您想要查詢的股票代碼
+    stock_code = '3580'  # 替換為您想要查詢的股票代碼
     main(stock_code)

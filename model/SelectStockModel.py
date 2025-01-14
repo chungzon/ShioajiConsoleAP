@@ -26,7 +26,7 @@ class SelectStockModel(BaseModel):
 
             # 查詢語句
             query = f"""
-                SELECT distinct date, open_price, high_price, low_price, close_price, volume
+                SELECT distinct date, open_price, high_price, low_price, close_price
                 FROM stock_data
                 WHERE stock_id = '{stock_id}' AND date >= '{start_date}' AND date <= '{end_date}' ORDER BY date ASC
             """
