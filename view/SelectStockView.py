@@ -327,10 +327,31 @@ class SelectStockView(tk.Frame):
         messagebox.showerror("錯誤", message)
 
     def on_double_click(self, event):
-        item = self.tree.selection()[0]  # 獲取選中的項目
-        stock_code = self.tree.item(item, "values")[0]  # 獲取第一列（股票代碼）
-        pyperclip.copy(stock_code)  # 複製到剪貼板
-        self.show_copy_message(stock_code)
+        """雙擊事件處理"""
+        tree = event.widget
+        region = tree.identify("region", event.x, event.y)
+        
+        if region == "cell":
+            column = tree.identify_column(event.x)
+            item = tree.identify_row(event.y)
+            values = tree.item(item)['values']
+            
+            if not values:
+                return
+            
+            stock_id = values[0]
+            wave_type = values[3]  # 波段類型
+            
+            if column == "#17":  # 下載欄位
+                if wave_type == "最高波段":
+                    self.download_stock_data(stock_id)
+                else:
+                    self.show_stock_detail(stock_id)
+            else:  # 股票代號欄位
+                # 複製到剪貼簿
+                self.clipboard_clear()
+                self.clipboard_append(stock_id)
+                print(f"已複製股票代號: {stock_id}")
 
     def on_click(self, event):
         # 從事件對象獲取觸發事件的 TreeView
