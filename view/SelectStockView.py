@@ -509,7 +509,7 @@ class SelectStockView(tk.Frame):
         # 計算總行
         total_rows = (len(ratios) * 2 - 1) + 2
         table.setRowCount(total_rows)
-        table.setHorizontalHeaderLabels(["比例", "總波段", "指標", "最近波段"])
+        table.setHorizontalHeaderLabels(["比例", "最近波段", "指標", "總波段"])
         header_font = QFont('Microsoft JhengHei', 12, QFont.Bold)
         table.horizontalHeader().setFont(header_font)
         font = QFont()
@@ -517,9 +517,13 @@ class SelectStockView(tk.Frame):
         table.setFont(font)
 
         def find_row_for_value(value):
-            min_price = float(ratio_prices['總波段']['0'])
-            max_price = float(ratio_prices['總波段']['5'])
+            min_price = float(ratio_prices['0'])
+            max_price = float(ratio_prices['5'])
             
+            # 如果value是字串，轉換為浮點數
+            if isinstance(value, str):
+                value = float(value)
+
             # 如果价格小于最小比例价格
             if value < min_price:
                 return 0  # 第一个空白行
@@ -530,8 +534,8 @@ class SelectStockView(tk.Frame):
             
             # 在比例价格之间查找位置
             for i, ratio in enumerate(ratios[:-1]):
-                current_price = float(ratio_prices['總波段'][ratio])
-                next_price = float(ratio_prices['總波段'][ratios[i + 1]])
+                current_price = float(ratio_prices[ratio])
+                next_price = float(ratio_prices[ratios[i + 1]])
                 
                 row = (i * 2) + 1  # 考虑偏移
                 
@@ -572,7 +576,7 @@ class SelectStockView(tk.Frame):
                     table.setItem(row, 0, ratio_item)
                     
                     # 總波段欄位
-                    wave_price = ratio_prices['總波段'][ratios[ratio_idx]]
+                    wave_price = ratio_prices[ratios[ratio_idx]]
                     if hasattr(wave_price, 'item'):
                         wave_price = wave_price.item()
                     price_item = QTableWidgetItem(f"{wave_price:.2f}")
@@ -789,6 +793,16 @@ class SelectStockView(tk.Frame):
         
         # 比例价格表格
         ratio_layout = QVBoxLayout()
+
+        # 添加日期信息标签
+        date_info = QLabel(
+            # f"最近波段期間: {additional_data['Start_Date']} ~ {additional_data['End_Date']}\n"
+            f"最高價日期: {additional_data['最近波段最高價日期']} \n"
+            f"最低價日期: {additional_data['最近波段最低價日期']} "
+        )
+        date_info.setFont(font)
+        ratio_layout.addWidget(date_info)
+
         ratio_table = self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices)
         ratio_layout.addWidget(ratio_table)
         self.ratio_tab.setLayout(ratio_layout)

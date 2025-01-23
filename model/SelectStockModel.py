@@ -300,12 +300,14 @@ class SelectStockModel(BaseModel):
                         AH = highest_segment['AH']
                         AL = highest_segment['AL']
 
+                        stock_name = highest_segment.get('name', '')
+
                         latest_close_prices = recent_segment['latest_close_prices']
                         latest_dates = recent_segment['latest_dates']
 
                         segment = {
                             'stock_id': stock_id,
-                            'name': '',
+                            'name': stock_name,
                             'latest_close_price': latest_close_price,
                             'wave_type': [None],
                             'Max_Date': max_value_date,
