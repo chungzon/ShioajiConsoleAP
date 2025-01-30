@@ -125,3 +125,26 @@ class Math:
     def calculate_CDP_5_values(CDP, high, low):
         return CDP, Math.calculate_CDP_NL(CDP, high), Math.calculate_CDP_NH(CDP, low), Math.calculate_AL(CDP, high, low), Math.calculate_AH(CDP, high, low)
 
+    # 計算手續費
+    @staticmethod
+    def calculate_fee(buy_price, sell_price):
+        try:
+            buy_fee = buy_price * 1000 * 0.001425
+            sell_fee = sell_price * 1000 * 0.002925 + sell_price * 1000 * 0.001425
+            fee = buy_fee + sell_fee
+            return round(fee, 2)
+        except (ValueError, TypeError):
+            return 0
+
+    # 計算獲利
+    @staticmethod
+    def calculate_profit(buy_price, sell_price):
+        try:
+            buy_price = float(buy_price)
+            sell_price = float(sell_price)
+            fee = Math.calculate_fee(buy_price, sell_price)
+            # 四捨五入至整數
+            return int(round((sell_price - buy_price) * 1000 - fee, 0))
+        except (ValueError, TypeError):
+            return 0 
+
