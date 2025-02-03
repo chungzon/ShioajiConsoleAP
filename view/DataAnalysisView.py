@@ -174,7 +174,7 @@ class DataAnalysisView(tk.Frame):
                             print(f"選擇的買入價格: {price:.2f}")
                             # 找出指標和總波段資料，並依據價格排序，並顯示
                             # 找出table中，colunm 1和colunm 3的資料，並依據價格排序，並顯示
-                            for table_row in range(table.rowCount()):
+                            for table_row in range(table.rowCount()):                                      
                                 indicator_prices_cell = table.item(table_row, 2)
                                 indicator_prices = []
                                 if indicator_prices_cell is not None:
@@ -213,7 +213,17 @@ class DataAnalysisView(tk.Frame):
                                     if table.item(table_row, 4) is not None and table.item(table_row, 4).text().strip() != "":
                                         table.setItem(table_row, 4, QTableWidgetItem(table.item(table_row, 4).text() + '\n' + str(profit) + '元'))
                                     else:
-                                        table.setItem(table_row, 4, QTableWidgetItem(str(profit) + '元')) 
+                                        table.setItem(table_row, 4, QTableWidgetItem(str(profit) + '元'))
+
+
+                                if (table.item(table_row, 4) is None or table.item(table_row, 4).text().strip() == ""):
+                                    #最近波段欄位資料
+                                    recent_ratio_prices_cell = table.item(table_row, 1)
+                                    if recent_ratio_prices_cell is not None:
+                                        recent_ratio_prices_cell_text = recent_ratio_prices_cell.text().strip()
+                                        if recent_ratio_prices_cell_text != "":
+                                            profit = Math.calculate_profit(price, float(recent_ratio_prices_cell_text))
+                                            table.setItem(table_row, 4, QTableWidgetItem(str(profit) + '元'))
 
                             break
                         except ValueError:
