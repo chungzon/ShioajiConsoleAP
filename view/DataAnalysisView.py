@@ -3,11 +3,12 @@ import tkinter as tk
 from tkinter import ttk
 from tkcalendar import DateEntry
 import os
-from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView, QFrame, QWidget, QVBoxLayout, QTabWidget, QGridLayout, QLabel, QMessageBox
+from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView, QFrame, QWidget, QVBoxLayout, QTabWidget, QGridLayout, QLabel, QMessageBox, QCheckBox
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QColor, QBrush
 from common.Math import Math
 # SelectStockView
+from common.enum.StockType import StockType
 from view.SelectStockView import SelectStockView
 
 
@@ -135,7 +136,7 @@ class DataAnalysisView(tk.Frame):
         table.resizeColumnsToContents()
         return table
 
-    def create_ratio_table(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices):
+    def create_ratio_table(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox):
         table = QTableWidget()
         table.setColumnCount(5)  # 比例、最近波段、總波段、指標, 獲利
         
@@ -158,7 +159,10 @@ class DataAnalysisView(tk.Frame):
       
         # 加入選擇cell的事件
         def on_cell_clicked(row, col):
-  
+            # 如果選擇的是當沖checkbox
+            stock_type = StockType.DAY_TRADING
+            if not day_trading_checkbox.isChecked():
+                stock_type = StockType.LONG_TERM
 
             # 如果選擇的是最近波段列
             if col == 1:  # 最近波段列
@@ -207,7 +211,7 @@ class DataAnalysisView(tk.Frame):
                                     # 取出價格
                                     indicator_price = indicator_price.split('：')[1]
                                     # 計算獲利
-                                    profit = Math.calculate_profit(price, indicator_price)
+                                    profit = Math.calculate_profit(price, indicator_price, stock_type)
 
                                     # 如果資料已存在，則附加上去
                                     if table.item(table_row, 4) is not None and table.item(table_row, 4).text().strip() != "":
@@ -222,7 +226,7 @@ class DataAnalysisView(tk.Frame):
                                     if recent_ratio_prices_cell is not None:
                                         recent_ratio_prices_cell_text = recent_ratio_prices_cell.text().strip()
                                         if recent_ratio_prices_cell_text != "":
-                                            profit = Math.calculate_profit(price, float(recent_ratio_prices_cell_text))
+                                            profit = Math.calculate_profit(price, float(recent_ratio_prices_cell_text), stock_type)
                                             table.setItem(table_row, 4, QTableWidgetItem(str(profit) + '元'))
 
                             break
@@ -526,13 +530,15 @@ class DataAnalysisView(tk.Frame):
         date_info.setFont(font)
         ratio_layout.addWidget(date_info)
         
-        # 加入獲利資訊標籤
-        profit_info = QLabel(f"獲利金額: {additional_data.get('獲利金額', 'N/A')}")
-        profit_info.setFont(font)
-        ratio_layout.addWidget(profit_info)
+        # 當沖手續費checkbox
+        day_trading_checkbox = QCheckBox("當沖")
+        day_trading_checkbox.setChecked(True)
+        day_trading_checkbox.setFont(font)
+        ratio_layout.addWidget(day_trading_checkbox)
+
 
         # 創建比例表格
-        ratio_table = self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices)
+        ratio_table = self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox)
         ratio_layout.addWidget(ratio_table)
         self.ratio_tab.setLayout(ratio_layout)
         

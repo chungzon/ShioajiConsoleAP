@@ -1,6 +1,20 @@
 import math
-
+from common.enum.StockType import StockType
 class Math:
+    # 股票交易手續費
+    stock_fee = 0.001425
+    # 股票交易稅
+    stock_tax = 0.003
+    # 當沖交易稅
+    stock_tax_today = 0.0015
+    # 交易稅
+    stock_tax_type = {
+        StockType.DAY_TRADING: 0.0015,
+        StockType.LONG_TERM: 0.003,
+        StockType.MARGIN_TRADING: 0.001425,
+        StockType.SHORT_TRADING: 0.001425
+    }
+
     """
     數學運算類別
     """
@@ -127,10 +141,10 @@ class Math:
 
     # 計算手續費
     @staticmethod
-    def calculate_fee(buy_price, sell_price):
+    def calculate_fee(buy_price, sell_price, stock_type):
         try:
-            buy_fee = buy_price * 1000 * 0.001425
-            sell_fee = sell_price * 1000 * 0.002925 + sell_price * 1000 * 0.001425
+            buy_fee = buy_price * 1000 * Math.stock_fee
+            sell_fee = sell_price * 1000 * (Math.stock_fee + Math.stock_tax_type[stock_type])
             fee = buy_fee + sell_fee
             return round(fee, 2)
         except (ValueError, TypeError):
@@ -138,11 +152,11 @@ class Math:
 
     # 計算獲利
     @staticmethod
-    def calculate_profit(buy_price, sell_price):
+    def calculate_profit(buy_price, sell_price, stock_type):
         try:
             buy_price = float(buy_price)
             sell_price = float(sell_price)
-            fee = Math.calculate_fee(buy_price, sell_price)
+            fee = Math.calculate_fee(buy_price, sell_price, stock_type)
             # 四捨五入至整數
             return int(round((sell_price - buy_price) * 1000 - fee, 0))
         except (ValueError, TypeError):
