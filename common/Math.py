@@ -141,10 +141,10 @@ class Math:
 
     # 計算手續費
     @staticmethod
-    def calculate_fee(buy_price, sell_price, stock_type):
+    def calculate_fee(buy_price, sell_price, stock_type, fee_discount):
         try:
-            buy_fee = buy_price * 1000 * Math.stock_fee
-            sell_fee = sell_price * 1000 * (Math.stock_fee + Math.stock_tax_type[stock_type])
+            buy_fee = buy_price * 1000 * Math.stock_fee * (fee_discount / 10)
+            sell_fee = sell_price * 1000 * (Math.stock_fee * (fee_discount / 10) + Math.stock_tax_type[stock_type])
             fee = buy_fee + sell_fee
             return round(fee, 2)
         except (ValueError, TypeError):
@@ -152,11 +152,11 @@ class Math:
 
     # 計算獲利
     @staticmethod
-    def calculate_profit(buy_price, sell_price, stock_type):
+    def calculate_profit(buy_price, sell_price, stock_type, fee_discount):
         try:
             buy_price = float(buy_price)
             sell_price = float(sell_price)
-            fee = Math.calculate_fee(buy_price, sell_price, stock_type)
+            fee = Math.calculate_fee(buy_price, sell_price, stock_type, fee_discount)
             # 四捨五入至整數
             return int(round((sell_price - buy_price) * 1000 - fee, 0))
         except (ValueError, TypeError):

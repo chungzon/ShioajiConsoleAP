@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkcalendar import DateEntry
 import os
-from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView, QFrame, QWidget, QVBoxLayout, QTabWidget, QGridLayout, QLabel, QMessageBox, QCheckBox
+from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView, QFrame, QWidget, QVBoxLayout, QTabWidget, QGridLayout, QLabel, QMessageBox, QCheckBox, QLineEdit, QHBoxLayout
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QColor, QBrush
 from common.Math import Math
@@ -136,7 +136,7 @@ class DataAnalysisView(tk.Frame):
         table.resizeColumnsToContents()
         return table
 
-    def create_ratio_table(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox):
+    def create_ratio_table(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input):
         table = QTableWidget()
         table.setColumnCount(5)  # 比例、最近波段、總波段、指標, 獲利
         
@@ -154,6 +154,7 @@ class DataAnalysisView(tk.Frame):
         header_font = QFont('Microsoft JhengHei', 12, QFont.Bold)
         table.horizontalHeader().setFont(header_font)
         font = QFont()
+        font.setFamily("Microsoft JhengHei")  # 设置字体为 Microsoft JhengHei
         font.setPointSize(13)
         table.setFont(font)
       
@@ -166,6 +167,15 @@ class DataAnalysisView(tk.Frame):
 
             # 如果選擇的是最近波段列
             if col == 1:  # 最近波段列
+                fee_discount = fee_discount_input.text()
+                # 判斷fee_discount是否為數字
+                try:
+                    float(fee_discount)
+                except ValueError:
+                    QMessageBox.warning(None, "警告", "手續費折讓必須為數字")
+                    return
+                fee_discount = float(fee_discount)
+
                 # 清空獲利列
                 for r in range(table.rowCount()):
                     table.setItem(r, 4, QTableWidgetItem(""))
@@ -211,7 +221,7 @@ class DataAnalysisView(tk.Frame):
                                     # 取出價格
                                     indicator_price = indicator_price.split('：')[1]
                                     # 計算獲利
-                                    profit = Math.calculate_profit(price, indicator_price, stock_type)
+                                    profit = Math.calculate_profit(price, indicator_price, stock_type, fee_discount)
 
                                     # 如果資料已存在，則附加上去
                                     if table.item(table_row, 4) is not None and table.item(table_row, 4).text().strip() != "":
@@ -226,7 +236,7 @@ class DataAnalysisView(tk.Frame):
                                     if recent_ratio_prices_cell is not None:
                                         recent_ratio_prices_cell_text = recent_ratio_prices_cell.text().strip()
                                         if recent_ratio_prices_cell_text != "":
-                                            profit = Math.calculate_profit(price, float(recent_ratio_prices_cell_text), stock_type)
+                                            profit = Math.calculate_profit(price, float(recent_ratio_prices_cell_text), stock_type, fee_discount)
                                             table.setItem(table_row, 4, QTableWidgetItem(str(profit) + '元'))
 
                             break
@@ -433,6 +443,7 @@ class DataAnalysisView(tk.Frame):
             # 创建标签
             label = QLabel(title)
             font = QFont()
+            font.setFamily("Microsoft JhengHei")  # 设置字体为 Microsoft JhengHei
             font.setPointSize(13)
             font.setBold(True)
             label.setFont(font)
@@ -453,6 +464,7 @@ class DataAnalysisView(tk.Frame):
         
         # 设置字体
         font = QFont()
+        font.setFamily("Microsoft JhengHei")  # 设置字体为 Microsoft JhengHei
         font.setPointSize(13)
         recent_price_table.setFont(font)
         recent_price_table.horizontalHeader().setFont(font)
@@ -530,15 +542,37 @@ class DataAnalysisView(tk.Frame):
         date_info.setFont(font)
         ratio_layout.addWidget(date_info)
         
-        # 當沖手續費checkbox
+        # 當沖交易checkbox
         day_trading_checkbox = QCheckBox("當沖")
         day_trading_checkbox.setChecked(True)
         day_trading_checkbox.setFont(font)
         ratio_layout.addWidget(day_trading_checkbox)
 
+        # 创建一个水平布局
+        fee_layout = QHBoxLayout()
+
+        # 手續費折讓輸入框，預設為1.6%
+        fee_discount_label = QLabel("手續費折讓:")
+        fee_discount_label.setFont(font)
+        fee_discount_label.setFixedWidth(100)
+        fee_layout.addWidget(fee_discount_label)
+
+        fee_discount_input = QLineEdit()
+        fee_discount_input.setFont(font)
+        fee_discount_input.setText("1.6")
+        fee_discount_input.setFixedWidth(75)
+        fee_discount_input.setPlaceholderText("請輸入")
+        fee_discount_input.setAlignment(Qt.AlignCenter)
+        fee_layout.addWidget(fee_discount_input)
+
+        fee_discount_unit_label = QLabel("折")
+        fee_discount_unit_label.setFont(font)
+        fee_layout.addWidget(fee_discount_unit_label)
+       
+        ratio_layout.addLayout(fee_layout)
 
         # 創建比例表格
-        ratio_table = self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox)
+        ratio_table = self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input)
         ratio_layout.addWidget(ratio_table)
         self.ratio_tab.setLayout(ratio_layout)
         
