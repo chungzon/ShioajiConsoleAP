@@ -79,7 +79,7 @@ class SelectStockView(tk.Frame):
         
         self.recent_wave_var = tk.BooleanVar()
         self.highest_wave_var = tk.BooleanVar()
-        self.total_wave_var = tk.BooleanVar()
+        self.total_wave_var = tk.BooleanVar(value=True)
 
         ttk.Checkbutton(row1_frame, text="最近波段", variable=self.recent_wave_var).pack(side=tk.LEFT, padx=(10, 10))
         ttk.Checkbutton(row1_frame, text="最高波段", variable=self.highest_wave_var).pack(side=tk.LEFT, padx=(0, 10))
