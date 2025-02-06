@@ -150,5 +150,5 @@ class SelectStockController:
             'AL': total_segment.get('AL', 'N/A')
         }
 
-        self.view.show_sma_data(stock_id, stock_name, organized_ma_data, ratio_prices, additional_data, indicator_prices, recent_ratio_prices)
+        self.view.show_sma_data(stock_id, stock_name, organized_ma_data, recent_ratio_prices, additional_data, indicator_prices, ratio_prices)
         
