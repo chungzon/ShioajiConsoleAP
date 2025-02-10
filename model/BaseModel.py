@@ -73,7 +73,7 @@ class BaseModel:
         query = f"""
         SELECT DISTINCT TOP 300 ts, Open_Price, High, Low, Close_Price, Volume
         FROM Kbars
-        WHERE stock_id = {stock_id} ORDER BY ts DESC
+        WHERE stock_id = '{stock_id}' ORDER BY ts DESC
         """
         df = pd.read_sql(query, conn)
         df['ts'] = pd.to_datetime(df['ts']).dt.strftime('%Y-%m-%d %H:%M:%S')
