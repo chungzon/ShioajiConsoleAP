@@ -284,11 +284,45 @@ def find_peaks_troughs_v34_small(df):
     
     return peaks_df, troughs_df, merged_waves_df
 
+def get_gap_stocks(df):
+    """
+    找出跳空缺口的資料和日期。
+    
+    :param df: DataFrame，包含 date, open_price, high_price, low_price, close_price 等欄位
+    :return: 包含跳空缺口資訊的 DataFrame
+    """
+    gaps = []
+
+    for i in range(1, len(df)):
+        prev_close = df.iloc[i - 1]['close_price']
+        current_open = df.iloc[i]['open_price']
+        
+        if current_open > df.iloc[i - 1]['high_price']:
+            gap_type = "向上跳空"
+        elif current_open < df.iloc[i - 1]['low_price']:
+            gap_type = "向下跳空"
+        else:
+            continue
+        
+        gap_info = {
+            'date': df.iloc[i]['date'],
+            'previous_close': prev_close,
+            'current_open': current_open,
+            'gap_type': gap_type
+        }
+        gaps.append(gap_info)
+    
+    return pd.DataFrame(gaps)
+
 # 主函數
 def main(stock_code):
     # get_wave_extremes(stock_code)
-    df = get_stock_data(stock_code, '2024-12-08', '2025-01-10')
-    find_peaks_troughs_v34_small(df)
+    df = get_stock_data(stock_code, '2024-09-10', '2025-01-10')
+
+    # 找出日期區間內，跳空缺口
+    gap_df = get_gap_stocks(df)
+    print(gap_df)
+    # find_peaks_troughs_v34_small(df)
     # subscribe_realtime_data(stock_code)
     # try:
     #     monitor_stock(stock_code)
