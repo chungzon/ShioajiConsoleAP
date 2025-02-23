@@ -69,12 +69,13 @@ class Math:
     # 計算移動平均
     @staticmethod
     def calculate_moving_average(prices, window):
-        return prices.rolling(window=window).mean()
+        return prices.rolling(window=window, min_periods=window).mean()
 
     # 計算周均線
     @staticmethod
     def calculate_weekly_average(prices, window):
         weekly_prices = prices.resample('W').last()
+        weekly_prices = weekly_prices.dropna()
         return Math.calculate_moving_average(weekly_prices, window)
 
     # 計算月均線
