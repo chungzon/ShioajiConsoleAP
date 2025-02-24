@@ -669,7 +669,7 @@ class DataAnalysisModel(SelectStockModel):
                     'monthly_sma_60': recent_segment.get('monthly_sma_60', 'N/A'),
                     'monthly_sma_120': recent_segment.get('monthly_sma_120', 'N/A'),
                 }
-                return segment, recent_segment
+                return segment, recent_segment # 返回總波段和最近波段
 
     def get_recent_segment(self, segments_df, recent_start_date, recent_end_date):
         """獲取日期區間內的最近波段"""

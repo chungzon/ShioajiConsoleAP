@@ -536,8 +536,8 @@ class DataAnalysisView(tk.Frame):
         # 添加日期信息标签
         date_info = QLabel(
             # f"最近波段期間: {additional_data['Start_Date']} ~ {additional_data['End_Date']}\n"
-            f"最高價日期: {additional_data['最近波段最高價日期']} \n"
-            f"最低價日期: {additional_data['最近波段最低價日期']} "
+            f"最高價日期: {additional_data['最近波段最高價日期']}   總波段最高價日期: {additional_data['總波段最高價日期']}\n"
+            f"最低價日期: {additional_data['最近波段最低價日期']}   總波段最低價日期: {additional_data['總波段最低價日期']}"
         )
         date_info.setFont(font)
         ratio_layout.addWidget(date_info)
