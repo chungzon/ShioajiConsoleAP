@@ -69,7 +69,12 @@ class DataDownloadModel(BaseModel):
     def get_all_stocks_kbars(self, start_date, end_date):
         top_stocks = self.get_top_volumn_stocks()
         for stock_id in top_stocks:
-            kbars_df = self.get_kbars_data_by_start_end_date(stock_id, start_date, end_date)
-            self.insert_kbars(kbars_df, stock_id)
-            self.event_bus.publish(Event("log_message", f"下載股票 {stock_id} 的KBar資料"))
+            try:
+                kbars_df = self.get_kbars_data_by_start_end_date(stock_id, start_date, end_date)
+                if kbars_df.empty:
+                    continue
+                self.insert_kbars(kbars_df, stock_id)
+                self.event_bus.publish(Event("log_message", f"下載股票 {stock_id} 的KBar資料"))
+            except Exception as e:
+                self.event_bus.publish(Event("log_message", f"下載股票 {stock_id} 的KBar資料失敗: {e}"))
 
