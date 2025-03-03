@@ -3,13 +3,14 @@ import tkinter as tk
 from tkinter import ttk
 from tkcalendar import DateEntry
 import os
-from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView, QFrame, QWidget, QVBoxLayout, QTabWidget, QGridLayout, QLabel, QMessageBox, QCheckBox, QLineEdit, QHBoxLayout
+from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView, QFrame, QWidget, QVBoxLayout, QTabWidget, QGridLayout, QLabel, QMessageBox, QCheckBox, QLineEdit, QHBoxLayout, QPushButton, QFileDialog
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QColor, QBrush
 from common.Math import Math
 # SelectStockView
 from common.enum.StockType import StockType
 from view.SelectStockView import SelectStockView
+from PIL import ImageGrab
 
 
 class DataAnalysisView(tk.Frame):
@@ -579,9 +580,33 @@ class DataAnalysisView(tk.Frame):
         # 设置主布局
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.tab_widget)
+
+        # 添加截圖按鈕
+        screenshot_button = QPushButton("截圖另存圖片")
+        screenshot_button.setFont(font)
+        screenshot_button.clicked.connect(self.save_screenshot)
+        main_layout.addWidget(screenshot_button)
+
         self.detail_window.setLayout(main_layout)
         
         self.detail_window.show()
+
+    def save_screenshot(self):
+        # 獲取當前視窗的幾何信息
+        x = self.detail_window.geometry().x()
+        y = self.detail_window.geometry().y()
+        width = self.detail_window.geometry().width()
+        height = self.detail_window.geometry().height()
+
+        # 截圖
+        screenshot = ImageGrab.grab(bbox=(x, y, x + width, y + height))
+
+        # 打開文件保存對話框
+        file_path, _ = QFileDialog.getSaveFileName(self.detail_window, "保存截圖", "", "PNG Files (*.png);;All Files (*)")
+
+        if file_path:
+            # 保存截圖
+            screenshot.save(file_path, "PNG")
 
     def insert_table_row(self, table, row, values):
         """輔助函數：插一行數據到表格中"""
