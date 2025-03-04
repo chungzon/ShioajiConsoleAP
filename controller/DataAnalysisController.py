@@ -155,6 +155,10 @@ class DataAnalysisController:
         if start_date > recent_start_date or end_date < recent_end_date:
             self.view.set_status("波段日期區間不在總波段日期區間內")
             return
+        
+        stock_name = self.model.get_stock_name(stock_id)
+        if stock_name is not NULL:
+            stock_name = stock_name.replace('*', '-')
 
         total_segment, recent_segment = self.model.get_stock_data_from_all_wave_extremes(stock_id, start_date, end_date, recent_start_date, recent_end_date)
         if total_segment is None:
@@ -287,5 +291,5 @@ class DataAnalysisController:
             'AL': total_segment.get('AL', 'N/A')
         }
 
-        self.view.show_sma_data(stock_id, '', organized_ma_data, recent_ratio_prices, additional_data, indicator_prices, total_ratio_prices)
+        self.view.show_sma_data(stock_id, stock_name, organized_ma_data, recent_ratio_prices, additional_data, indicator_prices, total_ratio_prices)
         

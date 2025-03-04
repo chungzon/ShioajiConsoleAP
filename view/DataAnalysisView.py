@@ -11,6 +11,7 @@ from common.Math import Math
 from common.enum.StockType import StockType
 from view.SelectStockView import SelectStockView
 from PIL import ImageGrab
+from functools import partial
 
 
 class DataAnalysisView(tk.Frame):
@@ -535,8 +536,10 @@ class DataAnalysisView(tk.Frame):
         ratio_layout = QVBoxLayout()
         
         # 添加日期信息标签
+        # stock_name = stock_name if stock_name is not None else "--"
+        stock_info = f"股票代碼(名稱): {stock_id} ({stock_name})\n"
         date_info = QLabel(
-            # f"最近波段期間: {additional_data['Start_Date']} ~ {additional_data['End_Date']}\n"
+            f"{stock_info}\n"
             f"最高價日期: {additional_data['最近波段最高價日期']}   總波段最高價日期: {additional_data['總波段最高價日期']}\n"
             f"最低價日期: {additional_data['最近波段最低價日期']}   總波段最低價日期: {additional_data['總波段最低價日期']}"
         )
@@ -584,14 +587,14 @@ class DataAnalysisView(tk.Frame):
         # 添加截圖按鈕
         screenshot_button = QPushButton("截圖另存圖片")
         screenshot_button.setFont(font)
-        screenshot_button.clicked.connect(self.save_screenshot)
+        screenshot_button.clicked.connect(partial(self.save_screenshot, stock_id, stock_name))
         main_layout.addWidget(screenshot_button)
 
         self.detail_window.setLayout(main_layout)
         
         self.detail_window.show()
 
-    def save_screenshot(self):
+    def save_screenshot(self, stock_id, stock_name):
         # 獲取當前視窗的幾何信息
         x = self.detail_window.geometry().x()
         y = self.detail_window.geometry().y()
@@ -602,7 +605,8 @@ class DataAnalysisView(tk.Frame):
         screenshot = ImageGrab.grab(bbox=(x, y, x + width, y + height))
 
         # 打開文件保存對話框
-        file_path, _ = QFileDialog.getSaveFileName(self.detail_window, "保存截圖", "", "PNG Files (*.png);;All Files (*)")
+        # default file name: 截圖 - {stock_name} ({stock_id})
+        file_path, _ = QFileDialog.getSaveFileName(self.detail_window, f"保存截圖", f"截圖 - {stock_name} ({stock_id}).png", "PNG Files (*.png);;All Files (*)")
 
         if file_path:
             # 保存截圖
