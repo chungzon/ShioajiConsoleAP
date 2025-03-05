@@ -156,7 +156,7 @@ class DataAnalysisController:
             self.view.set_status("波段日期區間不在總波段日期區間內")
             return
 
-        total_segment, recent_segment = self.model.get_stock_data_from_all_wave_extremes(stock_id, start_date, end_date, recent_start_date, recent_end_date)
+        total_segment, recent_segment, gap_df = self.model.get_stock_data_from_all_wave_extremes(stock_id, start_date, end_date, recent_start_date, recent_end_date)
         if total_segment is None:
             print(f"沒有找到股票 {stock_id} 的數據")
             return
@@ -285,5 +285,5 @@ class DataAnalysisController:
             'AL': total_segment.get('AL', 'N/A')
         }
 
-        self.view.show_sma_data(stock_id, '', organized_ma_data, recent_ratio_prices, additional_data, indicator_prices, total_ratio_prices)
+        self.view.show_sma_data(stock_id, '', organized_ma_data, recent_ratio_prices, additional_data, indicator_prices, total_ratio_prices, gap_df)
         
