@@ -138,7 +138,7 @@ class DataAnalysisView(tk.Frame):
         table.resizeColumnsToContents()
         return table
 
-    def create_ratio_table(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input):
+    def create_ratio_table(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df):
         table = QTableWidget()
         table.setColumnCount(5)  # 比例、最近波段、總波段、指標, 獲利
         
@@ -392,6 +392,11 @@ class DataAnalysisView(tk.Frame):
                 for ratio, value in recent_ratio_prices.items():
                     name = f"【{ratio}】"
                     all_prices.append((name, value, True))
+
+            if gap_df is not None:
+                for index, row in gap_df.iterrows():
+                    gap_type = '↑' if row['gap_type'] == '向上跳空' else '↓'
+                    all_prices.append((f"({row['previous_close']}~{row['current_open']})  [{row['date'].strftime('%Y-%m-%d')}] {gap_type}", row['previous_close'], False))
             
             return all_prices
 
@@ -416,7 +421,7 @@ class DataAnalysisView(tk.Frame):
 
         return table
 
-    def show_sma_data(self, stock_id, stock_name, organized_ma_data, ratio_prices, additional_data, indicator_prices, recent_ratio_prices):
+    def show_sma_data(self, stock_id, stock_name, organized_ma_data, ratio_prices, additional_data, indicator_prices, recent_ratio_prices, gap_df):
         self.detail_window = QWidget()
         self.detail_window.setWindowTitle(f"詳細資料 - {stock_id} ({stock_name})")
         self.detail_window.setGeometry(100, 100, 1000, 750)
@@ -576,7 +581,7 @@ class DataAnalysisView(tk.Frame):
         ratio_layout.addLayout(fee_layout)
 
         # 創建比例表格
-        ratio_table = self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input)
+        ratio_table = self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df)
         ratio_layout.addWidget(ratio_table)
         self.ratio_tab.setLayout(ratio_layout)
         

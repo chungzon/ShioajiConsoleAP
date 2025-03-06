@@ -1001,3 +1001,38 @@ class BaseModel:
         except Exception as e:
             print(f"讀取文件時發生錯誤: {e}")
             return []
+        
+    # 找出跳空缺口的資料和日期。
+    def get_gap_stocks(self, df):
+        """
+        找出跳空缺口的資料和日期。
+        
+        :param df: DataFrame，包含 date, open_price, high_price, low_price, close_price 等欄位
+        :return: 包含跳空缺口資訊的 DataFrame
+        """
+        gaps = []
+
+        for i in range(1, len(df)):
+            current_low = df.iloc[i]['low_price']
+            current_high = df.iloc[i]['high_price']
+            
+            if current_low > df.iloc[i - 1]['high_price']:
+                gap_type = "向上跳空"
+                current_open = current_low
+                prev_close = df.iloc[i - 1]['high_price']
+            elif current_high < df.iloc[i - 1]['low_price']:
+                gap_type = "向下跳空"
+                current_open = current_high
+                prev_close = df.iloc[i - 1]['low_price']
+            else:
+                continue
+            
+            gap_info = {
+                'date': df.iloc[i]['date'],
+                'previous_close': prev_close,
+                'current_open': current_open,
+                'gap_type': gap_type
+            }
+            gaps.append(gap_info)
+        
+        return pd.DataFrame(gaps)
