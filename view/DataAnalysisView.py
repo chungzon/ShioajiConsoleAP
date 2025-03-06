@@ -394,7 +394,7 @@ class DataAnalysisView(tk.Frame):
             if gap_df is not None:
                 for index, row in gap_df.iterrows():
                     gap_type = '↑' if row['gap_type'] == '向上跳空' else '↓'
-                    all_prices.append((f"({row['previous_close']}~{row['current_open']}) {gap_type}", row['previous_close'], False))
+                    all_prices.append((f"({row['previous_close']}~{row['current_open']})  [{row['date'].strftime('%Y-%m-%d')}] {gap_type}", row['previous_close'], False))
             
             return all_prices
 

@@ -1013,13 +1013,17 @@ class BaseModel:
         gaps = []
 
         for i in range(1, len(df)):
-            prev_close = df.iloc[i - 1]['close_price']
-            current_open = df.iloc[i]['open_price']
+            current_low = df.iloc[i]['low_price']
+            current_high = df.iloc[i]['high_price']
             
-            if current_open > df.iloc[i - 1]['high_price']:
+            if current_low > df.iloc[i - 1]['high_price']:
                 gap_type = "向上跳空"
-            elif current_open < df.iloc[i - 1]['low_price']:
+                current_open = current_low
+                prev_close = df.iloc[i - 1]['high_price']
+            elif current_high < df.iloc[i - 1]['low_price']:
                 gap_type = "向下跳空"
+                current_open = current_high
+                prev_close = df.iloc[i - 1]['low_price']
             else:
                 continue
             
