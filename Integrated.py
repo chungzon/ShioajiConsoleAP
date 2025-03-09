@@ -11,7 +11,7 @@ from decimal import Decimal
 api = sj.Shioaji(simulation=False)
 api.login(
     api_key="6GWV7gnxYXaEomoyLuTFRe29BnoAyEohVpbSZQYHdY66",
-    secret_key="F6PJrruho4pRpC9KefgKeqReFQ2nhLV34uXe2RmMZFow"
+    secret_key="F6PJrruho4pRpC9KefgKeqReFQ2nhLV34uXe2RmMZFow",
 )
 
 # 初始化通知器
@@ -316,18 +316,47 @@ def get_gap_stocks(df):
 
 # 主函數
 def main(stock_code):
+    save_etf_data()
+    # FetchContract()
     # get_wave_extremes(stock_code)
-    df = get_stock_data(stock_code, '2024-09-10', '2025-01-10')
+    # df = get_stock_data(stock_code, '2024-09-10', '2025-01-10')
 
     # 找出日期區間內，跳空缺口
-    gap_df = get_gap_stocks(df)
-    print(gap_df)
+    # gap_df = get_gap_stocks(df)
+    # print(gap_df)
     # find_peaks_troughs_v34_small(df)
     # subscribe_realtime_data(stock_code)
     # try:
     #     monitor_stock(stock_code)
     # finally:
     #     unsubscribe_realtime_data(stock_code)
+
+# 取得商品
+# TSE: 上市公司(OTC為上櫃,OES為興櫃)
+# api.Contracts.Stocks: [OES, OTC, TSE]
+def FetchContract():
+    # contracts = api.fetch_contracts(contract_download=True)
+    # print(api.Contracts.Stocks)
+    for contract in api.Contracts.Stocks:
+        print(contract)
+
+# 讀取在resource/ETF.xlsx的ETF資料
+def save_etf_data():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    resource_dir = os.path.join(current_dir, '', 'resource')
+    file_path =  os.path.join(resource_dir, 'ETF.xlsx')
+    df = pd.read_excel(file_path)
+    # 這個xlsx檔案第一列為欄位，第一欄位為ETF代碼，第二欄位為ETF名稱
+    # etf_data = df.iloc[1:]
+    # etf_data.columns = df.iloc[0]
+    # 將資料存到資料庫資料表StockTable裡面，其欄位為id, stock_name, market_type, stock_category
+    conn = connect_db()
+    cursor = conn.cursor()
+    for index, row in df.iterrows():
+        cursor.execute("INSERT INTO StockTable (id, stock_name, market_type, stock_category) VALUES (%s, %s, %s, %s)", (row['代號'], row['名稱'], 'ETF', 'ETF'))
+    conn.commit()
+    conn.close()
+    return df
 
 if __name__ == "__main__":
     stock_code = '3580'  # 替換為您想要查詢的股票代碼
