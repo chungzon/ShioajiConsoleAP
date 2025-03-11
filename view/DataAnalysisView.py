@@ -138,9 +138,9 @@ class DataAnalysisView(tk.Frame):
         table.resizeColumnsToContents()
         return table
 
-    def create_ratio_table(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df):
-        table = QTableWidget()
-        table.setColumnCount(5)  # 比例、最近波段、總波段、指標, 獲利
+    def create_ratio_table(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state):
+        # self.ratio_table = QTableWidget()
+        # self.ratio_table.setColumnCount(5)  # 比例、最近波段、總波段、指標, 獲利
         
         # 设置固定的比例序列
         ratios = ['0', '0.191', '0.382', '0.5', '0.618', '0.809', '1', 
@@ -151,14 +151,14 @@ class DataAnalysisView(tk.Frame):
         
         # 計算總行
         total_rows = (len(ratios) * 2 - 1) + 2
-        table.setRowCount(total_rows)
-        table.setHorizontalHeaderLabels(["比例", "最近波段", "指標", "總波段", "獲利"])
+        self.ratio_table.setRowCount(total_rows)
+        self.ratio_table.setHorizontalHeaderLabels(["比例", "最近波段", "指標", "總波段", "獲利"])
         header_font = QFont('Microsoft JhengHei', 12, QFont.Bold)
-        table.horizontalHeader().setFont(header_font)
+        self.ratio_table.horizontalHeader().setFont(header_font)
         font = QFont()
         font.setFamily("Microsoft JhengHei")  # 设置字体为 Microsoft JhengHei
         font.setPointSize(13)
-        table.setFont(font)
+        self.ratio_table.setFont(font)
       
         # 加入選擇cell的事件
         def on_cell_clicked(row, col):
@@ -179,9 +179,9 @@ class DataAnalysisView(tk.Frame):
                 fee_discount = float(fee_discount)
 
                 # 清空獲利列
-                for r in range(table.rowCount()):
-                    table.setItem(r, 4, QTableWidgetItem(""))
-                cell = table.item(row, col)
+                for r in range(self.ratio_table.rowCount()):
+                    self.ratio_table.setItem(r, 4, QTableWidgetItem(""))
+                cell = self.ratio_table.item(row, col)
                 if cell and cell.text():
                     for line in cell.text().split('\n'):
                         # line轉為數字
@@ -190,8 +190,8 @@ class DataAnalysisView(tk.Frame):
                             print(f"選擇的買入價格: {price:.2f}")
                             # 找出指標和總波段資料，並依據價格排序，並顯示
                             # 找出table中，colunm 1和colunm 3的資料，並依據價格排序，並顯示
-                            for table_row in range(table.rowCount()):                                      
-                                indicator_prices_cell = table.item(table_row, 2)
+                            for table_row in range(self.ratio_table.rowCount()):                                      
+                                indicator_prices_cell = self.ratio_table.item(table_row, 2)
                                 indicator_prices = []
                                 if indicator_prices_cell is not None:
                                     indicator_prices_cell_text = indicator_prices_cell.text().strip()
@@ -202,7 +202,7 @@ class DataAnalysisView(tk.Frame):
                                         indicator_prices = sorted(indicator_prices, key=lambda x: float(x.split('：')[1]))
                                         
                                 total_wave_prices = []
-                                total_wave_prices_cell = table.item(table_row, 3)
+                                total_wave_prices_cell = self.ratio_table.item(table_row, 3)
                                 if total_wave_prices_cell is not None:
                                     total_wave_prices_cell_text = total_wave_prices_cell.text().strip()
                                     if total_wave_prices_cell_text != "":
@@ -226,29 +226,29 @@ class DataAnalysisView(tk.Frame):
                                     profit = Math.calculate_profit(price, indicator_price, stock_type, fee_discount)
 
                                     # 如果資料已存在，則附加上去
-                                    if table.item(table_row, 4) is not None and table.item(table_row, 4).text().strip() != "":
-                                        table.setItem(table_row, 4, QTableWidgetItem(table.item(table_row, 4).text() + '\n' + str(profit) + '元'))
+                                    if self.ratio_table.item(table_row, 4) is not None and self.ratio_table.item(table_row, 4).text().strip() != "":
+                                        self.ratio_table.setItem(table_row, 4, QTableWidgetItem(self.ratio_table.item(table_row, 4).text() + '\n' + str(profit) + '元'))
                                     else:
-                                        table.setItem(table_row, 4, QTableWidgetItem(str(profit) + '元'))
+                                        self.ratio_table.setItem(table_row, 4, QTableWidgetItem(str(profit) + '元'))
 
 
-                                if (table.item(table_row, 4) is None or table.item(table_row, 4).text().strip() == ""):
+                                if (self.ratio_table.item(table_row, 4) is None or self.ratio_table.item(table_row, 4).text().strip() == ""):
                                     #最近波段欄位資料
-                                    recent_ratio_prices_cell = table.item(table_row, 1)
+                                    recent_ratio_prices_cell = self.ratio_table.item(table_row, 1)
                                     if recent_ratio_prices_cell is not None:
                                         recent_ratio_prices_cell_text = recent_ratio_prices_cell.text().strip()
                                         if recent_ratio_prices_cell_text != "":
                                             profit = Math.calculate_profit(price, float(recent_ratio_prices_cell_text), stock_type, fee_discount)
-                                            table.setItem(table_row, 4, QTableWidgetItem(str(profit) + '元'))
+                                            self.ratio_table.setItem(table_row, 4, QTableWidgetItem(str(profit) + '元'))
 
                             break
                         except ValueError:
                             continue
                             # 調整表格外觀
-                table.resizeColumnsToContents()
-                table.resizeRowsToContents()
+                self.ratio_table.resizeColumnsToContents()
+                self.ratio_table.resizeRowsToContents()
 
-        table.cellClicked.connect(on_cell_clicked)
+        self.ratio_table.cellClicked.connect(on_cell_clicked)
 
 
         def find_row_for_value(value):
@@ -302,7 +302,7 @@ class DataAnalysisView(tk.Frame):
                     for col in range(4):
                         item = QTableWidgetItem("")
                         item.setBackground(QBrush(color))
-                        table.setItem(row, col, item)
+                        self.ratio_table.setItem(row, col, item)
                     continue
                 
                 # 比例行
@@ -312,7 +312,7 @@ class DataAnalysisView(tk.Frame):
                     # 比例欄位
                     ratio_item = QTableWidgetItem(ratios[ratio_idx])
                     ratio_item.setBackground(QBrush(color))
-                    table.setItem(row, 0, ratio_item)
+                    self.ratio_table.setItem(row, 0, ratio_item)
                     
                     # 總波段欄位
                     wave_price = ratio_prices[ratios[ratio_idx]]
@@ -320,14 +320,14 @@ class DataAnalysisView(tk.Frame):
                         wave_price = wave_price.item()
                     price_item = QTableWidgetItem(f"{wave_price:.2f}")
                     price_item.setBackground(QBrush(color))
-                    table.setItem(row, 1, price_item)
+                    self.ratio_table.setItem(row, 1, price_item)
                 
                 # 中間的空白行
                 else:
                     for col in range(4):
                         item = QTableWidgetItem("")
                         item.setBackground(QBrush(color))
-                        table.setItem(row, col, item)
+                        self.ratio_table.setItem(row, col, item)
 
         def add_sorted_prices_to_cell(row, prices_list):
             """將所有價格一起排序後添加到指標列"""
@@ -351,7 +351,7 @@ class DataAnalysisView(tk.Frame):
             indicator_item.setBackground(QBrush(color))
             
             # 設置到表格中
-            table.setItem(row, 2, indicator_item)
+            self.ratio_table.setItem(row, 2, indicator_item)
             
             # 在最近波段列中顯示最近波段價格
             recent_lines = []
@@ -363,7 +363,7 @@ class DataAnalysisView(tk.Frame):
             
             recent_item = QTableWidgetItem('\n'.join(recent_lines))
             recent_item.setBackground(QBrush(color))
-            table.setItem(row, 3, recent_item)
+            self.ratio_table.setItem(row, 3, recent_item)
 
         # 首先設置基本欄位
         setup_basic_columns()
@@ -393,7 +393,7 @@ class DataAnalysisView(tk.Frame):
                     name = f"【{ratio}】"
                     all_prices.append((name, value, True))
 
-            if gap_df is not None:
+            if gap_df is not None and gap_checkbox_state:
                 for index, row in gap_df.iterrows():
                     gap_type = '↑' if row['gap_type'] == '向上跳空' else '↓'
                     gap_price = row['previous_close'] if row['gap_type'] == '向上跳空' else row['current_open']
@@ -417,10 +417,15 @@ class DataAnalysisView(tk.Frame):
             add_sorted_prices_to_cell(row, prices)
 
         # 調整表格外觀
-        table.resizeColumnsToContents()
-        table.resizeRowsToContents()
+        self.ratio_table.resizeColumnsToContents()
+        self.ratio_table.resizeRowsToContents()
 
-        return table
+        # self.ratio_table = self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df)
+        # self.ratio_layout.removeWidget(self.ratio_table)
+        # self.ratio_layout.addWidget(self.ratio_table)
+        # self.ratio_tab.setLayout(self.ratio_layout)
+
+        # return self.ratio_table
 
     def show_sma_data(self, stock_id, stock_name, organized_ma_data, ratio_prices, additional_data, indicator_prices, recent_ratio_prices, gap_df):
         self.detail_window = QWidget()
@@ -539,7 +544,7 @@ class DataAnalysisView(tk.Frame):
         
         
         # 比例价格表格
-        ratio_layout = QVBoxLayout()
+        self.ratio_layout = QVBoxLayout()
         
         # 添加日期信息标签
         # stock_name = stock_name if stock_name is not None else "--"
@@ -550,13 +555,13 @@ class DataAnalysisView(tk.Frame):
             f"最低價日期: {additional_data['最近波段最低價日期']}   總波段最低價日期: {additional_data['總波段最低價日期']}"
         )
         date_info.setFont(font)
-        ratio_layout.addWidget(date_info)
+        self.ratio_layout.addWidget(date_info)
         
         # 當沖交易checkbox
         day_trading_checkbox = QCheckBox("當沖")
         day_trading_checkbox.setChecked(True)
         day_trading_checkbox.setFont(font)
-        ratio_layout.addWidget(day_trading_checkbox)
+        self.ratio_layout.addWidget(day_trading_checkbox)
 
         # 创建一个水平布局
         fee_layout = QHBoxLayout()
@@ -579,13 +584,26 @@ class DataAnalysisView(tk.Frame):
         fee_discount_unit_label.setFont(font)
         fee_layout.addWidget(fee_discount_unit_label)
        
-        ratio_layout.addLayout(fee_layout)
+        self.ratio_layout.addLayout(fee_layout)
 
-        # 創建比例表格
-        ratio_table = self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df)
-        ratio_layout.addWidget(ratio_table)
-        self.ratio_tab.setLayout(ratio_layout)
+        gap_checkbox = QCheckBox("顯示跳空指標")
+        gap_checkbox.setChecked(True)
+        gap_checkbox.setFont(font)
+        self.ratio_layout.addWidget(gap_checkbox)
+        gap_checkbox.stateChanged.connect(lambda: self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked()))
+
+        # # 創建比例表格
+        # ratio_table = self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df)
+        # ratio_layout.addWidget(ratio_table)
+        # self.ratio_tab.setLayout(ratio_layout)
+        self.ratio_table = QTableWidget()
+        self.ratio_table.setColumnCount(5)  # 比例、最近波段、總波段、指標, 獲利
+        self.ratio_layout.addWidget(self.ratio_table)
+        self.ratio_tab.setLayout(self.ratio_layout)
+        self.update_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked())
         
+
+
         # 设置主布局
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.tab_widget)
@@ -599,6 +617,12 @@ class DataAnalysisView(tk.Frame):
         self.detail_window.setLayout(main_layout)
         
         self.detail_window.show()
+
+    def update_table(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state):
+        # 創建比例表格
+        self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state)
+        # self.ratio_layout.addWidget(self.ratio_table)
+        # self.ratio_tab.setLayout(self.ratio_layout)
 
     def save_screenshot(self, stock_id, stock_name):
         # 獲取當前視窗的幾何信息
