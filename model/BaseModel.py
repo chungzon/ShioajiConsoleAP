@@ -1036,3 +1036,9 @@ class BaseModel:
             gaps.append(gap_info)
         
         return pd.DataFrame(gaps)
+    
+    # 取得日期的收盤價
+    def get_close_price_by_date(self, stock_id, date):
+        kbars = self.get_stock_kbar_from_db(stock_id, date, date)
+        return kbars.iloc[0]['close_price']
+

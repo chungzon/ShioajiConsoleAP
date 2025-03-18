@@ -671,7 +671,9 @@ class DataAnalysisModel(SelectStockModel):
                 }
                 gap_df = self.get_gap_stocks(stock_data_df)
 
-                return segment, recent_segment, gap_df # 返回總波段和最近波段
+                now_price = self.get_latest_close_price(stock_id)
+
+                return segment, recent_segment, gap_df, now_price # 返回總波段和最近波段
 
     def get_recent_segment(self, segments_df, recent_start_date, recent_end_date):
         """獲取日期區間內的最近波段"""

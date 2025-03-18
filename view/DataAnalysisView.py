@@ -427,7 +427,7 @@ class DataAnalysisView(tk.Frame):
 
         # return self.ratio_table
 
-    def show_sma_data(self, stock_id, stock_name, organized_ma_data, ratio_prices, additional_data, indicator_prices, recent_ratio_prices, gap_df):
+    def show_sma_data(self, stock_id, stock_name, organized_ma_data, ratio_prices, additional_data, indicator_prices, recent_ratio_prices, gap_df, now_price):
         self.detail_window = QWidget()
         self.detail_window.setWindowTitle(f"詳細資料 - {stock_id} ({stock_name})")
         self.detail_window.setGeometry(100, 100, 1000, 750)
@@ -586,11 +586,19 @@ class DataAnalysisView(tk.Frame):
        
         self.ratio_layout.addLayout(fee_layout)
 
+        export_layout = QHBoxLayout()
+
         gap_checkbox = QCheckBox("顯示跳空指標")
         gap_checkbox.setChecked(True)
         gap_checkbox.setFont(font)
-        self.ratio_layout.addWidget(gap_checkbox)
+        export_layout.addWidget(gap_checkbox)
         gap_checkbox.stateChanged.connect(lambda: self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked()))
+        # 匯出json檔案按鈕
+        export_json_button = QPushButton("匯出json檔案")
+        export_json_button.setFont(font)
+        export_json_button.clicked.connect(lambda: self.export_json(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked(), now_price))
+        export_layout.addWidget(export_json_button) 
+        self.ratio_layout.addLayout(export_layout)
 
         # # 創建比例表格
         # ratio_table = self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df)
@@ -819,3 +827,104 @@ class DataAnalysisView(tk.Frame):
         table.setFont(QFont('Microsoft JhengHei', 12))
             
         return table
+
+    def export_json(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, now_price):
+        # 準備數據字典
+        data = {}
+        
+        # 添加當前價格
+        if now_price is not None:
+            data['NOW PRICE'] = f"{now_price:.2f}"
+        else:
+            data['NOW PRICE'] = "nan"
+        
+        # 定義固定的比例序列
+        ratio_sequence = ['0', '0.191', '0.382', '0.5', '0.618', '0.809', '1', 
+                         '1.191', '1.382', '1.5', '1.618', '1.809', '2',
+                         '2.191', '2.382', '2.5', '2.618', '2.809', '3',
+                         '3.191', '3.382', '3.5', '3.618', '3.809', '4',
+                         '4.191', '4.382', '4.5', '4.618', '4.809', '5']
+        
+        # 添加最近波段比例價格 (N[ratio])
+        for ratio in ratio_sequence:
+            if recent_ratio_prices and ratio in recent_ratio_prices:
+                price = recent_ratio_prices[ratio]
+                if hasattr(price, 'item'):
+                    price = price.item()
+                data[f"N[{ratio}]"] = f"{price:.2f}"
+            else:
+                data[f"N[{ratio}]"] = "nan"
+        
+        # 添加總波段比例價格 ([ratio])
+        for ratio in ratio_sequence:
+            if ratio in ratio_prices:
+                price = ratio_prices[ratio]
+                if hasattr(price, 'item'):
+                    price = price.item()
+                data[f"[{ratio}]"] = f"{price:.2f}"
+            else:
+                data[f"[{ratio}]"] = "nan"
+        
+        # 按照固定順序添加均線和指標數據
+        indicator_order = [
+            ('日', '120'), ('周', '60'), ('周', '20'), ('日', '60'),
+            ('周', '120'), ('月', '5'), ('周', '10'), ('日', '20'),
+            'AL', ('周', '5'), 'NL', ('15K', '20'), 'CDP', ('15K', '10'),
+            ('15K', '5'), ('日', '10'), ('日', '5'), 'NH', 'AH',
+            ('月', '10'), ('月', '20'), ('月', '60'), ('月', '120')
+        ]
+        
+        # 添加均線和指標數據
+        for item in indicator_order:
+            if isinstance(item, tuple):
+                prefix, period = item
+                key = f"{prefix}({period})_DC"
+                if prefix in {'日': '日均線', '周': '週均線', '月': '月均線', '15K': '15分鐘均線'}:
+                    ma_type = {'日': '日均線', '周': '週均線', '月': '月均線', '15K': '15分鐘均線'}[prefix]
+                    ma_period = f"{period}MA"
+                    if (ma_type in organized_ma_data and 
+                        ma_period in organized_ma_data[ma_type] and 
+                        organized_ma_data[ma_type][ma_period] != 'N/A'):
+                        value = organized_ma_data[ma_type][ma_period]
+                        if hasattr(value, 'item'):
+                            value = value.item()
+                        data[key] = f"{value:.2f}"
+                    else:
+                        data[key] = "nan"
+            else:
+                # 處理指標數據
+                key = f"{item}_DC"
+                if item in indicator_prices:
+                    value = indicator_prices[item]
+                    if hasattr(value, 'item'):
+                        value = value.item()
+                    data[key] = f"{value:.2f}"
+                else:
+                    data[key] = "nan"
+        
+        # 獲取最近波段結束日期並格式化
+        recent_end_date = self.entry_recent_end_date.get_date()
+        next_day = recent_end_date + timedelta(days=1)
+        formatted_date = next_day.strftime('%Y-%m-%d')
+
+        # 創建完整的JSON結構
+        json_data = {
+            "stock_code": self.entry_stock_id.get(),
+            "date": formatted_date,
+            "data": data
+        }
+        
+        # 打開檔案儲存對話框
+        file_path, _ = QFileDialog.getSaveFileName(
+            self.detail_window,
+            "儲存JSON檔案",
+            f"{self.entry_stock_id.get()}_data.json",
+            "JSON Files (*.json);;All Files (*)"
+        )
+        
+        if file_path:
+            import json
+            # 寫入JSON檔案
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(json_data, f, ensure_ascii=False, indent=4)
+
