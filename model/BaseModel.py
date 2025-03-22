@@ -164,7 +164,22 @@ class BaseModel:
         df.set_index('date', inplace=True)
         df = df.sort_index()  # 按日期排序
         return df['close_price']
-    
+
+    # 從資料庫中獲取某個日期之前包含該日期  每日收盤價
+    def get_daily_close_prices_from_db_by_date(self, stock_code, date):
+        conn = self.connect_db()
+        query = f"""
+        SELECT DISTINCT date, close_price
+        FROM stock_data
+        WHERE stock_id = '{stock_code}' AND date <= '{date}'
+        ORDER BY date DESC
+        """
+        df = pd.read_sql(query, conn)
+        df['date'] = pd.to_datetime(df['date'])
+        df.set_index('date', inplace=True)
+        df = df.sort_index()  # 按日期排序
+        return df['close_price']
+        
     # 計算周均線
     def calculate_weekly_average(self, prices, window):
         weekly_prices = prices.resample('W').last()
@@ -209,7 +224,7 @@ class BaseModel:
         conn.close()
 
     # 定義函數找出每個波段的最高價和最低價，並計算特定比例的價格
-    def find_peaks_troughs_v34_small(self, stock_id, df, latest_close_price):
+    def find_peaks_troughs_v34_small(self, stock_id, df, latest_close_price, recent_end_date=None):
         segments = []
         ratios = [0, 0.191, 0.382, 0.5, 0.618, 0.809, 1, 1.191, 1.382, 1.5, 1.618, 1.809, 2, 2.191, 2.382, 2.5, 2.618, 2.809, 3, 
                   3.191, 3.382, 3.5, 3.618, 3.809, 4, 4.191, 4.382, 4.5, 4.618, 4.809, 5]
@@ -218,8 +233,8 @@ class BaseModel:
         cdp_columns = [f'CDP', 'NH', 'NL', 'AH', 'AL']
 
         # 取得SMA值
-        sma_values, weekly_sma_values, monthly_sma_values, latest_close_prices, latest_dates = self.calculate_sma(stock_id)
         k15_sma_values = self.calculate_k15_sma(stock_id)
+        sma_values, weekly_sma_values, monthly_sma_values, latest_close_prices, latest_dates = self.calculate_sma(stock_id, recent_end_date)
 
         periods = [5, 10, 20, 60, 120]
         sma_columns = [f'sma_{period}' for period in periods]
@@ -920,8 +935,11 @@ class BaseModel:
 
         # messagebox.showinfo("完成", f"波段資料及均線資料已儲存到: {output_file_path}")
 
-    def calculate_sma(self, stock_id):
-        daily_close_prices = self.get_daily_close_prices_from_db(stock_id, 30*120)
+    def calculate_sma(self, stock_id, recent_end_date=None):
+        if recent_end_date is None:
+            daily_close_prices = self.get_daily_close_prices_from_db(stock_id, 30*120)
+        else:
+            daily_close_prices = self.get_daily_close_prices_from_db_by_date(stock_id, recent_end_date)
         # 获取最近5个收盘价和日期
         latest_close_prices = daily_close_prices.values[-5:].tolist()
         latest_dates = daily_close_prices.index[-5:].strftime('%Y-%m-%d').tolist()

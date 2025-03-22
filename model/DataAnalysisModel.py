@@ -525,13 +525,13 @@ class DataAnalysisModel(SelectStockModel):
         if stock_data_df is not None and not stock_data_df.empty:
             latest_close_price = self.get_latest_close_price(stock_id)
             # latest_close_price = stock_data_df['close_price'].iloc[-1]
-            wave_extremes_df = self.find_peaks_troughs_v34_small(stock_id, stock_data_df, latest_close_price)
+            wave_extremes_df = self.find_peaks_troughs_v34_small(stock_id, stock_data_df, latest_close_price, recent_end_date)
             if wave_extremes_df is not None and not wave_extremes_df.empty:
                 wave_extremes_df['stock_id'] = stock_id  # 加入股票代號
                 wave_extremes_df['name'] = self.get_stock_name(stock_id)
                 recent_segment, highest_segment = self.evaluate_segment(wave_extremes_df, recent_start_date, recent_end_date)
                 recent_data_df = self.get_stock_data(stock_id, recent_start_date, recent_end_date)
-                recent_segments = self.find_peaks_troughs_v34_small(stock_id, recent_data_df, latest_close_price)
+                recent_segments = self.find_peaks_troughs_v34_small(stock_id, recent_data_df, latest_close_price, recent_end_date)
                 if not recent_segments.empty:
                     recent_segment = recent_segments.iloc[-1]
                 else:

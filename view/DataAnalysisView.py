@@ -828,7 +828,7 @@ class DataAnalysisView(tk.Frame):
             
         return table
 
-    def export_json(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, now_price):
+    def export_json(self, recent_ratio_prices, indicator_prices, organized_ma_data, ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, now_price):
         # 準備數據字典
         data = {}
         
