@@ -77,6 +77,8 @@ class BaseModel:
             WHERE stock_id = '{stock_id}' ORDER BY ts DESC
             """
         else:
+            # recent_end_date 往前推30天
+            recent_end_date = pd.to_datetime(recent_end_date) + pd.Timedelta(days=1)
             query = f"""
             SELECT DISTINCT TOP 300 ts, Open_Price, High, Low, Close_Price, Volume
             FROM Kbars
@@ -178,7 +180,7 @@ class BaseModel:
         query = f"""
         SELECT DISTINCT date, close_price
         FROM stock_data
-        WHERE stock_id = '{stock_code}' AND date <= '{date}'
+        WHERE stock_id = '{stock_code}' AND date <= DATEADD(day, 1, '{date}')
         ORDER BY date DESC
         """
         df = pd.read_sql(query, conn)
