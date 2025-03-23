@@ -68,13 +68,20 @@ class BaseModel:
         return df
 
     # 分K資料
-    def get_stock_kbar_from_db_top300(self, stock_id):
+    def get_stock_kbar_from_db_top300(self, stock_id, recent_end_date=None):
         conn = self.connect_db()
-        query = f"""
-        SELECT DISTINCT TOP 300 ts, Open_Price, High, Low, Close_Price, Volume
-        FROM Kbars
-        WHERE stock_id = '{stock_id}' ORDER BY ts DESC
-        """
+        if recent_end_date is None:
+            query = f"""
+            SELECT DISTINCT TOP 300 ts, Open_Price, High, Low, Close_Price, Volume
+            FROM Kbars
+            WHERE stock_id = '{stock_id}' ORDER BY ts DESC
+            """
+        else:
+            query = f"""
+            SELECT DISTINCT TOP 300 ts, Open_Price, High, Low, Close_Price, Volume
+            FROM Kbars
+            WHERE stock_id = '{stock_id}' AND ts <= '{recent_end_date}' ORDER BY ts DESC
+            """
         df = pd.read_sql(query, conn)
         df['ts'] = pd.to_datetime(df['ts']).dt.strftime('%Y-%m-%d %H:%M:%S')
         df['date'] = df['ts']
@@ -233,7 +240,7 @@ class BaseModel:
         cdp_columns = [f'CDP', 'NH', 'NL', 'AH', 'AL']
 
         # 取得SMA值
-        k15_sma_values = self.calculate_k15_sma(stock_id)
+        k15_sma_values = self.calculate_k15_sma(stock_id, recent_end_date)
         sma_values, weekly_sma_values, monthly_sma_values, latest_close_prices, latest_dates = self.calculate_sma(stock_id, recent_end_date)
 
         periods = [5, 10, 20, 60, 120]
@@ -946,10 +953,11 @@ class BaseModel:
         sma_values, weekly_sma_values, monthly_sma_values = Math.calculate_sma(daily_close_prices)
         return sma_values, weekly_sma_values, monthly_sma_values, latest_close_prices, latest_dates
 
-    def calculate_k15_sma(self, stock_id):
-        # k15_data = self.get_stock_kbar_from_db(stock_id, start_date, end_date)
-        # 獲取K線數據
-        kbars = self.get_stock_kbar_from_db_top300(stock_id)
+    def calculate_k15_sma(self, stock_id, recent_end_date=None):
+        if recent_end_date is None:
+            kbars = self.get_stock_kbar_from_db_top300(stock_id)
+        else:
+            kbars = self.get_stock_kbar_from_db_top300(stock_id, recent_end_date)
 
         if kbars.empty:
             return [np.nan, np.nan, np.nan]
