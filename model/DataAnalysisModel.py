@@ -1,4 +1,5 @@
-﻿import pymssql
+﻿from attr import has
+import pymssql
 import pandas as pd
 from tkinter import messagebox
 from model.SelectStockModel import SelectStockModel
@@ -524,6 +525,14 @@ class DataAnalysisModel(SelectStockModel):
         stock_data_df = self.get_stock_data(stock_id, start_date, end_date)
         if stock_data_df is not None and not stock_data_df.empty:
             latest_close_price = self.get_latest_close_price(stock_id)
+            # 取得stock_data_df中，date等於end_date的資料
+            latest_close_price_date = stock_data_df[stock_data_df['date'] == pd.to_datetime(end_date)]
+            latest_close_price_by_date = None
+            if latest_close_price_date.empty:
+                latest_close_price_by_date = None;
+            else:
+                latest_close_price_by_date = latest_close_price_date['close_price'].iloc[-1]
+            
             # latest_close_price = stock_data_df['close_price'].iloc[-1]
             wave_extremes_df = self.find_peaks_troughs_v34_small(stock_id, stock_data_df, latest_close_price, recent_end_date)
             if wave_extremes_df is not None and not wave_extremes_df.empty:
@@ -673,7 +682,7 @@ class DataAnalysisModel(SelectStockModel):
 
                 now_price = self.get_latest_close_price(stock_id)
 
-                return segment, recent_segment, gap_df, now_price # 返回總波段和最近波段
+                return segment, recent_segment, gap_df, now_price, latest_close_price_by_date # 返回總波段和最近波段
 
     def get_recent_segment(self, segments_df, recent_start_date, recent_end_date):
         """獲取日期區間內的最近波段"""

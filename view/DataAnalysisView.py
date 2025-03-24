@@ -427,7 +427,7 @@ class DataAnalysisView(tk.Frame):
 
         # return self.ratio_table
 
-    def show_sma_data(self, stock_id, stock_name, organized_ma_data, ratio_prices, additional_data, indicator_prices, recent_ratio_prices, gap_df, now_price):
+    def show_sma_data(self, stock_id, stock_name, organized_ma_data, ratio_prices, additional_data, indicator_prices, recent_ratio_prices, gap_df, now_price, latest_close_price_by_date):
         self.detail_window = QWidget()
         self.detail_window.setWindowTitle(f"詳細資料 - {stock_id} ({stock_name})")
         self.detail_window.setGeometry(100, 100, 1000, 750)
@@ -596,7 +596,7 @@ class DataAnalysisView(tk.Frame):
         # 匯出json檔案按鈕
         export_json_button = QPushButton("匯出json檔案")
         export_json_button.setFont(font)
-        export_json_button.clicked.connect(lambda: self.export_json(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked(), now_price))
+        export_json_button.clicked.connect(lambda: self.export_json(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked(), now_price, latest_close_price_by_date))
         export_layout.addWidget(export_json_button) 
         self.ratio_layout.addLayout(export_layout)
 
@@ -828,15 +828,17 @@ class DataAnalysisView(tk.Frame):
             
         return table
 
-    def export_json(self, recent_ratio_prices, indicator_prices, organized_ma_data, ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, now_price):
+    def export_json(self, recent_ratio_prices, indicator_prices, organized_ma_data, ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, now_price, latest_close_price_by_date):
         # 準備數據字典
         data = {}
         
         # 添加當前價格
-        if now_price is not None:
-            data['NOW PRICE'] = f"{now_price:.2f}"
+        if latest_close_price_by_date is not None:
+            data['NOW PRICE'] = f"{latest_close_price_by_date:.2f}"
         else:
             data['NOW PRICE'] = "nan"
+
+        data['over_ratio_dont_buy'] = "0.015"
         
         # 定義固定的比例序列
         ratio_sequence = ['0', '0.191', '0.382', '0.5', '0.618', '0.809', '1', 
