@@ -1,5 +1,4 @@
-﻿from attr import has
-import pymssql
+﻿import pymssql
 import pandas as pd
 from tkinter import messagebox
 from model.SelectStockModel import SelectStockModel
