@@ -915,11 +915,16 @@ class DataAnalysisView(tk.Frame):
             "data": data
         }
         
-        # 打開檔案儲存對話框
+        # 總波段的結束日期
+        total_segment_date = self.entry_end_date.get_date()
+        formatted_total_segment_date = total_segment_date.strftime('%Y-%m-%d')
+        # 打開檔案儲存對話框，預設儲存路徑為"Downloads"
+        
+        default_path = os.path.join(self.downloads_path, f"{self.entry_stock_id.get()}_data_{formatted_total_segment_date}.json")
         file_path, _ = QFileDialog.getSaveFileName(
             self.detail_window,
             "儲存JSON檔案",
-            f"{self.entry_stock_id.get()}_data.json",
+            default_path,
             "JSON Files (*.json);;All Files (*)"
         )
         
