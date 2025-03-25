@@ -837,8 +837,6 @@ class DataAnalysisView(tk.Frame):
             data['NOW PRICE'] = f"{latest_close_price_by_date:.2f}"
         else:
             data['NOW PRICE'] = "nan"
-
-        data['over_ratio_dont_buy'] = "0.015"
         
         # 定義固定的比例序列
         ratio_sequence = ['0', '0.191', '0.382', '0.5', '0.618', '0.809', '1', 
@@ -912,6 +910,7 @@ class DataAnalysisView(tk.Frame):
         # 創建完整的JSON結構
         json_data = {
             "stock_code": self.entry_stock_id.get(),
+            "over_ratio_dont_buy": "0.015",
             "date": formatted_date,
             "data": data
         }
