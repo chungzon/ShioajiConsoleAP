@@ -644,7 +644,9 @@ class DataAnalysisView(tk.Frame):
 
         # 打開文件保存對話框
         # default file name: 截圖 - {stock_name} ({stock_id})
-        file_path, _ = QFileDialog.getSaveFileName(self.detail_window, f"保存截圖", f"截圖 - {stock_name} ({stock_id}).png", "PNG Files (*.png);;All Files (*)")
+        # default path: Downloads
+        default_path = os.path.join(self.downloads_path, f"截圖 - {stock_name} ({stock_id}).png")
+        file_path, _ = QFileDialog.getSaveFileName(self.detail_window, f"保存截圖", default_path, "PNG Files (*.png);;All Files (*)")
 
         if file_path:
             # 保存截圖
