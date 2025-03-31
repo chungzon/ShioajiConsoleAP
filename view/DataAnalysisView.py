@@ -913,6 +913,10 @@ class DataAnalysisView(tk.Frame):
         json_data = {
             "stock_code": self.entry_stock_id.get(),
             "over_ratio_dont_buy": "0.015",
+            "base": "nan",
+            "enable_15k20ma": True,
+            "enable_15k10ma": True,
+            "before_n": 1,
             "date": formatted_date,
             "data": data
         }
