@@ -82,7 +82,7 @@ class MainApplication(tk.Tk):
         self.backtest_controller = BacktestController(self.backtest_model, self.backtest_view)
 
         self.daily_close_model = DailyClosePriceDownloadModel(self.api)
-        self.daily_close_view = DailyClosePriceDownloadView(self.tab_control, None)
+        self.daily_close_view = DailyClosePriceDownloadView(self.tab_control, None, self.daily_close_model)
         self.daily_close_controller = DailyClosePriceDownloadController(self.daily_close_model, self.daily_close_view)
 
         self.select_stock_model = SelectStockModel(self.api)

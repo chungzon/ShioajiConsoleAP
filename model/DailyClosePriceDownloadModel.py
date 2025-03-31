@@ -7,6 +7,7 @@ import shioaji as sj
 import csv
 import io
 import requests
+from common.Event import Event
 
 
 class DailyClosePriceDownloadModel:
@@ -26,6 +27,7 @@ class DailyClosePriceDownloadModel:
         # 構建相對路徑
         resource_dir = os.path.join(current_dir, '..', 'resource')
         self.stock_top_file = os.path.join(resource_dir, 'stock_top.xlsx')
+        self.event = Event()
   
 
     def write_log(self, message):
@@ -88,10 +90,11 @@ class DailyClosePriceDownloadModel:
         with open(self.log_filename, "a") as log_file:
             log_file.write(f"{pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
 
-    def download_stock_data(self, api, stock_id, conn, cursor, view, start_date, end_date):
+    def download_stock_data(self, api, stock_id, conn, cursor, view, start_date, end_date, is_retry=False):
         self.write_log(f"開始處理股票 {stock_id}")
         print(f"開始處理股票 {stock_id}")
-        view.append_log(f"開始處理股票 {stock_id}")
+        # view.append_log(f"開始處理股票 {stock_id}")
+        self.event.notify(f"開始處理股票 {stock_id}")
         current_date = pd.to_datetime(start_date)
         end_date = pd.to_datetime(end_date)
 
@@ -133,13 +136,21 @@ class DailyClosePriceDownloadModel:
 
                     self.write_log(f"成功處理 {stock_id} - {gregorian_date_str}")
                     print(f"成功處理 {stock_id} - {gregorian_date_str}")
-                    view.append_log(f"成功處理 {stock_id} - {gregorian_date_str}")
+                    # view.append_log(f"成功處理 {stock_id} - {gregorian_date_str}")
+                    self.event.notify(f"成功處理 {stock_id} - {gregorian_date_str}")
                 time.sleep(1)  # 每天間隔1秒
 
             except Exception as e:
                 self.write_log(f"錯誤處理 {stock_id} - {current_date.strftime('%Y-%m')}: {e}")
                 print(f"錯誤處理 {stock_id} - {current_date.strftime('%Y-%m')}: {e}")
-                view.append_log(f"錯誤處理 {stock_id} - {current_date.strftime('%Y-%m')}: {e}")
+                # view.append_log(f"錯誤處理 {stock_id} - {current_date.strftime('%Y-%m')}: {e}")
+                self.event.notify(f"錯誤處理 {stock_id} - {current_date.strftime('%Y-%m')}: {e}")
+                if str(e) == 'No data available' and not is_retry:
+                    # view.append_log(f"上市股票 {stock_id} 無資料")
+                    self.event.notify(f"上市股票 {stock_id} 無資料")
+                    # view.append_log(f"嘗試從上櫃股票處理 {stock_id}")
+                    self.event.notify(f"嘗試從上櫃股票處理 {stock_id}") 
+                    self.download_otc_stock_data(self, api, stock_id, conn, cursor, view, start_date, end_date, is_retry=True)
 
             current_date += pd.DateOffset(months=1)  # 每次移動到下一個月的開始日期
         time.sleep(5)  # 每支股票之間間隔30秒
@@ -150,10 +161,11 @@ class DailyClosePriceDownloadModel:
         year = int(parts[0]) + 1911  # 民國年轉換為西元年
         return f"{year}/{parts[1]}/{parts[2]}"
     
-    def download_otc_stock_data(self, api, stock_id, conn, cursor, view, start_date, end_date):
+    def download_otc_stock_data(self, api, stock_id, conn, cursor, view, start_date, end_date, is_retry=False):
         self.write_log(f"開始處理上櫃股票 {stock_id}")
         print(f"開始處理上櫃股票 {stock_id}")
-        view.append_log(f"開始處理上櫃股票 {stock_id}")
+        # view.append_log(f"開始處理上櫃股票 {stock_id}")
+        self.event.notify(f"開始處理上櫃股票 {stock_id}")
         current_date = pd.to_datetime(start_date)
         end_date = pd.to_datetime(end_date)
 
@@ -206,14 +218,22 @@ class DailyClosePriceDownloadModel:
 
                     self.write_log(f"成功處理上櫃股票 {stock_id} - {gregorian_date_str}")
                     print(f"成功處理上櫃股票 {stock_id} - {gregorian_date_str}")
-                    view.append_log(f"成功處理上櫃股票 {stock_id} - {gregorian_date_str}")
+                    # view.append_log(f"成功處理上櫃股票 {stock_id} - {gregorian_date_str}")
+                    self.event.notify(f"成功處理上櫃股票 {stock_id} - {gregorian_date_str}")
 
                 time.sleep(1)  # 每天間隔1秒
 
             except Exception as e:
                 self.write_log(f"錯誤處理上櫃股票 {stock_id} - {current_date.strftime('%Y-%m')}: {e}")
                 print(f"錯誤處理上櫃股票 {stock_id} - {current_date.strftime('%Y-%m')}: {e}")
-                view.append_log(f"錯誤處理上櫃股票 {stock_id} - {current_date.strftime('%Y-%m')}: {e}")
+                # view.append_log(f"錯誤處理上櫃股票 {stock_id} - {current_date.strftime('%Y-%m')}: {e}")
+                self.event.notify(f"錯誤處理上櫃股票 {stock_id} - {current_date.strftime('%Y-%m')}: {e}")
+                if str(e) == 'No data available' and not is_retry:
+                    # view.append_log(f"上櫃股票 {stock_id} 無資料")
+                    self.event.notify(f"上櫃股票 {stock_id} 無資料")
+                    # view.append_log(f"嘗試從上市股票處理 {stock_id}")
+                    self.event.notify(f"嘗試從上市股票處理 {stock_id}")
+                    self.download_stock_data(api, stock_id, conn, cursor, view, start_date, end_date)
 
             current_date += pd.DateOffset(months=1)  # 每次移動到下一個月的開始日期
         time.sleep(5)  # 每支股票之間間隔30秒

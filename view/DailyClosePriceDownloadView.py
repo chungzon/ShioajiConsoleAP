@@ -6,10 +6,12 @@ import threading
 import AutoDownloadDailyClosePrice
 
 class DailyClosePriceDownloadView(tk.Frame):
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller, model):
         tk.Frame.__init__(self, parent)
         self.controller = controller
+        self.model = model
         self.init_ui()
+        self.model.event.register(self.append_log)
 
     def init_ui(self):
         ttk.Label(self, text="股票代碼:").grid(row=0, column=0, padx=10, pady=5, sticky='e')
