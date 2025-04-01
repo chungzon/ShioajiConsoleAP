@@ -160,7 +160,7 @@ class DataAnalysisController:
         if stock_name is not NULL:
             stock_name = stock_name.replace('*', '-')
 
-        total_segment, recent_segment, gap_df, now_price, latest_close_price_by_date = self.model.get_stock_data_from_all_wave_extremes(stock_id, start_date, end_date, recent_start_date, recent_end_date)
+        total_segment, recent_segment, gap_df, now_price, latest_close_price_by_date, next_open_price = self.model.get_stock_data_from_all_wave_extremes(stock_id, start_date, end_date, recent_start_date, recent_end_date)
         if total_segment is None:
             print(f"沒有找到股票 {stock_id} 的數據")
             return
@@ -291,5 +291,5 @@ class DataAnalysisController:
             'AL': total_segment.get('AL', 'N/A')
         }
 
-        self.view.show_sma_data(stock_id, stock_name, organized_ma_data, recent_ratio_prices, additional_data, indicator_prices, total_ratio_prices, gap_df, now_price, latest_close_price_by_date)
+        self.view.show_sma_data(stock_id, stock_name, organized_ma_data, recent_ratio_prices, additional_data, indicator_prices, total_ratio_prices, gap_df, now_price, latest_close_price_by_date, next_open_price)
         

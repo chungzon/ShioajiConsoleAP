@@ -427,7 +427,7 @@ class DataAnalysisView(tk.Frame):
 
         # return self.ratio_table
 
-    def show_sma_data(self, stock_id, stock_name, organized_ma_data, ratio_prices, additional_data, indicator_prices, recent_ratio_prices, gap_df, now_price, latest_close_price_by_date):
+    def show_sma_data(self, stock_id, stock_name, organized_ma_data, ratio_prices, additional_data, indicator_prices, recent_ratio_prices, gap_df, now_price, latest_close_price_by_date, next_open_price):
         self.detail_window = QWidget()
         self.detail_window.setWindowTitle(f"詳細資料 - {stock_id} ({stock_name})")
         self.detail_window.setGeometry(100, 100, 1000, 750)
@@ -596,7 +596,7 @@ class DataAnalysisView(tk.Frame):
         # 匯出json檔案按鈕
         export_json_button = QPushButton("匯出json檔案")
         export_json_button.setFont(font)
-        export_json_button.clicked.connect(lambda: self.export_json(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked(), now_price, latest_close_price_by_date))
+        export_json_button.clicked.connect(lambda: self.export_json(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked(), now_price, latest_close_price_by_date, next_open_price))
         export_layout.addWidget(export_json_button) 
         self.ratio_layout.addLayout(export_layout)
 
@@ -830,7 +830,7 @@ class DataAnalysisView(tk.Frame):
             
         return table
 
-    def export_json(self, recent_ratio_prices, indicator_prices, organized_ma_data, ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, now_price, latest_close_price_by_date):
+    def export_json(self, recent_ratio_prices, indicator_prices, organized_ma_data, ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, now_price, latest_close_price_by_date, next_open_price):
         # 準備數據字典
         data = {}
         
@@ -913,7 +913,7 @@ class DataAnalysisView(tk.Frame):
         json_data = {
             "stock_code": self.entry_stock_id.get(),
             "over_ratio_dont_buy": "0.015",
-            "base": "nan",
+            "base": f"{next_open_price['open_price']}" if next_open_price else "nan",
             "enable_15k20ma": True,
             "enable_15k10ma": True,
             "before_n": 1,

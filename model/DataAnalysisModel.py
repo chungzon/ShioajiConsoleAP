@@ -113,6 +113,39 @@ class DataAnalysisModel(SelectStockModel):
         latest_close = snapshot[0].close
         return latest_close
     
+    # 取得日期的下一個交易日開盤價格
+    def get_next_open_price_date(self, stock_code, date):
+        # 取得下一個交易日
+        conn = self.connect_db()
+        cursor = conn.cursor()
+        
+        try:
+            # 查詢下一個交易日的開盤價格
+            query = """
+                SELECT TOP 1 date, open_price
+                FROM stock_data
+                WHERE stock_id = %s AND date > %s
+                ORDER BY date ASC
+            """
+            cursor.execute(query, (stock_code, date))
+            result = cursor.fetchone()
+            
+            if result:
+                return {
+                    'date': result[0],
+                    'open_price': result[1]
+                }
+            else:
+                return None
+                
+        except Exception as e:
+            print(f"Error in get_next_open_price_date: {e}")
+            return None
+            
+        finally:
+            cursor.close()
+            conn.close()
+    
     # 從資料庫中獲取每日收盤價
     # def get_daily_close_prices_from_db(self, stock_code, days):
     #     conn = self.connect_db()
@@ -681,7 +714,10 @@ class DataAnalysisModel(SelectStockModel):
 
                 now_price = self.get_latest_close_price(stock_id)
 
-                return segment, recent_segment, gap_df, now_price, latest_close_price_by_date # 返回總波段和最近波段
+                # 取得總波段結束日期的下一個交易日開盤價格
+                next_open_price = self.get_next_open_price_date(stock_id, end_date)
+
+                return segment, recent_segment, gap_df, now_price, latest_close_price_by_date, next_open_price # 返回總波段和最近波段
 
     def get_recent_segment(self, segments_df, recent_start_date, recent_end_date):
         """獲取日期區間內的最近波段"""
