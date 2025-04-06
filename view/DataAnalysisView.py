@@ -906,17 +906,19 @@ class DataAnalysisView(tk.Frame):
         
         # 獲取最近波段結束日期並格式化
         recent_end_date = self.entry_recent_end_date.get_date()
-        next_day = recent_end_date + timedelta(days=1)
-        formatted_date = next_day.strftime('%Y-%m-%d')
+        # next_day = recent_end_date + timedelta(days=1)
+        next_day = next_open_price['date'] if next_open_price else None
+        formatted_date = next_day.strftime('%Y-%m-%d') if next_day else "nan"
 
         # 創建完整的JSON結構
         json_data = {
             "stock_code": self.entry_stock_id.get(),
-            "over_ratio_dont_buy": "0.015",
+            "over_ratio_dont_buy": "0.03",
             "base": f"{next_open_price['open_price']}" if next_open_price else "nan",
+            "no_buy_after": "10:00:00",
             "enable_15k20ma": True,
             "enable_15k10ma": True,
-            "before_n": 1,
+            "before_n": 2,
             "date": formatted_date,
             "data": data
         }
