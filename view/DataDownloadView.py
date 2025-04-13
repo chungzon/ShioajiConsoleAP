@@ -27,18 +27,22 @@ class DataDownloadView(tk.Frame):
         self.progress = ttk.Progressbar(self, orient='horizontal', length=200, mode='determinate', variable=self.progress_var, maximum=100)
         self.progress.grid(row=3, column=0, columnspan=3, padx=10, pady=5, sticky="we")
 
-        ttk.Button(self, text="下載", command=self.start_download).grid(row=4, column=0, columnspan=2, pady=10)
+        # 產生一個文字框，顯示下載的資料
+        self.log_text = tk.Text(self, wrap='word', width=50, height=10)
+        self.log_text.grid(row=4, column=0, columnspan=3, padx=10, pady=5, sticky="we")
+
+        ttk.Button(self, text="下載", command=self.start_download).grid(row=5, column=0, columnspan=2, pady=10)
 
         # 下載全部股票KBar
-        ttk.Button(self, text="下載全部股票分K資料", command=self.start_download_all).grid(row=4, column=2, pady=10)
+        ttk.Button(self, text="下載全部股票分KBar資料", command=self.start_download_all).grid(row=5, column=2, pady=10)
 
     def start_download(self):
         stock_id = self.stock_id_entry.get()
         start_date = self.start_date_ticks_entry.get()
         end_date = self.end_date_ticks_entry.get()
 
-        start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d")
-        end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d")
+        # start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d")
+        # end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d")
 
         # 重置進度條
         self.update_progress(0)
@@ -48,7 +52,7 @@ class DataDownloadView(tk.Frame):
         self.controller.update_data("Ticks", stock_id, start_date, end_date)
 
     def update_kbars(self, stock_id, start_date, end_date):
-        self.controller.update_data("Kbars", stock_id, start_date, end_date)
+        self.controller.start_download_single_stock_kbars( stock_id, start_date, end_date)
         
     def update_progress(self, value):
         self.progress_var.set(value)
@@ -68,4 +72,6 @@ class DataDownloadView(tk.Frame):
         self.after(0, lambda: self.append_log(event.data))
 
     def append_log(self, message):
-        print(message)
+        self.log_text.insert(tk.END, message + "\n")
+        self.log_text.see(tk.END)
+        self.log_text.update_idletasks()

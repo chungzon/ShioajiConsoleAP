@@ -10,6 +10,25 @@ class DataDownloadController:
         self.view = view
         self.view.controller = self
 
+    def start_download_single_stock_kbars(self, stock_id, start_date, end_date):
+        self.model.event_bus.subscribe("log_message", self.view.handle_log_message)
+        
+        # 創建並啟動下載線程
+        download_thread = threading.Thread(
+            target=self.run_download_single_stock_kbars,
+            args=(stock_id, start_date, end_date),
+            daemon=True  # 設置為守護線程，這樣主程序結束時線程會自動結束
+        )
+        download_thread.start()
+
+    def run_download_single_stock_kbars(self, stock_id, start_date, end_date):
+        try:
+            self.model.download_single_stock_kbars(stock_id, start_date, end_date)
+        except Exception as e:
+            # 發送錯誤消息到界面
+            self.model.event_bus.publish(Event("log_message", f"下載過程發生錯誤: {str(e)}"))
+
+
     def update_data(self, data_type, stock_id=None, start_date=None, end_date=None):
         if stock_id is None:
             stock_id = self.view.entry_stock_id.get()
@@ -80,6 +99,7 @@ class DataDownloadController:
             daemon=True  # 設置為守護線程，這樣主程序結束時線程會自動結束
         )
         download_thread.start()
+        
     
     def run_download(self, start_date, end_date):
         try:

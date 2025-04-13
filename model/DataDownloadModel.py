@@ -78,3 +78,10 @@ class DataDownloadModel(BaseModel):
             except Exception as e:
                 self.event_bus.publish(Event("log_message", f"下載股票 {stock_id} 的KBar資料失敗: {e}"))
 
+    def download_single_stock_kbars(self, stock_id, start_date, end_date):
+        kbars_df = self.get_kbars_data_by_start_end_date(stock_id, start_date, end_date)
+        if kbars_df.empty:
+            return
+        self.insert_kbars(kbars_df, stock_id)
+        self.event_bus.publish(Event("log_message", f"下載股票 {stock_id} 的KBar資料")) 
+
