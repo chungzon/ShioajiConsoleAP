@@ -598,6 +598,13 @@ class DataAnalysisView(tk.Frame):
         export_json_button.setFont(font)
         export_json_button.clicked.connect(lambda: self.export_json(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked(), now_price, latest_close_price_by_date, next_open_price))
         export_layout.addWidget(export_json_button) 
+
+        # 重新計算按鈕
+        recalculate_button = QPushButton("重新計算")
+        recalculate_button.setFont(font)
+        recalculate_button.clicked.connect(lambda: self.recalculate(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked()))
+        export_layout.addWidget(recalculate_button)
+
         self.ratio_layout.addLayout(export_layout)
 
         # # 創建比例表格
@@ -631,6 +638,28 @@ class DataAnalysisView(tk.Frame):
         self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state)
         # self.ratio_layout.addWidget(self.ratio_table)
         # self.ratio_tab.setLayout(self.ratio_layout)
+
+    def recalculate(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state):
+        # 分別取得ratio比例為0和1的價格，並轉為float
+        # 取得table中ratio比例為0和1的價格
+        ratio_0_price = float(self.ratio_table.item(1, 1).text())
+        ratio_1_price = float(self.ratio_table.item(13, 1).text())
+        # 重新計算各比例價格
+        ratios = list(ratio_prices.keys())
+        for ratio in ratios:
+            if ratio == '0':
+                ratio_prices[ratio] = ratio_0_price
+            elif ratio == '1':
+                ratio_prices[ratio] = ratio_1_price
+            else:
+                # 修正參數順序：max_value, min_value, ratio
+                ratio_prices[ratio] = Math.calculate_ratio_value(ratio_1_price, ratio_0_price, float(ratio))
+        
+        # 清空獲利列
+        for r in range(self.ratio_table.rowCount()):
+            self.ratio_table.setItem(r, 4, QTableWidgetItem(""))
+
+        self.update_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state)
 
     def save_screenshot(self, stock_id, stock_name):
         # 獲取當前視窗的幾何信息
