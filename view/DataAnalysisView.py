@@ -945,6 +945,7 @@ class DataAnalysisView(tk.Frame):
         json_data = {
             "stock_code": self.entry_stock_id.get(),
             "over_ratio_dont_buy": "0.03",
+            "extend_over_ratio_dont_buy": "0.03",
             "base": f"{next_open_price['open_price']}" if next_open_price else "nan",
             "no_buy_after": "10:00:00",
             "final_buy": "12:00:00",
