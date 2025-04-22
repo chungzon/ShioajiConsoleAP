@@ -655,8 +655,10 @@ class DataAnalysisView(tk.Frame):
                 # 修正參數順序：max_value, min_value, ratio
                 ratio_prices[ratio] = Math.calculate_ratio_value(ratio_2_price, ratio_0_price, float(ratio))
         
-        # 清空獲利列
+        # 清空指標、總波段及獲利列
         for r in range(self.ratio_table.rowCount()):
+            self.ratio_table.setItem(r, 2, QTableWidgetItem(""))
+            self.ratio_table.setItem(r, 3, QTableWidgetItem(""))
             self.ratio_table.setItem(r, 4, QTableWidgetItem(""))
 
         self.update_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state)
