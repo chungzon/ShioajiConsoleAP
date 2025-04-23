@@ -7,6 +7,8 @@ import tkinter as tk
 import os
 import pandas as pd
 
+from Event import Event, EventBus
+
 
 class DataAnalysisController:
     
@@ -14,6 +16,8 @@ class DataAnalysisController:
         self.model = model
         self.view = view
         self.view.controller = self
+        self.event_bus = EventBus()
+        self.event_bus.subscribe("save_1min_data", self.view.save_1min_data)
 
     def check_stock_data(self):
         stock_id = self.view.entry_stock_id.get()
@@ -293,3 +297,18 @@ class DataAnalysisController:
 
         self.view.show_sma_data(stock_id, stock_name, organized_ma_data, recent_ratio_prices, additional_data, indicator_prices, total_ratio_prices, gap_df, now_price, latest_close_price_by_date, next_open_price)
         
+    def export_1min_data(self, stock_id, stock_name, end_date):
+        # 獲取1分K資料
+        df = self.model.get_stock_data_from_db(stock_id, end_date, end_date)
+        # 將資料整理為"序號(流水號),開盤價,最高價,最低價,收盤價,時間"
+        df['序號'] = range(1, len(df) + 1)
+        df = df[['序號', 'Open_Price', 'High', 'Low', 'Close_Price', 'ts']]
+        self.event_bus.publish(Event("save_1min_data", {"df": df, "stock_id": stock_id, "end_date": end_date}))
+
+
+
+    def export_3min_data(self, stock_id, stock_name):
+        pass
+
+    def export_5min_data(self, stock_id, stock_name):
+        pass

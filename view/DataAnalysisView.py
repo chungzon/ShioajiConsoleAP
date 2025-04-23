@@ -623,11 +623,31 @@ class DataAnalysisView(tk.Frame):
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.tab_widget)
 
+        # 添加1分K、3分K、5分K資料匯出按鈕
+        export_kbars_layout = QHBoxLayout()
+        export_1min_button = QPushButton("匯出1分K資料")
+        export_1min_button.setFont(font)
+        export_1min_button.clicked.connect(lambda: self.controller.export_1min_data(stock_id, stock_name, self.entry_end_date.get_date()))
+        export_kbars_layout.addWidget(export_1min_button)
+
+        export_3min_button = QPushButton("匯出3分K資料")
+        export_3min_button.setFont(font)
+        export_3min_button.clicked.connect(lambda: self.controller.export_3min_data(stock_id, stock_name))
+        export_kbars_layout.addWidget(export_3min_button)
+
+        export_5min_button = QPushButton("匯出5分K資料")
+        export_5min_button.setFont(font)
+        export_5min_button.clicked.connect(lambda: self.controller.export_5min_data(stock_id, stock_name))
+        export_kbars_layout.addWidget(export_5min_button)
+        main_layout.addLayout(export_kbars_layout)
+
         # 添加截圖按鈕
         screenshot_button = QPushButton("截圖另存圖片")
         screenshot_button.setFont(font)
         screenshot_button.clicked.connect(partial(self.save_screenshot, stock_id, stock_name))
         main_layout.addWidget(screenshot_button)
+
+        
 
         self.detail_window.setLayout(main_layout)
         
@@ -976,3 +996,17 @@ class DataAnalysisView(tk.Frame):
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump(json_data, f, ensure_ascii=False, indent=4)
 
+    def save_1min_data(self, event):
+        # 儲存1分K資料為txt檔案，檔名為{stock_id}_{end_date}.txt
+        # 資料格式為"序號(流水號),開盤價,最高價,最低價,收盤價,時間"
+        df = event.data['df']
+        stock_id = event.data['stock_id']
+        end_date = event.data['end_date']
+        # 儲存1分K資料為txt檔案，檔名為{stock_id}_{end_date}.txt
+        file_path, _ = QFileDialog.getSaveFileName(self.detail_window, "儲存1分K資料", os.path.join(self.downloads_path, f"{stock_id}_{end_date}.txt"), "Text Files (*.txt);;All Files (*)")
+        
+        if file_path:
+            df.to_csv(file_path, index=False, header=False)
+            QMessageBox.information(self.detail_window, "提示", f"1分K資料已儲存")
+        else:
+            QMessageBox.warning(self.detail_window, "提示", f"1分K資料儲存失敗")

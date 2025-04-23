@@ -757,3 +757,13 @@ class DataAnalysisModel(SelectStockModel):
         highest_segment = self.get_highest_segment(segments_df)
         
         return recent_segment, highest_segment
+
+    # # 從資料庫取得分K資料
+    # def get_1min_data(self, stock_id, stock_name):
+    #     # 從資料庫取得分K資料
+    #     # 將分K資料保存為CSV檔案
+    #     # 將分K資料保存為JSON檔案
+    #     # 將分K資料保存為XML檔案
+    #     # 將分K資料保存為HTML檔案
+    #     # 將分K資料保存為PDF檔案
+    #     # 將分K資料保存為圖片檔案
