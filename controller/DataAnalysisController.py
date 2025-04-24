@@ -17,7 +17,7 @@ class DataAnalysisController:
         self.view = view
         self.view.controller = self
         self.event_bus = EventBus()
-        self.event_bus.subscribe("save_1min_data", self.view.save_1min_data)
+        self.event_bus.subscribe("save_kbars_data", self.view.save_kbars_data)
 
     def check_stock_data(self):
         stock_id = self.view.entry_stock_id.get()
@@ -303,12 +303,50 @@ class DataAnalysisController:
         # 將資料整理為"序號(流水號),開盤價,最高價,最低價,收盤價,時間"
         df['序號'] = range(1, len(df) + 1)
         df = df[['序號', 'Open_Price', 'High', 'Low', 'Close_Price', 'ts']]
-        self.event_bus.publish(Event("save_1min_data", {"df": df, "stock_id": stock_id, "end_date": end_date}))
+        self.event_bus.publish(Event("save_kbars_data", {"df": df, "stock_id": stock_id, "end_date": end_date, "kbar_type": "1_mins"}))
 
+    def export_3min_data(self, stock_id, stock_name, end_date):
+        df = self.model.get_stock_data_from_db(stock_id, end_date, end_date)
+        # 重採樣，從0900開始每15分鐘
+        df['ts'] = pd.to_datetime(df['ts'])
+        df = df.set_index('ts')
+        start_time = pd.Timestamp(end_date).replace(hour=9, minute=3)
+        df_3k = df.resample('3T', origin=start_time, closed='right', label='right').agg({
+            'Open_Price': 'last',
+            'High': 'last',
+            'Low': 'last',
+            'Close_Price': 'last',
+            'Volume': 'sum'
+        })
+        
+        # 重置索引並重命名時間列
+        df_3k = df_3k.reset_index()
+        df_3k = df_3k.rename(columns={'ts': '時間'})
+        
+        # 將資料整理為"序號(流水號),開盤價,最高價,最低價,收盤價,時間"
+        df_3k['序號'] = range(1, len(df_3k) + 1)
+        df_3k = df_3k[['序號', 'Open_Price', 'High', 'Low', 'Close_Price', '時間']]
+        self.event_bus.publish(Event("save_kbars_data", {"df": df_3k, "stock_id": stock_id, "end_date": end_date, "kbar_type": "3_mins"}))
 
-
-    def export_3min_data(self, stock_id, stock_name):
-        pass
-
-    def export_5min_data(self, stock_id, stock_name):
-        pass
+    def export_5min_data(self, stock_id, stock_name, end_date):
+        df = self.model.get_stock_data_from_db(stock_id, end_date, end_date)
+        df['ts'] = pd.to_datetime(df['ts'])
+        df = df.set_index('ts')
+        start_time = pd.Timestamp(end_date).replace(hour=9, minute=5)
+        df_5k = df.resample('5T', origin=start_time, closed='right', label='right').agg({
+            'Open_Price': 'last',
+            'High': 'last',
+            'Low': 'last',
+            'Close_Price': 'last',
+            'Volume': 'sum'
+        })
+        
+        # 重置索引並重命名時間列
+        df_5k = df_5k.reset_index()
+        df_5k = df_5k.rename(columns={'ts': '時間'})
+        
+        # 將資料整理為"序號(流水號),開盤價,最高價,最低價,收盤價,時間"
+        df_5k['序號'] = range(1, len(df_5k) + 1)
+        df_5k = df_5k[['序號', 'Open_Price', 'High', 'Low', 'Close_Price', '時間']]
+        self.event_bus.publish(Event("save_kbars_data", {"df": df_5k, "stock_id": stock_id, "end_date": end_date, "kbar_type": "5_mins"}))
+        
