@@ -1,6 +1,7 @@
 ﻿from datetime import datetime, timedelta
 import tkinter as tk
 from tkinter import ttk
+import pandas as pd
 from tkcalendar import DateEntry
 import os
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView, QFrame, QWidget, QVBoxLayout, QTabWidget, QGridLayout, QLabel, QMessageBox, QCheckBox, QLineEdit, QHBoxLayout, QPushButton, QFileDialog
@@ -1000,6 +1001,18 @@ class DataAnalysisView(tk.Frame):
         # 儲存1分K資料為txt檔案，檔名為{stock_id}_{end_date}.txt
         # 資料格式為"序號(流水號),開盤價,最高價,最低價,收盤價,時間"
         df = event.data['df']
+        # 在資料df中第一列插入標頭
+        # 
+        df['序號'] = range(1, len(df) + 1)
+        df = df[['序號', 'Open_Price', 'High', 'Low', 'Close_Price', '時間']]
+        
+        # 創建標頭行
+        header_df = pd.DataFrame([['// 序號(流水號),開盤價,最高價,最低價,收盤價,時間']], columns=['序號'])
+        
+        # 合併標頭和數據
+        df = pd.concat([header_df, df], ignore_index=True)
+
+        
         kbar_type = event.data['kbar_type']
         stock_id = event.data['stock_id']
         end_date = event.data['end_date']

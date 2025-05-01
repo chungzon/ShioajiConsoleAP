@@ -300,9 +300,13 @@ class DataAnalysisController:
     def export_1min_data(self, stock_id, stock_name, end_date):
         # 獲取1分K資料
         df = self.model.get_stock_data_from_db(stock_id, end_date, end_date)
+        df['ts'] = pd.to_datetime(df['ts'])
+        df = df.set_index('ts')
         # 將資料整理為"序號(流水號),開盤價,最高價,最低價,收盤價,時間"
         df['序號'] = range(1, len(df) + 1)
-        df = df[['序號', 'Open_Price', 'High', 'Low', 'Close_Price', 'ts']]
+        df = df.reset_index()
+        df = df.rename(columns={'ts': '時間'})  
+        df = df[['序號', 'Open_Price', 'High', 'Low', 'Close_Price', '時間']]
         self.event_bus.publish(Event("save_kbars_data", {"df": df, "stock_id": stock_id, "end_date": end_date, "kbar_type": "1_mins"}))
 
     def export_3min_data(self, stock_id, stock_name, end_date):
