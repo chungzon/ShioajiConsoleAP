@@ -1,0 +1,15 @@
+
+{
+    "stock_code": "",
+    "over_ratio_dont_buy": "0.03",
+    "extend_over_ratio_dont_buy": "0.03",
+    "base": "",
+    "no_buy_after": "10:00:00",
+    "final_buy": "12:00:00",
+    "extend_time": "00:30:00",
+    "enable_15k20ma": true,
+    "enable_15k10ma": true,
+    "before_n": "2",
+    "date": "",
+    "data": []
+}

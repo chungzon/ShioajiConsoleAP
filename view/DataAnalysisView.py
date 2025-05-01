@@ -4,6 +4,7 @@ from tkinter import ttk
 import pandas as pd
 from tkcalendar import DateEntry
 import os
+import json
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView, QFrame, QWidget, QVBoxLayout, QTabWidget, QGridLayout, QLabel, QMessageBox, QCheckBox, QLineEdit, QHBoxLayout, QPushButton, QFileDialog
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QColor, QBrush
@@ -883,6 +884,7 @@ class DataAnalysisView(tk.Frame):
         return table
 
     def export_json(self, recent_ratio_prices, indicator_prices, organized_ma_data, ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, now_price, latest_close_price_by_date, next_open_price):
+        import json
         # 準備數據字典
         data = {}
         
@@ -962,21 +964,33 @@ class DataAnalysisView(tk.Frame):
         next_day = next_open_price['date'] if next_open_price else None
         formatted_date = next_day.strftime('%Y-%m-%d') if next_day else "nan"
 
-        # 創建完整的JSON結構
-        json_data = {
-            "stock_code": self.entry_stock_id.get(),
-            "over_ratio_dont_buy": "0.03",
-            "extend_over_ratio_dont_buy": "0.03",
-            "base": f"{next_open_price['open_price']}" if next_open_price else "nan",
-            "no_buy_after": "10:00:00",
-            "final_buy": "12:00:00",
-            "extend_time": "00:30:00",
-            "enable_15k20ma": True,
-            "enable_15k10ma": True,
-            "before_n": 2,
-            "date": formatted_date,
-            "data": data
-        }
+        # 讀取JSON模板
+        with open('resource/export_json_templete.json', 'r') as f:
+            json_template = json.load(f)
+        
+        # 更新JSON模板中的數據
+        json_template['stock_code'] = self.entry_stock_id.get()
+        json_template['base'] = f"{next_open_price['open_price']}" if next_open_price else "nan"
+        json_template['date'] = formatted_date
+        json_template['data'] = data
+        
+        
+
+        # # 創建完整的JSON結構
+        # json_data ={
+        #     "stock_code": self.entry_stock_id.get(),
+        #     "base": f"{next_open_price['open_price']}" if next_open_price else "nan",
+        #     "date": formatted_date,
+        #     "data": data,
+        #     "over_ratio_dont_buy": "0.03",
+        #     "extend_over_ratio_dont_buy": "0.03",
+        #     "no_buy_after": "10:00:00",
+        #     "final_buy": "12:00:00",
+        #     "extend_time": "00:30:00",
+        #     "enable_15k20ma": True,
+        #     "enable_15k10ma": True,
+        #     "before_n": 2,
+        # }
         
         # 總波段的結束日期
         total_segment_date = self.entry_end_date.get_date()
@@ -992,10 +1006,9 @@ class DataAnalysisView(tk.Frame):
         )
         
         if file_path:
-            import json
             # 寫入JSON檔案
             with open(file_path, 'w', encoding='utf-8') as f:
-                json.dump(json_data, f, ensure_ascii=False, indent=4)
+                json.dump(json_template, f, ensure_ascii=False, indent=4)
 
     def save_kbars_data(self, event):
         # 儲存1分K資料為txt檔案，檔名為{stock_id}_{end_date}.txt
