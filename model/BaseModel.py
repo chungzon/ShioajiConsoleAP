@@ -1070,3 +1070,15 @@ class BaseModel:
         kbars = self.get_stock_kbar_from_db(stock_id, date, date)
         return kbars.iloc[0]['close_price']
 
+    def get_stock_data_from_db(self, stock_id, start_date, end_date):
+        conn = self.connect_db()
+        query = f"""
+        SELECT ts, Open_Price, High, Low, Close_Price, Volume
+        FROM Kbars
+        WHERE stock_id = '{stock_id}' AND ts >= '{start_date}' AND ts <= DATEADD(day, 1, '{end_date}')
+        """
+        df = pd.read_sql(query, conn)
+        df['ts'] = pd.to_datetime(df['ts'])
+        df['date'] = df['ts'].dt.date
+        conn.close()
+        return df

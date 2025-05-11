@@ -354,3 +354,4 @@ class DataAnalysisController:
         df_5k = df_5k[['序號', 'Open_Price', 'High', 'Low', 'Close_Price', '時間']]
         self.event_bus.publish(Event("save_kbars_data", {"df": df_5k, "stock_id": stock_id, "end_date": end_date, "kbar_type": "5_mins"}))
         
+    

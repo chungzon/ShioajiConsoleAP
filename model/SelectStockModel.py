@@ -315,6 +315,17 @@ class SelectStockModel(BaseModel):
                         latest_close_prices = recent_segment['latest_close_prices']
                         latest_dates = recent_segment['latest_dates']
 
+                        gap_df = self.get_gap_stocks(stock_data_df)
+                        now_price = self.get_latest_close_price(stock_id)
+                        next_open_price = self.get_next_open_price_date(stock_id, end_date)
+                        latest_close_price_date = stock_data_df[stock_data_df['date'] == pd.to_datetime(end_date)]
+                        latest_close_price_by_date = None
+                        if latest_close_price_date.empty:
+                            latest_close_price_by_date = None;
+                        else:
+                            latest_close_price_by_date = latest_close_price_date['close_price'].iloc[-1]
+                        
+
                         segment = {
                             'stock_id': stock_id,
                             'name': stock_name,
@@ -390,7 +401,11 @@ class SelectStockModel(BaseModel):
                             'buy_1500': buy_1500_spread_ratio,
                             'buy_1618': buy_1618_spread_ratio,
                             'buy_1809': buy_1809_spread_ratio,
-                            'buy_2': buy_2_spread_ratio
+                            'buy_2': buy_2_spread_ratio,
+                            'gap_df': gap_df,
+                            'now_price': now_price,
+                            'next_open_price': next_open_price,
+                            'latest_close_price_by_date': latest_close_price_by_date
                         }
 
                         is_ma_selected, is_more_than_ma = self.check_price_above_selected_ma(latest_close_price, recent_segment, ma_selections)
@@ -1130,6 +1145,38 @@ class SelectStockModel(BaseModel):
         with open(self.log_filename, "a") as log_file:
             log_file.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
             
+    # 取得日期的下一個交易日開盤價格
+    def get_next_open_price_date(self, stock_code, date):
+        # 取得下一個交易日
+        conn = self.connect_db()
+        cursor = conn.cursor()
+        
+        try:
+            # 查詢下一個交易日的開盤價格
+            query = """
+                SELECT TOP 1 date, open_price
+                FROM stock_data
+                WHERE stock_id = %s AND date > %s
+                ORDER BY date ASC
+            """
+            cursor.execute(query, (stock_code, date))
+            result = cursor.fetchone()
+            
+            if result:
+                return {
+                    'date': result[0],
+                    'open_price': result[1]
+                }
+            else:
+                return None
+                
+        except Exception as e:
+            print(f"Error in get_next_open_price_date: {e}")
+            return None
+            
+        finally:
+            cursor.close()
+            conn.close()
 
 
 

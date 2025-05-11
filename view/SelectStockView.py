@@ -18,10 +18,12 @@ import threading
 from queue import Queue
 
 from common.Math import Math
-from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView, QFrame, QWidget, QVBoxLayout, QTabWidget, QGridLayout, QLabel
+from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView, QFrame, QWidget, QVBoxLayout, QTabWidget, QGridLayout, QLabel, QCheckBox, QLineEdit, QPushButton, QHBoxLayout, QFileDialog, QMessageBox
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QColor, QBrush
 from PyQt5.QtCore import Qt
+from functools import partial
+from PIL import ImageGrab
 
 font_path = 'C:/Windows/Fonts/msjh.ttc'  # 微軟正黑體字體路徑
 zh_font = font_manager.FontProperties(fname=font_path)
@@ -32,6 +34,8 @@ class SelectStockView(tk.Frame):
         tk.Frame.__init__(self, parent)
         self.controller = controller
         self.model = model
+         # 獲取下載資料夾路徑
+        self.downloads_path = os.path.join(os.path.expanduser("~"), "Downloads")
         self.init_ui()
         self.data_queue = Queue()  # 用于存储待处理的股票数据
         self.processing = False
@@ -495,9 +499,9 @@ class SelectStockView(tk.Frame):
         table.resizeColumnsToContents()
         return table
 
-    def create_ratio_table(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices):
-        table = QTableWidget()
-        table.setColumnCount(4)  # 比例、總波段、指標, 最近波段
+    def create_ratio_table(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state):
+        # self.ratio_table = QTableWidget()
+        # self.ratio_table.setColumnCount(5)  # 比例、總波段、指標, 最近波段
         
         # 设置固定的比例序列
         ratios = ['0', '0.191', '0.382', '0.5', '0.618', '0.809', '1', 
@@ -508,13 +512,13 @@ class SelectStockView(tk.Frame):
         
         # 計算總行
         total_rows = (len(ratios) * 2 - 1) + 2
-        table.setRowCount(total_rows)
-        table.setHorizontalHeaderLabels(["比例", "最近波段", "指標", "總波段"])
+        self.ratio_table.setRowCount(total_rows)
+        self.ratio_table.setHorizontalHeaderLabels(["比例", "最近波段", "指標", "總波段", "獲利"])
         header_font = QFont('Microsoft JhengHei', 12, QFont.Bold)
-        table.horizontalHeader().setFont(header_font)
+        self.ratio_table.horizontalHeader().setFont(header_font)
         font = QFont()
         font.setPointSize(13)
-        table.setFont(font)
+        self.ratio_table.setFont(font)
 
         def find_row_for_value(value):
             min_price = float(ratio_prices['0'])
@@ -563,7 +567,7 @@ class SelectStockView(tk.Frame):
                     for col in range(4):
                         item = QTableWidgetItem("")
                         item.setBackground(QBrush(color))
-                        table.setItem(row, col, item)
+                        self.ratio_table.setItem(row, col, item)
                     continue
                 
                 # 比例行
@@ -573,7 +577,7 @@ class SelectStockView(tk.Frame):
                     # 比例欄位
                     ratio_item = QTableWidgetItem(ratios[ratio_idx])
                     ratio_item.setBackground(QBrush(color))
-                    table.setItem(row, 0, ratio_item)
+                    self.ratio_table.setItem(row, 0, ratio_item)
                     
                     # 總波段欄位
                     wave_price = ratio_prices[ratios[ratio_idx]]
@@ -581,14 +585,14 @@ class SelectStockView(tk.Frame):
                         wave_price = wave_price.item()
                     price_item = QTableWidgetItem(f"{wave_price:.2f}")
                     price_item.setBackground(QBrush(color))
-                    table.setItem(row, 1, price_item)
+                    self.ratio_table.setItem(row, 1, price_item)
                 
                 # 中間的空白行
                 else:
                     for col in range(4):
                         item = QTableWidgetItem("")
                         item.setBackground(QBrush(color))
-                        table.setItem(row, col, item)
+                        self.ratio_table.setItem(row, col, item)
 
         def add_sorted_prices_to_cell(row, prices_list):
             """將所有價格一起排序後添加到指標列"""
@@ -612,7 +616,7 @@ class SelectStockView(tk.Frame):
             indicator_item.setBackground(QBrush(color))
             
             # 設置到表格中
-            table.setItem(row, 2, indicator_item)
+            self.ratio_table.setItem(row, 2, indicator_item)
             
             # 在最近波段列中顯示最近波段價格
             recent_lines = []
@@ -624,7 +628,7 @@ class SelectStockView(tk.Frame):
             
             recent_item = QTableWidgetItem('\n'.join(recent_lines))
             recent_item.setBackground(QBrush(color))
-            table.setItem(row, 3, recent_item)
+            self.ratio_table.setItem(row, 3, recent_item)
 
         # 首先設置基本欄位
         setup_basic_columns()
@@ -653,6 +657,12 @@ class SelectStockView(tk.Frame):
                 for ratio, value in recent_ratio_prices.items():
                     name = f"【{ratio}】"
                     all_prices.append((name, value, True))
+
+            if gap_df is not None and gap_checkbox_state:
+                for index, row in gap_df.iterrows():
+                    gap_type = '↑' if row['gap_type'] == '向上跳空' else '↓'
+                    gap_price = row['previous_close'] if row['gap_type'] == '向上跳空' else row['current_open']
+                    all_prices.append((f"({row['previous_close']}~{row['current_open']})  [{row['date'].strftime('%Y-%m-%d')}] {gap_type}", gap_price, False))
             
             return all_prices
 
@@ -672,12 +682,12 @@ class SelectStockView(tk.Frame):
             add_sorted_prices_to_cell(row, prices)
 
         # 調整表格外觀
-        table.resizeColumnsToContents()
-        table.resizeRowsToContents()
+        self.ratio_table.resizeColumnsToContents()
+        self.ratio_table.resizeRowsToContents()
 
-        return table
+        return self.ratio_table
 
-    def show_sma_data(self, stock_id, stock_name, organized_ma_data, ratio_prices, additional_data, indicator_prices, recent_ratio_prices):
+    def show_sma_data(self, stock_id, stock_name, organized_ma_data, ratio_prices, additional_data, indicator_prices, recent_ratio_prices, gap_df, now_price, latest_close_price_by_date, next_open_price):
         self.detail_window = QWidget()
         self.detail_window.setWindowTitle(f"詳細資料 - {stock_id} ({stock_name})")
         self.detail_window.setGeometry(100, 100, 1000, 750)
@@ -706,6 +716,7 @@ class SelectStockView(tk.Frame):
             # 创建标签
             label = QLabel(title)
             font = QFont()
+            font.setFamily("Microsoft JhengHei")  # 设置字体为 Microsoft JhengHei
             font.setPointSize(13)
             font.setBold(True)
             label.setFont(font)
@@ -726,6 +737,7 @@ class SelectStockView(tk.Frame):
         
         # 设置字体
         font = QFont()
+        font.setFamily("Microsoft JhengHei")  # 设置字体为 Microsoft JhengHei
         font.setPointSize(13)
         recent_price_table.setFont(font)
         recent_price_table.horizontalHeader().setFont(font)
@@ -792,26 +804,117 @@ class SelectStockView(tk.Frame):
         
         
         # 比例价格表格
-        ratio_layout = QVBoxLayout()
-
+        self.ratio_layout = QVBoxLayout()
+        
         # 添加日期信息标签
+        # stock_name = stock_name if stock_name is not None else "--"
+        stock_info = f"股票代碼(名稱): {stock_id} ({stock_name})\n"
         date_info = QLabel(
+            f"{stock_info}\n"
             f"最高價日期: {additional_data['最近波段最高價日期']}   總波段最高價日期: {additional_data['總波段最高價日期']}\n"
             f"最低價日期: {additional_data['最近波段最低價日期']}   總波段最低價日期: {additional_data['總波段最低價日期']}"
         )
         date_info.setFont(font)
-        ratio_layout.addWidget(date_info)
-
-        ratio_table = self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices)
-        ratio_layout.addWidget(ratio_table)
-        self.ratio_tab.setLayout(ratio_layout)
+        self.ratio_layout.addWidget(date_info)
         
+        # 當沖交易checkbox
+        day_trading_checkbox = QCheckBox("當沖")
+        day_trading_checkbox.setChecked(True)
+        day_trading_checkbox.setFont(font)
+        self.ratio_layout.addWidget(day_trading_checkbox)
+
+        # 创建一个水平布局
+        fee_layout = QHBoxLayout()
+
+        # 手續費折讓輸入框，預設為1.6%
+        fee_discount_label = QLabel("手續費折讓:")
+        fee_discount_label.setFont(font)
+        fee_discount_label.setFixedWidth(100)
+        fee_layout.addWidget(fee_discount_label)
+
+        fee_discount_input = QLineEdit()
+        fee_discount_input.setFont(font)
+        fee_discount_input.setText("1.6")
+        fee_discount_input.setFixedWidth(75)
+        fee_discount_input.setPlaceholderText("請輸入")
+        fee_discount_input.setAlignment(Qt.AlignCenter)
+        fee_layout.addWidget(fee_discount_input)
+
+        fee_discount_unit_label = QLabel("折")
+        fee_discount_unit_label.setFont(font)
+        fee_layout.addWidget(fee_discount_unit_label)
+       
+        self.ratio_layout.addLayout(fee_layout)
+
+        export_layout = QHBoxLayout()
+
+        gap_checkbox = QCheckBox("顯示跳空指標")
+        gap_checkbox.setChecked(True)
+        gap_checkbox.setFont(font)
+        export_layout.addWidget(gap_checkbox)
+        gap_checkbox.stateChanged.connect(lambda: self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked()))
+        # 匯出json檔案按鈕
+        export_json_button = QPushButton("匯出json檔案")
+        export_json_button.setFont(font)
+        export_json_button.clicked.connect(lambda: self.export_json(stock_id, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked(), now_price, latest_close_price_by_date, next_open_price))
+        export_layout.addWidget(export_json_button) 
+
+        # 重新計算按鈕
+        recalculate_button = QPushButton("重新計算")
+        recalculate_button.setFont(font)
+        recalculate_button.clicked.connect(lambda: self.recalculate(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked()))
+        export_layout.addWidget(recalculate_button)
+
+        self.ratio_layout.addLayout(export_layout)
+
+        # # 創建比例表格
+        # ratio_table = self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df)
+        # ratio_layout.addWidget(ratio_table)
+        # self.ratio_tab.setLayout(ratio_layout)
+        self.ratio_table = QTableWidget()
+        self.ratio_table.setColumnCount(5)  # 比例、最近波段、總波段、指標, 獲利
+        self.ratio_layout.addWidget(self.ratio_table)
+        self.ratio_tab.setLayout(self.ratio_layout)
+        self.update_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked())
+        
+
         # 设置主布局
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.tab_widget)
+
+        # 添加1分K、3分K、5分K資料匯出按鈕
+        export_kbars_layout = QHBoxLayout()
+        export_1min_button = QPushButton("匯出1分K資料")
+        export_1min_button.setFont(font)
+        export_1min_button.clicked.connect(lambda: self.controller.export_1min_data(stock_id, stock_name, self.end_date.get_date()))
+        export_kbars_layout.addWidget(export_1min_button)
+
+        export_3min_button = QPushButton("匯出3分K資料")
+        export_3min_button.setFont(font)
+        export_3min_button.clicked.connect(lambda: self.controller.export_3min_data(stock_id, stock_name, self.end_date.get_date()))
+        export_kbars_layout.addWidget(export_3min_button)
+
+        export_5min_button = QPushButton("匯出5分K資料")
+        export_5min_button.setFont(font)
+        export_5min_button.clicked.connect(lambda: self.controller.export_5min_data(stock_id, stock_name, self.end_date.get_date()))
+        export_kbars_layout.addWidget(export_5min_button)
+        main_layout.addLayout(export_kbars_layout)
+
+        # 添加截圖按鈕
+        screenshot_button = QPushButton("截圖另存圖片")
+        screenshot_button.setFont(font)
+        screenshot_button.clicked.connect(partial(self.save_screenshot, stock_id, stock_name))
+        main_layout.addWidget(screenshot_button)
+
+        
+
         self.detail_window.setLayout(main_layout)
         
         self.detail_window.show()
+
+    def update_table(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state):
+        # 創建比例表格
+        self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state)
 
     def insert_table_row(self, table, row, values):
         """輔助函數：插一行數據到表格中"""
@@ -1211,3 +1314,202 @@ class SelectStockView(tk.Frame):
         tree.bind("<Double-1>", self.on_double_click)
         
         return tree
+
+    def save_screenshot(self, stock_id, stock_name):
+        # 獲取當前視窗的幾何信息
+        x = self.detail_window.geometry().x()
+        y = self.detail_window.geometry().y()
+        width = self.detail_window.geometry().width()
+        height = self.detail_window.geometry().height()
+
+        # 截圖
+        screenshot = ImageGrab.grab(bbox=(x, y, x + width, y + height))
+
+        # 打開文件保存對話框
+        # default file name: 截圖 - {stock_name} ({stock_id})
+        # default path: Downloads
+        default_path = os.path.join(self.downloads_path, f"截圖 - {stock_name} ({stock_id}).png")
+        file_path, _ = QFileDialog.getSaveFileName(self.detail_window, f"保存截圖", default_path, "PNG Files (*.png);;All Files (*)")
+
+        if file_path:
+            # 保存截圖
+            screenshot.save(file_path, "PNG")
+
+    def recalculate(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state):
+        # 分別取得ratio比例為0和1的價格，並轉為float
+        # 取得table中ratio比例為0和2的價格
+        ratio_0_price = float(self.ratio_table.item(1, 1).text())
+        ratio_2_price = float(self.ratio_table.item(25, 1).text())
+        # 重新計算各比例價格
+        ratios = list(ratio_prices.keys())
+        for ratio in ratios:
+            if ratio == '0':
+                ratio_prices[ratio] = ratio_0_price
+            elif ratio == '2':
+                ratio_prices[ratio] = ratio_2_price
+            else:
+                # 修正參數順序：max_value, min_value, ratio
+                ratio_prices[ratio] = Math.calculate_ratio_value(ratio_2_price, ratio_0_price, float(ratio))
+        
+        # 清空指標、總波段及獲利列
+        for r in range(self.ratio_table.rowCount()):
+            self.ratio_table.setItem(r, 2, QTableWidgetItem(""))
+            self.ratio_table.setItem(r, 3, QTableWidgetItem(""))
+            self.ratio_table.setItem(r, 4, QTableWidgetItem(""))
+
+        self.update_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state)
+
+    def save_kbars_data(self, event):
+        # 儲存1分K資料為txt檔案，檔名為{stock_id}_{end_date}.txt
+        # 資料格式為"序號(流水號),開盤價,最高價,最低價,收盤價,時間"
+        df = event.data['df']
+        # 在資料df中第一列插入標頭
+        # 
+        df['序號'] = range(1, len(df) + 1)
+        df = df[['序號', 'Open_Price', 'High', 'Low', 'Close_Price', '時間']]
+        
+        # 創建標頭行
+        header_df = pd.DataFrame([['// 序號(流水號),開盤價,最高價,最低價,收盤價,時間']], columns=['序號'])
+        
+        # 合併標頭和數據
+        df = pd.concat([header_df, df], ignore_index=True)
+
+        
+        kbar_type = event.data['kbar_type']
+        stock_id = event.data['stock_id']
+        end_date = event.data['end_date']
+        # 儲存分K資料為txt檔案，檔名為{stock_id}_{kbar_type}_{end_date}.txt
+        file_path, _ = QFileDialog.getSaveFileName(self.detail_window, f"儲存{kbar_type}K資料", os.path.join(self.downloads_path, f"{stock_id}_{kbar_type}_{end_date}.txt"), "Text Files (*.txt);;All Files (*)")
+        
+        if file_path:
+            df.to_csv(file_path, index=False, header=False)
+            QMessageBox.information(self.detail_window, "提示", f"{kbar_type}K資料已儲存")
+        else:
+            QMessageBox.warning(self.detail_window, "提示", f"{kbar_type}K資料儲存失敗")
+
+    def export_json(self, stock_id, recent_ratio_prices, indicator_prices, organized_ma_data, ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, now_price, latest_close_price_by_date, next_open_price):
+        import json
+        # 準備數據字典
+        data = {}
+        
+        # 添加當前價格
+        if latest_close_price_by_date is not None:
+            data['NOW PRICE'] = f"{latest_close_price_by_date:.2f}"
+        else:
+            data['NOW PRICE'] = "nan"
+        
+        # 定義固定的比例序列
+        ratio_sequence = ['0', '0.191', '0.382', '0.5', '0.618', '0.809', '1', 
+                         '1.191', '1.382', '1.5', '1.618', '1.809', '2',
+                         '2.191', '2.382', '2.5', '2.618', '2.809', '3',
+                         '3.191', '3.382', '3.5', '3.618', '3.809', '4',
+                         '4.191', '4.382', '4.5', '4.618', '4.809', '5']
+        
+        # 添加最近波段比例價格 (N[ratio])
+        for ratio in ratio_sequence:
+            if recent_ratio_prices and ratio in recent_ratio_prices:
+                price = recent_ratio_prices[ratio]
+                if hasattr(price, 'item'):
+                    price = price.item()
+                data[f"N[{ratio}]"] = f"{price:.2f}"
+            else:
+                data[f"N[{ratio}]"] = "nan"
+        
+        # 添加總波段比例價格 ([ratio])
+        for ratio in ratio_sequence:
+            if ratio in ratio_prices:
+                price = ratio_prices[ratio]
+                if hasattr(price, 'item'):
+                    price = price.item()
+                data[f"[{ratio}]"] = f"{price:.2f}"
+            else:
+                data[f"[{ratio}]"] = "nan"
+        
+        # 按照固定順序添加均線和指標數據
+        indicator_order = [
+            ('日', '120'), ('周', '60'), ('周', '20'), ('日', '60'),
+            ('周', '120'), ('月', '5'), ('周', '10'), ('日', '20'),
+            'AL', ('周', '5'), 'NL', ('15K', '20'), 'CDP', ('15K', '10'),
+            ('15K', '5'), ('日', '10'), ('日', '5'), 'NH', 'AH',
+            ('月', '10'), ('月', '20'), ('月', '60'), ('月', '120')
+        ]
+        
+        # 添加均線和指標數據
+        for item in indicator_order:
+            if isinstance(item, tuple):
+                prefix, period = item
+                key = f"{prefix}({period})_DC"
+                if prefix in {'日': '日均線', '周': '週均線', '月': '月均線', '15K': '15分鐘均線'}:
+                    ma_type = {'日': '日均線', '周': '週均線', '月': '月均線', '15K': '15分鐘均線'}[prefix]
+                    ma_period = f"{period}MA"
+                    if (ma_type in organized_ma_data and 
+                        ma_period in organized_ma_data[ma_type] and 
+                        organized_ma_data[ma_type][ma_period] != 'N/A'):
+                        value = organized_ma_data[ma_type][ma_period]
+                        if hasattr(value, 'item'):
+                            value = value.item()
+                        data[key] = f"{value:.2f}"
+                    else:
+                        data[key] = "nan"
+            else:
+                # 處理指標數據
+                key = f"{item}_DC"
+                if item in indicator_prices:
+                    value = indicator_prices[item]
+                    if hasattr(value, 'item'):
+                        value = value.item()
+                    data[key] = f"{value:.2f}"
+                else:
+                    data[key] = "nan"
+        
+        # 獲取最近波段結束日期並格式化
+        recent_end_date = self.end_date.get_date()
+        # next_day = recent_end_date + timedelta(days=1)
+        next_day = next_open_price['date'] if next_open_price else None
+        formatted_date = next_day.strftime('%Y-%m-%d') if next_day else "nan"
+
+        # 讀取JSON模板
+        with open('resource/export_json_templete.json', 'r') as f:
+            json_template = json.load(f)
+        
+        # 更新JSON模板中的數據
+        json_template['stock_code'] = stock_id
+        json_template['base'] = f"{next_open_price['open_price']}" if next_open_price else "nan"
+        json_template['date'] = formatted_date
+        json_template['data'] = data
+        
+        
+
+        # # 創建完整的JSON結構
+        # json_data ={
+        #     "stock_code": self.entry_stock_id.get(),
+        #     "base": f"{next_open_price['open_price']}" if next_open_price else "nan",
+        #     "date": formatted_date,
+        #     "data": data,
+        #     "over_ratio_dont_buy": "0.03",
+        #     "extend_over_ratio_dont_buy": "0.03",
+        #     "no_buy_after": "10:00:00",
+        #     "final_buy": "12:00:00",
+        #     "extend_time": "00:30:00",
+        #     "enable_15k20ma": True,
+        #     "enable_15k10ma": True,
+        #     "before_n": 2,
+        # }
+        
+        # 總波段的結束日期
+        total_segment_date = self.end_date.get_date()
+        formatted_total_segment_date = total_segment_date.strftime('%Y-%m-%d')
+        # 打開檔案儲存對話框，預設儲存路徑為"Downloads"
+        
+        default_path = os.path.join(self.downloads_path, f"{stock_id}_data_{formatted_total_segment_date}.json")
+        file_path, _ = QFileDialog.getSaveFileName(
+            self.detail_window,
+            "儲存JSON檔案",
+            default_path,
+            "JSON Files (*.json);;All Files (*)"
+        )
+        
+        if file_path:
+            # 寫入JSON檔案
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(json_template, f, ensure_ascii=False, indent=4)
