@@ -93,7 +93,13 @@ class SelectStockController:
             '4.5': recent_segment.get('Ratio_4.5', 'N/A'),
             '4.618': recent_segment.get('Ratio_4.618', 'N/A'),
             '4.809': recent_segment.get('Ratio_4.809', 'N/A'),
-            '5': recent_segment.get('Ratio_5', 'N/A')
+            '5': recent_segment.get('Ratio_5', 'N/A'),
+            '5.191': recent_segment.get('Ratio_5.191', 'N/A'),
+            '5.382': recent_segment.get('Ratio_5.382', 'N/A'),
+            '5.5': recent_segment.get('Ratio_5.5', 'N/A'),
+            '5.618': recent_segment.get('Ratio_5.618', 'N/A'),
+            '5.809': recent_segment.get('Ratio_5.809', 'N/A'),
+            '6': recent_segment.get('Ratio_6', 'N/A')
         }
 
         # 整理比例價格數據（包括最近波段和總波段）
@@ -128,7 +134,13 @@ class SelectStockController:
             '4.5': total_segment.get('Ratio_4.5', 'N/A'),
             '4.618': total_segment.get('Ratio_4.618', 'N/A'),
             '4.809': total_segment.get('Ratio_4.809', 'N/A'),
-            '5': total_segment.get('Ratio_5', 'N/A')
+            '5': total_segment.get('Ratio_5', 'N/A'),
+            '5.191': total_segment.get('Ratio_5.191', 'N/A'),
+            '5.382': total_segment.get('Ratio_5.382', 'N/A'),
+            '5.5': total_segment.get('Ratio_5.5', 'N/A'),
+            '5.618': total_segment.get('Ratio_5.618', 'N/A'),
+            '5.809': total_segment.get('Ratio_5.809', 'N/A'),
+            '6': total_segment.get('Ratio_6', 'N/A')
         }
 
         # 添加其他可能需要的數據（使用總波段數據）
