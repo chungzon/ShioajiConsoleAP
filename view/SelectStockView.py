@@ -1242,6 +1242,19 @@ class SelectStockView(tk.Frame):
     def _prepare_tree_values(self, segment_data, wave_type):
         """准备树形视图的数据"""
         try:
+            button_text = ""
+            if wave_type == '最高波段':
+                button_text = "下載"
+            elif wave_type == '最近波段':
+                # 將last_day_volume是股，轉換成張，不要小數點
+                if segment_data['last_day_volume'] is not None:
+                    last_day_volume = int(segment_data['last_day_volume'])
+                    button_text = f"{last_day_volume / 1000:.0f}張"
+                else:
+                    button_text = "N/A"
+            else:
+                button_text = "詳細資料"
+
             return (
                 segment_data['stock_id'],
                 segment_data['name'],
@@ -1259,7 +1272,7 @@ class SelectStockView(tk.Frame):
                 segment_data['Max_Date'],
                 segment_data['Min_Value'],
                 segment_data['Min_Date'],
-                '下載' if wave_type == '最高波段' else '詳細資料'
+                button_text
             )
         except Exception as e:
             print(f"Error in _prepare_tree_values: {e}")

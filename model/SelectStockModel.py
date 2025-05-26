@@ -40,6 +40,25 @@ class SelectStockModel(BaseModel):
         except Exception as e:
             print(f"讀取資料時發生錯誤: {e}")
             return None
+    
+    # 取得股票區間最後一天的成交量
+    def get_last_day_volume(self, stock_id, date):
+        try:
+            # 建立資料庫連接
+            conn = self.connect_db()
+
+            # 查詢語句
+            query = f"""
+                SELECT volume
+                FROM stock_data
+                WHERE stock_id = '{stock_id}' AND date = '{date}'
+            """
+            df = pd.read_sql(query, conn)
+            return df['volume'].iloc[0]
+        
+        except Exception as e:
+            print(f"取得股票區間最後一天的成交量時發生錯誤: {e}")
+            return None
 
     def calculate_wave_extremes(self, df, stock_id):
         # 初始化波段列表
@@ -146,9 +165,11 @@ class SelectStockModel(BaseModel):
                     print(f"正在處理股票: {stock_id} {count} / {len(top_50_stocks)}")
                     stock_segment = []
                     stock_data_df = self.get_stock_data(stock_id, start_date, end_date)
+                    last_day_volume = None
                     if stock_data_df is not None and not stock_data_df.empty:
                         latest_close_price = self.get_latest_close_price(stock_id)
-                    # latest_close_price = stock_data_df['close_price'].iloc[-1]
+                        last_day_volume = self.get_last_day_volume(stock_id, end_date)
+
                     wave_extremes_df = self.find_peaks_troughs_v34_small(stock_id, stock_data_df, latest_close_price)
                     if wave_extremes_df is not None and not wave_extremes_df.empty:
                         wave_extremes_df['stock_id'] = stock_id  # 加入股票代號
@@ -232,7 +253,7 @@ class SelectStockModel(BaseModel):
                         recent_segment['buy_1618'] = round((recent_segment['Ratio_0.618'].copy() - recent_segment['Ratio_1.618'].copy()) / recent_segment['Ratio_0.618'].copy(), 3)
                         recent_segment['buy_1809'] = round((recent_segment['Ratio_0.618'].copy() - recent_segment['Ratio_1.809'].copy()) / recent_segment['Ratio_0.618'].copy(), 3)
                         recent_segment['buy_2'] = round((recent_segment['Ratio_0.618'].copy() - recent_segment['Ratio_2'].copy()) / recent_segment['Ratio_0.618'].copy(), 3)
-
+                        recent_segment['last_day_volume'] = last_day_volume
 
                         # 計算 ratio_0.191、ratio_0.382、ratio_0.5、ratio_0.618、ratio_0.809、ratio_1
                         ratio_0 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0)
@@ -418,7 +439,8 @@ class SelectStockModel(BaseModel):
                             'gap_df': gap_df,
                             'now_price': now_price,
                             'next_open_price': next_open_price,
-                            'latest_close_price_by_date': latest_close_price_by_date
+                            'latest_close_price_by_date': latest_close_price_by_date,
+                            'last_day_volume': last_day_volume
                         }
 
                         is_ma_selected, is_more_than_ma = self.check_price_above_selected_ma(latest_close_price, recent_segment, ma_selections)

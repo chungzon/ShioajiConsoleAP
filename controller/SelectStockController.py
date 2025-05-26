@@ -155,7 +155,7 @@ class SelectStockController:
             '最近波段最高價日期': recent_segment.get('Max_Date', 'N/A'),
             '最近波段最低價日期': recent_segment.get('Min_Date', 'N/A'),
             '總波段最高價日期': total_segment.get('Max_Date', 'N/A'),
-            '總波段最低價日期': total_segment.get('Min_Date', 'N/A')
+            '總波段最低價日期': total_segment.get('Min_Date', 'N/A'),
         }
 
         # 從 total_segment 獲取所有指標價格
