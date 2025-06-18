@@ -249,7 +249,7 @@ class BaseModel:
         sma_columns = [f'sma_{period}' for period in periods]
         weekly_sma_columns = [f'weekly_sma_{period}' for period in periods]
         monthly_sma_columns = [f'monthly_sma_{period}' for period in periods]
-        k15_periods = [5, 10, 20]
+        k15_periods = [5, 10, 20, 'strong', 'weak']
         k15_sma_columns = [f'15min_sma_{period}' for period in k15_periods]
 
         # 計算CDP
@@ -992,12 +992,35 @@ class BaseModel:
         # 合併所有日期的數據
         k15 = pd.concat(all_k15)
 
+        k15_10sma = k15['Close_Price'].rolling(window=10).mean().iloc[-1]
+        k15_20sma = k15['Close_Price'].rolling(window=20).mean().iloc[-1]
+        k15_5sma = k15['Close_Price'].rolling(window=5).mean().iloc[-1]
+
         # 計算15分鐘K線的SMA
         k15_sma = [
-            round(k15['Close_Price'].rolling(window=5).mean().iloc[-1], 2),
-            round(k15['Close_Price'].rolling(window=10).mean().iloc[-1], 2),
-            round(k15['Close_Price'].rolling(window=20).mean().iloc[-1], 2)
+            round(k15_5sma, 2),
+            round(k15_10sma, 2),
+            round(k15_20sma, 2)
         ]
+
+        # 日期不為NULL
+        if recent_end_date is not None:
+            # 取出符合recent_end_date日期的資料
+            recent_end_date = pd.to_datetime(recent_end_date)
+            # 將時間格式轉換為2025-06-06 13:30:00
+            recent_end_date = recent_end_date.strftime('%Y-%m-%d')
+            
+            # 從k15找出特定日期的資料，K15的index格式為2025-06-06 13:30:00，所以需要找出index的日期為2025-06-06的資料
+            #date_data = k15[k15.index.strftime('%Y-%m-%d') == recent_end_date]
+            
+            
+            if not k15.empty:
+                k15_stock_strong = (k15_10sma*10 - k15['Close_Price'].iloc[-10] + k15['Close_Price'].iloc[-1])/(10-1) # 續強公式
+                k15_stock_weak = (k15_10sma*20 - k15['Close_Price'].iloc[-20] + k15['Close_Price'].iloc[-1])/(20-1) # 續弱公式
+                k15_sma.append(round(k15_stock_strong, 2))
+                k15_sma.append(round(k15_stock_weak, 2))
+            else:
+                k15_sma.extend([np.nan, np.nan])
 
         return k15_sma
 

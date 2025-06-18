@@ -383,7 +383,7 @@ class DataAnalysisView(tk.Frame):
             ma_types = {'日均線': '日', '週均線': '周', '月均線': '月', '15分鐘均線': '15K'}
             for ma_key, prefix in ma_types.items():
                 ma_data = organized_ma_data[ma_key]
-                for ma_period in ['5MA', '10MA', '20MA', '60MA', '120MA']:
+                for ma_period in ['5MA', '10MA', '20MA', '60MA', '120MA', 'strong', 'weak']:
                     if ma_period in ma_data and ma_data[ma_period] != 'N/A':
                         value = ma_data[ma_period]
                         period_num = ma_period.replace('MA', '')
