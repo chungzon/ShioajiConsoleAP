@@ -1015,8 +1015,10 @@ class BaseModel:
             
             
             if not k15.empty:
-                k15_stock_strong = (k15_10sma*10 - k15['Close_Price'].iloc[-10] + k15['Close_Price'].iloc[-1])/(10-1) # 續強公式
-                k15_stock_weak = (k15_10sma*20 - k15['Close_Price'].iloc[-20] + k15['Close_Price'].iloc[-1])/(20-1) # 續弱公式
+                # k15_stock_strong = (k15_10sma*10 - k15['Close_Price'].iloc[-10] + k15['Close_Price'].iloc[-1])/(10-1) # 續強公式
+                # k15_stock_weak = (k15_20sma*20 - k15['Close_Price'].iloc[-20] + k15['Close_Price'].iloc[-1])/(20-1) # 續弱公式
+                k15_stock_strong = (k15_10sma*10 - k15['Close_Price'].iloc[-10])/(10-1) # 續強公式
+                k15_stock_weak = (k15_20sma*20 - k15['Close_Price'].iloc[-20])/(20-1) # 續弱公式
                 k15_sma.append(round(k15_stock_strong, 2))
                 k15_sma.append(round(k15_stock_weak, 2))
             else:
