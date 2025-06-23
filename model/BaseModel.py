@@ -962,7 +962,7 @@ class BaseModel:
             kbars = self.get_stock_kbar_from_db_top300(stock_id, recent_end_date)
 
         if kbars.empty:
-            return [np.nan, np.nan, np.nan]
+            return [np.nan, np.nan, np.nan, np.nan, np.nan]
         
         # 轉換時間格式
         kbars['date'] = pd.to_datetime(kbars['date'])
@@ -1023,6 +1023,9 @@ class BaseModel:
                 k15_sma.append(round(k15_stock_weak, 2))
             else:
                 k15_sma.extend([np.nan, np.nan])
+        else:
+            # 當 recent_end_date 為 None 時，也要返回5個值以匹配期望的列數
+            k15_sma.extend([np.nan, np.nan])
 
         return k15_sma
 
