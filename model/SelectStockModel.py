@@ -170,7 +170,7 @@ class SelectStockModel(BaseModel):
                         latest_close_price = self.get_latest_close_price(stock_id)
                         last_day_volume = self.get_last_day_volume(stock_id, end_date)
 
-                    wave_extremes_df = self.find_peaks_troughs_v34_small(stock_id, stock_data_df, latest_close_price)
+                    wave_extremes_df = self.find_peaks_troughs_v34_small(stock_id, stock_data_df, latest_close_price, end_date)
                     if wave_extremes_df is not None and not wave_extremes_df.empty:
                         wave_extremes_df['stock_id'] = stock_id  # 加入股票代號
                         wave_extremes_df['name'] = self.get_stock_name(stock_id)
