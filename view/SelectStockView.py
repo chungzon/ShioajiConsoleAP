@@ -1444,7 +1444,7 @@ class SelectStockView(tk.Frame):
             ('日', '120'), ('周', '60'), ('周', '20'), ('日', '60'),
             ('周', '120'), ('月', '5'), ('周', '10'), ('日', '20'),
             'AL', ('周', '5'), 'NL', ('15K', '20'), 'CDP', ('15K', '10'),
-            ('15K', '5'), ('日', '10'), ('日', '5'), 'NH', 'AH',
+            ('15K', '5'), ('15K', 'strong'), ('15K', 'weak'), ('日', '10'), ('日', '5'), 'NH', 'AH',
             ('月', '10'), ('月', '20'), ('月', '60'), ('月', '120')
         ]
         
@@ -1455,7 +1455,11 @@ class SelectStockView(tk.Frame):
                 key = f"{prefix}({period})_DC"
                 if prefix in {'日': '日均線', '周': '週均線', '月': '月均線', '15K': '15分鐘均線'}:
                     ma_type = {'日': '日均線', '周': '週均線', '月': '月均線', '15K': '15分鐘均線'}[prefix]
-                    ma_period = f"{period}MA"
+                    # 對於15分鐘均線，需要特殊處理strong和weak
+                    if prefix == '15K' and period in ['strong', 'weak']:
+                        ma_period = period
+                    else:
+                        ma_period = f"{period}MA"
                     if (ma_type in organized_ma_data and 
                         ma_period in organized_ma_data[ma_type] and 
                         organized_ma_data[ma_type][ma_period] != 'N/A'):
