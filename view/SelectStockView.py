@@ -432,6 +432,57 @@ class SelectStockView(tk.Frame):
         
         if file_path:
             with open(file_path, "w", encoding="utf-8") as file:
+                # 寫入日期範圍
+                start_date = self.start_date.get_date().strftime('%Y-%m-%d')
+                end_date = self.end_date.get_date().strftime('%Y-%m-%d')
+                file.write(f"Date:{start_date}~{end_date}\n")
+                
+                # 寫入均線選擇條件
+                ma_conditions = []
+                
+                # 日均線
+                daily_selected = [str(period) for period, var in self.ma_selections['daily'].items() if var.get()]
+                if daily_selected:
+                    ma_conditions.append(f"日均:{','.join(daily_selected)}")
+                
+                # 週均線
+                weekly_selected = [str(period) for period, var in self.ma_selections['weekly'].items() if var.get()]
+                if weekly_selected:
+                    ma_conditions.append(f"週均:{','.join(weekly_selected)}")
+                
+                # 月均線
+                monthly_selected = [str(period) for period, var in self.ma_selections['monthly'].items() if var.get()]
+                if monthly_selected:
+                    ma_conditions.append(f"月均:{','.join(monthly_selected)}")
+                
+                # 15分K
+                min15_selected = [str(period) for period, var in self.ma_selections['15min'].items() if var.get()]
+                if min15_selected:
+                    ma_conditions.append(f"15分均:{','.join(min15_selected)}")
+                
+                # 寫入均線條件
+                if ma_conditions:
+                    file.write('\n'.join(ma_conditions) + '\n')
+                
+                # 寫入價差比例條件
+                ratio_conditions = []
+                if self.ratio_diff_vars['current'].get():
+                    positive_ratio = self.ratio_positive_entry.get()
+                    native_ratio = self.ratio_native_entry.get()
+                    ratio_conditions.append(f"現價:+{positive_ratio}~-{native_ratio}")
+                
+                if self.ratio_diff_vars['buy'].get():
+                    positive_ratio = self.ratio_positive_entry.get()
+                    native_ratio = self.ratio_native_entry.get()
+                    ratio_conditions.append(f"買價:+{positive_ratio}~-{native_ratio}")
+                
+                if ratio_conditions:
+                    file.write('\n'.join(ratio_conditions) + '\n')
+                
+                # 添加分隔線
+                file.write('\n')
+                
+                # 寫入股票代碼數據
                 for data in all_data:
                     # 寫入比例標記
                     file.write(f"# 比例 {data['ratio']}\n")
