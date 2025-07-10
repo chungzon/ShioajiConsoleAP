@@ -1,5 +1,8 @@
 import math
+from pydoc import cli
+import numpy as np
 from common.enum.StockType import StockType
+
 class Math:
     # 股票交易手續費
     stock_fee = 0.001425
@@ -38,21 +41,60 @@ class Math:
     # 5、10、20、60、120
     @staticmethod
     def calculate_sma(close_prices):
+        # 計算日均線weak、strong
+        daily_5_sma = Math.calculate_moving_average(close_prices, 5)
+        daily_10_sma = Math.calculate_moving_average(close_prices, 10)
+        daily_20_sma = Math.calculate_moving_average(close_prices, 20)
+        daily_60_sma = Math.calculate_moving_average(close_prices, 60)
+        daily_120_sma = Math.calculate_moving_average(close_prices, 120)
+
+        daily_sma_strong = np.nan
+        daily_sma_weak = np.nan
+        if not close_prices.empty and len(close_prices) >= 10:
+            daily_sma_strong = (daily_10_sma.iloc[-1]*10 - close_prices.iloc[-10])/(10-1) # 續強公式
+        if not close_prices.empty and len(close_prices) >= 20:
+            daily_sma_weak = (daily_20_sma.iloc[-1]*20 - close_prices.iloc[-20])/(20-1) # 續弱公式
+
         sma_values = [
-            round(Math.calculate_moving_average(close_prices, 5).iloc[-1], 2),
-            round(Math.calculate_moving_average(close_prices, 10).iloc[-1], 2),
-            round(Math.calculate_moving_average(close_prices, 20).iloc[-1], 2),
-            round(Math.calculate_moving_average(close_prices, 60).iloc[-1], 2),
-            round(Math.calculate_moving_average(close_prices, 120).iloc[-1], 2),
+            round(daily_5_sma.iloc[-1], 2),
+            round(daily_10_sma.iloc[-1], 2),
+            round(daily_20_sma.iloc[-1], 2),
+            round(daily_60_sma.iloc[-1], 2),
+            round(daily_120_sma.iloc[-1], 2),
+            round(daily_sma_strong, 2),
+            round(daily_sma_weak, 2)
         ]
+
+        # 計算周均線weak、strong
+        weekly_prices = close_prices.resample('W').last()
+        weekly_prices = weekly_prices.dropna()
+        weekly_5_sma = Math.calculate_moving_average(weekly_prices, 5)
+        weekly_10_sma = Math.calculate_moving_average(weekly_prices, 10)
+        weekly_20_sma = Math.calculate_moving_average(weekly_prices, 20)
+        weekly_60_sma = Math.calculate_moving_average(weekly_prices, 60)
+        weekly_120_sma = Math.calculate_moving_average(weekly_prices, 120)
+
+        weekly_sma_strong = np.nan
+        weekly_sma_weak = np.nan
+
+        if not weekly_prices.empty:
+            if len(weekly_prices) >= 10:
+                weekly_sma_strong = (weekly_10_sma.iloc[-1]*10 - weekly_prices.iloc[-10])/(10-1) # 續強公式
+            if len(weekly_prices) >= 20:
+                weekly_sma_weak = (weekly_20_sma.iloc[-1]*20 - weekly_prices.iloc[-20])/(20-1) # 續弱公式
+        else:
+            weekly_sma_strong = np.nan
+            weekly_sma_weak = np.nan
 
         # 計算周均線的移動平均
         weekly_sma_values = [
-            round(Math.calculate_weekly_average(close_prices, 5).iloc[-1], 2),
-            round(Math.calculate_weekly_average(close_prices, 10).iloc[-1], 2),
-            round(Math.calculate_weekly_average(close_prices, 20).iloc[-1], 2),
-            round(Math.calculate_weekly_average(close_prices, 60).iloc[-1], 2),
-            round(Math.calculate_weekly_average(close_prices, 120).iloc[-1], 2),
+            round(weekly_5_sma.iloc[-1], 2),
+            round(weekly_10_sma.iloc[-1], 2),
+            round(weekly_20_sma.iloc[-1], 2),
+            round(weekly_60_sma.iloc[-1], 2),
+            round(weekly_120_sma.iloc[-1], 2),
+            round(weekly_sma_strong, 2),
+            round(weekly_sma_weak, 2)
         ]
 
         # 計算月均線的移動平均
@@ -62,6 +104,8 @@ class Math:
             round(Math.calculate_monthly_average(close_prices, 20).iloc[-1], 2),
             round(Math.calculate_monthly_average(close_prices, 60).iloc[-1], 2),
             round(Math.calculate_monthly_average(close_prices, 120).iloc[-1], 2),
+            np.nan,
+            np.nan
         ]
 
         return sma_values, weekly_sma_values, monthly_sma_values

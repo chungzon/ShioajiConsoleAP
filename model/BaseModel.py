@@ -245,7 +245,7 @@ class BaseModel:
         k15_sma_values = self.calculate_k15_sma(stock_id, recent_end_date)
         sma_values, weekly_sma_values, monthly_sma_values, latest_close_prices, latest_dates = self.calculate_sma(stock_id, recent_end_date)
 
-        periods = [5, 10, 20, 60, 120]
+        periods = [5, 10, 20, 60, 120, 'strong', 'weak']
         sma_columns = [f'sma_{period}' for period in periods]
         weekly_sma_columns = [f'weekly_sma_{period}' for period in periods]
         monthly_sma_columns = [f'monthly_sma_{period}' for period in periods]

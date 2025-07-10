@@ -176,14 +176,18 @@ class DataAnalysisController:
                 "10MA": total_segment.get('sma_10', 'N/A'),
                 "20MA": total_segment.get('sma_20', 'N/A'),
                 "60MA": total_segment.get('sma_60', 'N/A'),
-                "120MA": total_segment.get('sma_120', 'N/A')
+                "120MA": total_segment.get('sma_120', 'N/A'),
+                "strong": recent_segment.get('sma_strong', 'N/A'),
+                "weak": recent_segment.get('sma_weak', 'N/A')
             },
             "週均線": {
                 "5MA": total_segment.get('weekly_sma_5', 'N/A'),
                 "10MA": total_segment.get('weekly_sma_10', 'N/A'),
                 "20MA": total_segment.get('weekly_sma_20', 'N/A'),
                 "60MA": total_segment.get('weekly_sma_60', 'N/A'),
-                "120MA": total_segment.get('weekly_sma_120', 'N/A')
+                "120MA": total_segment.get('weekly_sma_120', 'N/A'),
+                "strong": recent_segment.get('weekly_sma_strong', 'N/A'),
+                "weak": recent_segment.get('weekly_sma_weak', 'N/A')
             },
             "月均線": {
                 "5MA": total_segment.get('monthly_sma_5', 'N/A'),
