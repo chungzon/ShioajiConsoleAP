@@ -1,3 +1,4 @@
+from datetime import datetime, time
 import math
 from pydoc import cli
 import numpy as np
@@ -40,7 +41,7 @@ class Math:
     # 日移動平均，週移動平均，月移動平均
     # 5、10、20、60、120
     @staticmethod
-    def calculate_sma(close_prices):
+    def calculate_sma(close_prices, close_date=None):
         # 計算日均線weak、strong
         daily_5_sma = Math.calculate_moving_average(close_prices, 5)
         daily_10_sma = Math.calculate_moving_average(close_prices, 10)
@@ -77,11 +78,49 @@ class Math:
         weekly_sma_strong = np.nan
         weekly_sma_weak = np.nan
 
+        index = -1
+        if close_date:
+            # 轉換成date
+            if isinstance(close_date, str):
+                # 如果是字符串，嘗試解析成date
+                try:
+                    close_date_obj = datetime.strptime(close_date, '%Y-%m-%d').date()
+                except ValueError:
+                    try:
+                        close_date_obj = datetime.strptime(close_date, '%Y/%m/%d').date()
+                    except ValueError:
+                        close_date_obj = None
+            elif hasattr(close_date, 'date'):
+                # 如果是datetime物件，轉換成date
+                close_date_obj = close_date.date()
+            elif hasattr(close_date, 'weekday'):
+                # 如果已經是date物件，直接使用
+                close_date_obj = close_date
+            else:
+                # 如果都不是，設為None
+                close_date_obj = None
+                
+            if close_date_obj:
+                now = datetime.now().date()
+                diff = (close_date_obj - now).days
+                
+                week_date = close_date_obj.weekday()
+                if week_date < 4:
+                    index = -2
+                elif week_date == 4 and diff == 0:
+                    cutoff_time = time(14, 30)
+                    if datetime.now().time() > cutoff_time:
+                        index = -1
+                    else:
+                        index = -2
+                else:
+                    index = -1
+
         if not weekly_prices.empty:
             if len(weekly_prices) >= 10:
-                weekly_sma_strong = (weekly_10_sma.iloc[-1]*10 - weekly_prices.iloc[-10])/(10-1) # 續強公式
+                weekly_sma_strong = (weekly_10_sma.iloc[index]*10 - weekly_prices.iloc[index])/(10-1) # 續強公式
             if len(weekly_prices) >= 20:
-                weekly_sma_weak = (weekly_20_sma.iloc[-1]*20 - weekly_prices.iloc[-20])/(20-1) # 續弱公式
+                weekly_sma_weak = (weekly_20_sma.iloc[index]*20 - weekly_prices.iloc[index])/(20-1) # 續弱公式
         else:
             weekly_sma_strong = np.nan
             weekly_sma_weak = np.nan

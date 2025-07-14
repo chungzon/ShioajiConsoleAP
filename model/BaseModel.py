@@ -952,7 +952,7 @@ class BaseModel:
         # 获取最近5个收盘价和日期
         latest_close_prices = daily_close_prices.values[-5:].tolist()
         latest_dates = daily_close_prices.index[-5:].strftime('%Y-%m-%d').tolist()
-        sma_values, weekly_sma_values, monthly_sma_values = Math.calculate_sma(daily_close_prices)
+        sma_values, weekly_sma_values, monthly_sma_values = Math.calculate_sma(daily_close_prices, recent_end_date)
         return sma_values, weekly_sma_values, monthly_sma_values, latest_close_prices, latest_dates
 
     def calculate_k15_sma(self, stock_id, recent_end_date=None):
