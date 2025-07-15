@@ -118,9 +118,9 @@ class Math:
 
         if not weekly_prices.empty:
             if len(weekly_prices) >= 10:
-                weekly_sma_strong = (weekly_10_sma.iloc[index]*10 - weekly_prices.iloc[index])/(10-1) # 續強公式
+                weekly_sma_strong = (weekly_10_sma.iloc[index]*10 - weekly_prices.iloc[index + 1 - 10])/(10-1) # 續強公式
             if len(weekly_prices) >= 20:
-                weekly_sma_weak = (weekly_20_sma.iloc[index]*20 - weekly_prices.iloc[index])/(20-1) # 續弱公式
+                weekly_sma_weak = (weekly_20_sma.iloc[index]*20 - weekly_prices.iloc[index + 1 - 20])/(20-1) # 續弱公式
         else:
             weekly_sma_strong = np.nan
             weekly_sma_weak = np.nan
