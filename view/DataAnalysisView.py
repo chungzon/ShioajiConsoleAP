@@ -383,11 +383,16 @@ class DataAnalysisView(tk.Frame):
             ma_types = {'日均線': '日', '週均線': '周', '月均線': '月', '15分鐘均線': '15K'}
             for ma_key, prefix in ma_types.items():
                 ma_data = organized_ma_data[ma_key]
-                for ma_period in ['5MA', '10MA', '20MA', '60MA', '120MA', 'strong', 'weak']:
+                for ma_period in ['5MA', '10MA', '20MA', '60MA', '120MA', 'strong', 'weak', '5MA_DIFF', '10MA_DIFF', '20MA_DIFF', '60MA_DIFF', '120MA_DIFF']:
                     if ma_period in ma_data and ma_data[ma_period] != 'N/A':
                         value = ma_data[ma_period]
                         period_num = ma_period.replace('MA', '')
                         name = f"{prefix}({period_num})"
+                        if 'DIFF' in ma_period:
+                            now_price = organized_ma_data['latest_close_price']
+                            diff_ratio = Math.calculate_price_diff_ratio(value, now_price)
+                            period_num = ma_period.replace('_DIFF', '')
+                            name = f"{prefix}({period_num}) 扣抵值[{diff_ratio}%]"
                         all_prices.append((name, value, False))
             
             # 添加最近波段數據

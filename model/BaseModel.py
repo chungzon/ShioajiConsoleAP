@@ -246,11 +246,13 @@ class BaseModel:
         sma_values, weekly_sma_values, monthly_sma_values, latest_close_prices, latest_dates = self.calculate_sma(stock_id, recent_end_date)
 
         periods = [5, 10, 20, 60, 120, 'strong', 'weak']
-        sma_columns = [f'sma_{period}' for period in periods]
-        weekly_sma_columns = [f'weekly_sma_{period}' for period in periods]
-        monthly_sma_columns = [f'monthly_sma_{period}' for period in periods]
-        k15_periods = [5, 10, 20, 'strong', 'weak']
-        k15_sma_columns = [f'15min_sma_{period}' for period in k15_periods]
+        sma_periods = [5, 10, 20, 60, 120, '5_diff', '10_diff', '20_diff', '60_diff', '120_diff']
+        sma_columns = [f'sma_{period}' for period in sma_periods]
+        weekly_sma_periods = [5, 10, 20, 60, 120, '5_diff', '10_diff', '20_diff', '60_diff', '120_diff']
+        weekly_sma_columns = [f'weekly_sma_{period}' for period in weekly_sma_periods]
+        monthly_sma_periods = [5, 10, 20, 60, 120, '5_diff', '10_diff', '20_diff', '60_diff', '120_diff']
+        monthly_sma_columns = [f'monthly_sma_{period}' for period in monthly_sma_periods]
+        k15_sma_columns = [f'15min_sma_{period}' for period in periods]
 
         # 計算CDP
         try:
@@ -261,7 +263,7 @@ class BaseModel:
             )
             CDP, NL, NH, AL, AH = Math.calculate_CDP_5_values(CDP, df['high_price'].iloc[-1], df['low_price'].iloc[-1])
         except:
-            CDP = None
+            CDP = NL = NH = AL = AH = np.nan
 
         # 第一階段：找出所有波段
         peaks = []
@@ -393,6 +395,9 @@ class BaseModel:
             ])
             
             # 4. SMA值
+            sma_diff_values = []
+            
+
             segment_data.extend(sma_values)
             segment_data.extend(weekly_sma_values)
             segment_data.extend(monthly_sma_values)
@@ -403,6 +408,7 @@ class BaseModel:
             
             segments.append(segment_data)
 
+        
         # 創建最終的DataFrame
         columns = (['Max_Date', 'Max_Value', 'Min_Date', 'Min_Value', 'Start_Date', 'End_Date'] + 
                   ratio_columns + append_columns + sma_columns + 
@@ -962,7 +968,7 @@ class BaseModel:
             kbars = self.get_stock_kbar_from_db_top300(stock_id, recent_end_date)
 
         if kbars.empty:
-            return [np.nan, np.nan, np.nan, np.nan, np.nan]
+            return [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
         
         # 轉換時間格式
         kbars['date'] = pd.to_datetime(kbars['date'])
@@ -992,15 +998,20 @@ class BaseModel:
         # 合併所有日期的數據
         k15 = pd.concat(all_k15)
 
-        k15_10sma = k15['Close_Price'].rolling(window=10).mean().iloc[-1]
-        k15_20sma = k15['Close_Price'].rolling(window=20).mean().iloc[-1]
-        k15_5sma = k15['Close_Price'].rolling(window=5).mean().iloc[-1]
+        # 計算15分鐘K線的SMA，處理數據不足的情況
+        k15_5sma = k15['Close_Price'].rolling(window=5, min_periods=5).mean().iloc[-1]
+        k15_10sma = k15['Close_Price'].rolling(window=10, min_periods=10).mean().iloc[-1]
+        k15_20sma = k15['Close_Price'].rolling(window=20, min_periods=20).mean().iloc[-1]
+        k15_60sma = k15['Close_Price'].rolling(window=60, min_periods=60).mean().iloc[-1]
+        k15_120sma = k15['Close_Price'].rolling(window=120, min_periods=120).mean().iloc[-1]
 
         # 計算15分鐘K線的SMA
         k15_sma = [
-            round(k15_5sma, 2),
-            round(k15_10sma, 2),
-            round(k15_20sma, 2)
+            round(k15_5sma if not np.isnan(k15_5sma) else np.nan, 2),
+            round(k15_10sma if not np.isnan(k15_10sma) else np.nan, 2),
+            round(k15_20sma if not np.isnan(k15_20sma) else np.nan, 2),
+            round(k15_60sma if not np.isnan(k15_60sma) else np.nan, 2),
+            round(k15_120sma if not np.isnan(k15_120sma) else np.nan, 2)
         ]
 
         # 日期不為NULL
@@ -1014,7 +1025,7 @@ class BaseModel:
             #date_data = k15[k15.index.strftime('%Y-%m-%d') == recent_end_date]
             
             
-            if not k15.empty:
+            if not k15.empty and len(k15) >= 20:
                 # k15_stock_strong = (k15_10sma*10 - k15['Close_Price'].iloc[-10] + k15['Close_Price'].iloc[-1])/(10-1) # 續強公式
                 # k15_stock_weak = (k15_20sma*20 - k15['Close_Price'].iloc[-20] + k15['Close_Price'].iloc[-1])/(20-1) # 續弱公式
                 k15_stock_strong = (k15_10sma*10 - k15['Close_Price'].iloc[-10])/(10-1) # 續強公式
@@ -1024,7 +1035,7 @@ class BaseModel:
             else:
                 k15_sma.extend([np.nan, np.nan])
         else:
-            # 當 recent_end_date 為 None 時，也要返回5個值以匹配期望的列數
+            # 當 recent_end_date 為 None 時，也要返回7個值以匹配期望的列數
             k15_sma.extend([np.nan, np.nan])
 
         return k15_sma

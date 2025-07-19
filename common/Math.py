@@ -49,24 +49,40 @@ class Math:
         daily_60_sma = Math.calculate_moving_average(close_prices, 60)
         daily_120_sma = Math.calculate_moving_average(close_prices, 120)
 
-        daily_sma_strong = np.nan
-        daily_sma_weak = np.nan
-        if not close_prices.empty and len(close_prices) >= 10:
-            daily_sma_strong = (daily_10_sma.iloc[-1]*10 - close_prices.iloc[-10])/(10-1) # 續強公式
-        if not close_prices.empty and len(close_prices) >= 20:
-            daily_sma_weak = (daily_20_sma.iloc[-1]*20 - close_prices.iloc[-20])/(20-1) # 續弱公式
+        daily_sma_5_diff = np.nan
+        daily_sma_10_diff = np.nan
+        daily_sma_20_diff = np.nan
+        daily_sma_60_diff = np.nan
+        daily_sma_120_diff = np.nan
 
+        # 日均扣抵值計算
+        if not close_prices.empty:
+            if len(close_prices) >= 5:
+                daily_sma_5_diff = (daily_5_sma.iloc[-1]*5 - close_prices.iloc[-5])/(5-1)
+            if len(close_prices) >= 10:
+                daily_sma_10_diff = (daily_10_sma.iloc[-1]*10 - close_prices.iloc[-10])/(10-1)
+            if len(close_prices) >= 20:
+                daily_sma_20_diff = (daily_20_sma.iloc[-1]*20 - close_prices.iloc[-20])/(20-1)
+            if len(close_prices) >= 60:
+                daily_sma_60_diff = (daily_60_sma.iloc[-1]*60 - close_prices.iloc[-60])/(60-1)
+            if len(close_prices) >= 120:
+                daily_sma_120_diff = (daily_120_sma.iloc[-1]*120 - close_prices.iloc[-120])/(120-1)
+        
         sma_values = [
             round(daily_5_sma.iloc[-1], 2),
             round(daily_10_sma.iloc[-1], 2),
             round(daily_20_sma.iloc[-1], 2),
             round(daily_60_sma.iloc[-1], 2),
             round(daily_120_sma.iloc[-1], 2),
-            round(daily_sma_strong, 2),
-            round(daily_sma_weak, 2)
+            round(daily_sma_5_diff, 2),
+            round(daily_sma_10_diff, 2),
+            round(daily_sma_20_diff, 2),
+            round(daily_sma_60_diff, 2),
+            round(daily_sma_120_diff, 2)
         ]
 
-        # 計算周均線weak、strong
+
+        # 計算周均線的扣抵值和移動平均
         weekly_prices = close_prices.resample('W').last()
         weekly_prices = weekly_prices.dropna()
         weekly_5_sma = Math.calculate_moving_average(weekly_prices, 5)
@@ -75,8 +91,11 @@ class Math:
         weekly_60_sma = Math.calculate_moving_average(weekly_prices, 60)
         weekly_120_sma = Math.calculate_moving_average(weekly_prices, 120)
 
-        weekly_sma_strong = np.nan
-        weekly_sma_weak = np.nan
+        weekly_sma_5_diff = np.nan
+        weekly_sma_10_diff = np.nan
+        weekly_sma_20_diff = np.nan
+        weekly_sma_60_diff = np.nan
+        weekly_sma_120_diff = np.nan
 
         index = -1
         if close_date:
@@ -117,13 +136,16 @@ class Math:
                     index = -1
 
         if not weekly_prices.empty:
+            if len(weekly_prices) >= 5:
+                weekly_sma_5_diff = (weekly_5_sma.iloc[-1]*5 - weekly_prices.iloc[-5])/(5-1)
             if len(weekly_prices) >= 10:
-                weekly_sma_strong = (weekly_10_sma.iloc[index]*10 - weekly_prices.iloc[index + 1 - 10])/(10-1) # 續強公式
+                weekly_sma_10_diff = (weekly_10_sma.iloc[-1]*10 - weekly_prices.iloc[-10])/(10-1)
             if len(weekly_prices) >= 20:
-                weekly_sma_weak = (weekly_20_sma.iloc[index]*20 - weekly_prices.iloc[index + 1 - 20])/(20-1) # 續弱公式
-        else:
-            weekly_sma_strong = np.nan
-            weekly_sma_weak = np.nan
+                weekly_sma_20_diff = (weekly_20_sma.iloc[-1]*20 - weekly_prices.iloc[-20])/(20-1)
+            if len(weekly_prices) >= 60:
+                weekly_sma_60_diff = (weekly_60_sma.iloc[-1]*60 - weekly_prices.iloc[-60])/(60-1)
+            if len(weekly_prices) >= 120:
+                weekly_sma_120_diff = (weekly_120_sma.iloc[-1]*120 - weekly_prices.iloc[-120])/(120-1)
 
         # 計算周均線的移動平均
         weekly_sma_values = [
@@ -132,19 +154,52 @@ class Math:
             round(weekly_20_sma.iloc[-1], 2),
             round(weekly_60_sma.iloc[-1], 2),
             round(weekly_120_sma.iloc[-1], 2),
-            round(weekly_sma_strong, 2),
-            round(weekly_sma_weak, 2)
+            round(weekly_sma_5_diff, 2),
+            round(weekly_sma_10_diff, 2),
+            round(weekly_sma_20_diff, 2),
+            round(weekly_sma_60_diff, 2),
+            round(weekly_sma_120_diff, 2)
         ]
+
+        # 計算月均線的扣抵值和移動平均
+        monthly_prices = close_prices.resample('M').last()
+        monthly_prices = monthly_prices.dropna()
+        monthly_5_sma = Math.calculate_moving_average(monthly_prices, 5)
+        monthly_10_sma = Math.calculate_moving_average(monthly_prices, 10)
+        monthly_20_sma = Math.calculate_moving_average(monthly_prices, 20)
+        monthly_60_sma = Math.calculate_moving_average(monthly_prices, 60)
+        monthly_120_sma = Math.calculate_moving_average(monthly_prices, 120)
+
+        monthly_sma_5_diff = np.nan
+        monthly_sma_10_diff = np.nan
+        monthly_sma_20_diff = np.nan
+        monthly_sma_60_diff = np.nan
+        monthly_sma_120_diff = np.nan
+
+        if not monthly_prices.empty:
+            if len(monthly_prices) >= 5:
+                monthly_sma_5_diff = (monthly_5_sma.iloc[-1]*5 - monthly_prices.iloc[-5])/(5-1)
+            if len(monthly_prices) >= 10:
+                monthly_sma_10_diff = (monthly_10_sma.iloc[-1]*10 - monthly_prices.iloc[-10])/(10-1)
+            if len(monthly_prices) >= 20:
+                monthly_sma_20_diff = (monthly_20_sma.iloc[-1]*20 - monthly_prices.iloc[-20])/(20-1)
+            if len(monthly_prices) >= 60:
+                monthly_sma_60_diff = (monthly_60_sma.iloc[-1]*60 - monthly_prices.iloc[-60])/(60-1)
+            if len(monthly_prices) >= 120:
+                monthly_sma_120_diff = (monthly_120_sma.iloc[-1]*120 - monthly_prices.iloc[-120])/(120-1)
 
         # 計算月均線的移動平均
         monthly_sma_values = [
-            round(Math.calculate_monthly_average(close_prices, 5).iloc[-1], 2),
-            round(Math.calculate_monthly_average(close_prices, 10).iloc[-1], 2),
-            round(Math.calculate_monthly_average(close_prices, 20).iloc[-1], 2),
-            round(Math.calculate_monthly_average(close_prices, 60).iloc[-1], 2),
-            round(Math.calculate_monthly_average(close_prices, 120).iloc[-1], 2),
-            np.nan,
-            np.nan
+            round(monthly_5_sma.iloc[-1], 2),
+            round(monthly_10_sma.iloc[-1], 2),
+            round(monthly_20_sma.iloc[-1], 2),
+            round(monthly_60_sma.iloc[-1], 2),
+            round(monthly_120_sma.iloc[-1], 2),
+            round(monthly_sma_5_diff, 2),
+            round(monthly_sma_10_diff, 2),
+            round(monthly_sma_20_diff, 2),
+            round(monthly_sma_60_diff, 2),
+            round(monthly_sma_120_diff, 2)
         ]
 
         return sma_values, weekly_sma_values, monthly_sma_values
@@ -246,3 +301,12 @@ class Math:
         except (ValueError, TypeError):
             return 0 
 
+    # 計算價格差比例
+    @staticmethod
+    def calculate_price_diff_ratio(price_1, price_2):
+        return round((price_1 - price_2) / price_2 * 100, 2)
+
+    # 計算價格差
+    @staticmethod
+    def calculate_price_diff(price_1, price_2):
+        return round(price_1 - price_2, 2)

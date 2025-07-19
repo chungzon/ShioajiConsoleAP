@@ -177,8 +177,11 @@ class DataAnalysisController:
                 "20MA": total_segment.get('sma_20', 'N/A'),
                 "60MA": total_segment.get('sma_60', 'N/A'),
                 "120MA": total_segment.get('sma_120', 'N/A'),
-                "strong": recent_segment.get('sma_strong', 'N/A'),
-                "weak": recent_segment.get('sma_weak', 'N/A')
+                "5MA_DIFF": recent_segment.get('sma_5_diff', 'N/A'),
+                "10MA_DIFF": recent_segment.get('sma_10_diff', 'N/A'),
+                "20MA_DIFF": recent_segment.get('sma_20_diff', 'N/A'),
+                "60MA_DIFF": recent_segment.get('sma_60_diff', 'N/A'),
+                "120MA_DIFF": recent_segment.get('sma_120_diff', 'N/A')
             },
             "週均線": {
                 "5MA": total_segment.get('weekly_sma_5', 'N/A'),
@@ -186,15 +189,23 @@ class DataAnalysisController:
                 "20MA": total_segment.get('weekly_sma_20', 'N/A'),
                 "60MA": total_segment.get('weekly_sma_60', 'N/A'),
                 "120MA": total_segment.get('weekly_sma_120', 'N/A'),
-                "strong": recent_segment.get('weekly_sma_strong', 'N/A'),
-                "weak": recent_segment.get('weekly_sma_weak', 'N/A')
+                "5MA_DIFF": recent_segment.get('weekly_sma_5_diff', 'N/A'),
+                "10MA_DIFF": recent_segment.get('weekly_sma_10_diff', 'N/A'),
+                "20MA_DIFF": recent_segment.get('weekly_sma_20_diff', 'N/A'),
+                "60MA_DIFF": recent_segment.get('weekly_sma_60_diff', 'N/A'),
+                "120MA_DIFF": recent_segment.get('weekly_sma_120_diff', 'N/A')
             },
             "月均線": {
                 "5MA": total_segment.get('monthly_sma_5', 'N/A'),
                 "10MA": total_segment.get('monthly_sma_10', 'N/A'),
                 "20MA": total_segment.get('monthly_sma_20', 'N/A'),
                 "60MA": total_segment.get('monthly_sma_60', 'N/A'),
-                "120MA": total_segment.get('monthly_sma_120', 'N/A')
+                "120MA": total_segment.get('monthly_sma_120', 'N/A'),
+                "5MA_DIFF": recent_segment.get('monthly_sma_5_diff', 'N/A'),
+                "10MA_DIFF": recent_segment.get('monthly_sma_10_diff', 'N/A'),
+                "20MA_DIFF": recent_segment.get('monthly_sma_20_diff', 'N/A'),
+                "60MA_DIFF": recent_segment.get('monthly_sma_60_diff', 'N/A'),
+                "120MA_DIFF": recent_segment.get('monthly_sma_120_diff', 'N/A')
             },
             "15分鐘均線": {
                 "5MA": recent_segment.get('15min_sma_5', 'N/A'),
@@ -204,7 +215,8 @@ class DataAnalysisController:
                 "120MA": recent_segment.get('15min_sma_120', 'N/A'),
                 "strong": recent_segment.get('15min_sma_strong', 'N/A'),
                 "weak": recent_segment.get('15min_sma_weak', 'N/A')
-            }
+            },
+            "latest_close_price": total_segment.get('latest_close_price', 'N/A')
         }
 
                 # 最近波段比例價格0.191~3
