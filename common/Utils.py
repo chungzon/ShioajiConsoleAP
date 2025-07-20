@@ -2,6 +2,13 @@ import requests
 from datetime import datetime, timedelta
 import calendar
 
+'''
+    取得當週最後交易日
+    取得當月最後交易日
+    判斷是否是當週最後交易日
+    判斷是否是當月最後交易日
+    判斷是否是當週最後交易日
+'''
 def get_trade_dates_in_week(target_date: str) -> list:
     dt = datetime.strptime(target_date, "%Y%m%d")
     monday = dt - timedelta(days=dt.weekday())
