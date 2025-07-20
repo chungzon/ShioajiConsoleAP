@@ -2,6 +2,7 @@ from datetime import datetime, time
 import math
 from pydoc import cli
 import numpy as np
+from common import Utils
 from common.enum.StockType import StockType
 
 class Math:
@@ -98,54 +99,79 @@ class Math:
         weekly_sma_120_diff = np.nan
 
         index = -1
-        if close_date:
-            # 轉換成date
-            if isinstance(close_date, str):
-                # 如果是字符串，嘗試解析成date
-                try:
-                    close_date_obj = datetime.strptime(close_date, '%Y-%m-%d').date()
-                except ValueError:
-                    try:
-                        close_date_obj = datetime.strptime(close_date, '%Y/%m/%d').date()
-                    except ValueError:
-                        close_date_obj = None
-            elif hasattr(close_date, 'date'):
-                # 如果是datetime物件，轉換成date
-                close_date_obj = close_date.date()
-            elif hasattr(close_date, 'weekday'):
-                # 如果已經是date物件，直接使用
-                close_date_obj = close_date
+        # if close_date:
+        #     # 轉換成date
+        #     if isinstance(close_date, str):
+        #         # 如果是字符串，嘗試解析成date
+        #         try:
+        #             close_date_obj = datetime.strptime(close_date, '%Y-%m-%d').date()
+        #         except ValueError:
+        #             try:
+        #                 close_date_obj = datetime.strptime(close_date, '%Y/%m/%d').date()
+        #             except ValueError:
+        #                 close_date_obj = None
+        #     elif hasattr(close_date, 'date'):
+        #         # 如果是datetime物件，轉換成date
+        #         close_date_obj = close_date.date()
+        #     elif hasattr(close_date, 'weekday'):
+        #         # 如果已經是date物件，直接使用
+        #         close_date_obj = close_date
+        #     else:
+        #         # 如果都不是，設為None
+        #         close_date_obj = None
+                
+        #     if close_date_obj:
+        #         now = datetime.now().date()
+        #         diff = (close_date_obj - now).days
+                
+        #         week_date = close_date_obj.weekday()
+        #         if week_date < 4:
+        #             index = -2
+        #         elif week_date == 4 and diff == 0:
+        #             cutoff_time = time(14, 30)
+        #             if datetime.now().time() > cutoff_time:
+        #                 index = -1
+        #             else:
+        #                 index = -2
+        #         else:
+        #             index = -1
+        # close_date轉為yyyymmdd格式
+        end_date = datetime.strptime(close_date, '%Y-%m-%d').strftime('%Y%m%d')
+        # 判斷日期的周是否是當周
+        weekly_index = -1
+        if end_date:
+            if not Utils.is_last_trade_day_of_week(end_date):
+                print(f"{end_date} 不是當週最後交易日")
+                weekly_index = -2
             else:
-                # 如果都不是，設為None
-                close_date_obj = None
-                
-            if close_date_obj:
-                now = datetime.now().date()
-                diff = (close_date_obj - now).days
-                
-                week_date = close_date_obj.weekday()
-                if week_date < 4:
-                    index = -2
-                elif week_date == 4 and diff == 0:
-                    cutoff_time = time(14, 30)
-                    if datetime.now().time() > cutoff_time:
-                        index = -1
-                    else:
-                        index = -2
-                else:
-                    index = -1
+                print(f"{end_date} 是當週最後交易日")
+                weekly_index = -1
+        else:
+            weekly_index = -1
+
+        # 判斷日期的月份是否是當月
+        monthly_index = -1
+        if end_date:
+            if not Utils.is_last_trade_day_of_month(end_date):
+                print(f"{end_date} 不是當月最後交易日")
+                monthly_index = -2
+            else:
+                print(f"{end_date} 是當月最後交易日")
+                monthly_index = -1
+        else:
+            monthly_index = -1
 
         if not weekly_prices.empty:
             if len(weekly_prices) >= 5:
-                weekly_sma_5_diff = (weekly_5_sma.iloc[-1]*5 - weekly_prices.iloc[-5])/(5-1)
+                weekly_sma_5_diff = (weekly_5_sma.iloc[weekly_index]*5 - weekly_prices.iloc[weekly_index-5+1])/(5-1)
             if len(weekly_prices) >= 10:
-                weekly_sma_10_diff = (weekly_10_sma.iloc[-1]*10 - weekly_prices.iloc[-10])/(10-1)
+                weekly_sma_10_diff = (weekly_10_sma.iloc[weekly_index]*10 - weekly_prices.iloc[weekly_index-10+1])/(10-1)
             if len(weekly_prices) >= 20:
-                weekly_sma_20_diff = (weekly_20_sma.iloc[-1]*20 - weekly_prices.iloc[-20])/(20-1)
+                weekly_sma_20_diff = (weekly_20_sma.iloc[weekly_index]*20 - weekly_prices.iloc[weekly_index-20+1])/(20-1)
             if len(weekly_prices) >= 60:
-                weekly_sma_60_diff = (weekly_60_sma.iloc[-1]*60 - weekly_prices.iloc[-60])/(60-1)
+                weekly_sma_60_diff = (weekly_60_sma.iloc[weekly_index]*60 - weekly_prices.iloc[weekly_index-60+1])/(60-1)
             if len(weekly_prices) >= 120:
-                weekly_sma_120_diff = (weekly_120_sma.iloc[-1]*120 - weekly_prices.iloc[-120])/(120-1)
+                weekly_sma_120_diff = (weekly_120_sma.iloc[weekly_index]*120 - weekly_prices.iloc[weekly_index-120+1])/(120-1)
 
         # 計算周均線的移動平均
         weekly_sma_values = [
@@ -176,17 +202,19 @@ class Math:
         monthly_sma_60_diff = np.nan
         monthly_sma_120_diff = np.nan
 
+        # 判斷日期的月份是否
+
         if not monthly_prices.empty:
             if len(monthly_prices) >= 5:
-                monthly_sma_5_diff = (monthly_5_sma.iloc[-1]*5 - monthly_prices.iloc[-5])/(5-1)
+                monthly_sma_5_diff = (monthly_5_sma.iloc[monthly_index]*5 - monthly_prices.iloc[monthly_index-5+1])/(5-1)
             if len(monthly_prices) >= 10:
-                monthly_sma_10_diff = (monthly_10_sma.iloc[-1]*10 - monthly_prices.iloc[-10])/(10-1)
+                monthly_sma_10_diff = (monthly_10_sma.iloc[monthly_index]*10 - monthly_prices.iloc[monthly_index-10+1])/(10-1)
             if len(monthly_prices) >= 20:
-                monthly_sma_20_diff = (monthly_20_sma.iloc[-1]*20 - monthly_prices.iloc[-20])/(20-1)
+                monthly_sma_20_diff = (monthly_20_sma.iloc[monthly_index]*20 - monthly_prices.iloc[monthly_index-20+1])/(20-1)
             if len(monthly_prices) >= 60:
-                monthly_sma_60_diff = (monthly_60_sma.iloc[-1]*60 - monthly_prices.iloc[-60])/(60-1)
+                monthly_sma_60_diff = (monthly_60_sma.iloc[monthly_index]*60 - monthly_prices.iloc[monthly_index-60+1])/(60-1)
             if len(monthly_prices) >= 120:
-                monthly_sma_120_diff = (monthly_120_sma.iloc[-1]*120 - monthly_prices.iloc[-120])/(120-1)
+                monthly_sma_120_diff = (monthly_120_sma.iloc[monthly_index]*120 - monthly_prices.iloc[monthly_index-120+1])/(120-1)
 
         # 計算月均線的移動平均
         monthly_sma_values = [
