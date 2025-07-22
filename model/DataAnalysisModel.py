@@ -552,6 +552,7 @@ class DataAnalysisModel(SelectStockModel):
                 latest_close_price_by_date = None;
             else:
                 latest_close_price_by_date = latest_close_price_date['close_price'].iloc[-1]
+                latest_close_price = latest_close_price_by_date
             
             # latest_close_price = stock_data_df['close_price'].iloc[-1]
             wave_extremes_df = self.find_peaks_troughs_v34_small(stock_id, stock_data_df, latest_close_price, recent_end_date)
