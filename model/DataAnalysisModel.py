@@ -544,15 +544,17 @@ class DataAnalysisModel(SelectStockModel):
     def get_stock_data_from_all_wave_extremes(self, stock_id, start_date, end_date, recent_start_date, recent_end_date):
         stock_data_df = self.get_stock_data(stock_id, start_date, end_date)
         if stock_data_df is not None and not stock_data_df.empty:
-            latest_close_price = self.get_latest_close_price(stock_id)
+            # latest_close_price = self.get_latest_close_price(stock_id)
             # 取得stock_data_df中，date等於end_date的資料
-            latest_close_price_date = stock_data_df[stock_data_df['date'] == pd.to_datetime(end_date)]
+            # latest_close_price_date = stock_data_df[stock_data_df['date'] == pd.to_datetime(end_date)]
             latest_close_price_by_date = None
-            if latest_close_price_date.empty:
-                latest_close_price_by_date = None;
-            else:
-                latest_close_price_by_date = latest_close_price_date['close_price'].iloc[-1]
-                latest_close_price = latest_close_price_by_date
+            # if latest_close_price_date.empty:
+            #     latest_close_price_by_date = None;
+            # else:
+            #     latest_close_price_by_date = latest_close_price_date['close_price'].iloc[-1]
+            #     latest_close_price = latest_close_price_by_date
+            latest_close_price = stock_data_df['close_price'].iloc[-1]
+            latest_close_price_by_date = latest_close_price
             
             # latest_close_price = stock_data_df['close_price'].iloc[-1]
             wave_extremes_df = self.find_peaks_troughs_v34_small(stock_id, stock_data_df, latest_close_price, recent_end_date)

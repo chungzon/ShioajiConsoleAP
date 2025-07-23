@@ -241,6 +241,7 @@ class BaseModel:
         append_columns = [f'spread_ratio', f'latest_close_price', f'latest_close_price-0.191_ratio', f'latest_close_price-0.618_ratio', f'latest_close_prices', f'latest_dates']
         cdp_columns = [f'CDP', 'NH', 'NL', 'AH', 'AL']
 
+        latest_close_price = df['close_price'].iloc[-1]
         # 取得SMA值
         k15_sma_values = self.calculate_k15_sma(stock_id, recent_end_date)
         sma_values, weekly_sma_values, monthly_sma_values, latest_close_prices, latest_dates = self.calculate_sma(stock_id, recent_end_date)

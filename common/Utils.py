@@ -1,5 +1,5 @@
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 import calendar
 
 '''
@@ -49,6 +49,41 @@ def is_last_trade_day_of_month(target_date: str) -> bool:
     trade_dates = get_trade_dates_in_month(target_date)
     return trade_dates and target_date == trade_dates[-1]
 
+def is_after_friday_1430(target_date: datetime) -> bool:
+    # 日期為週五，且時間為14:30之後
+    if target_date.weekday() < 4:
+        return False
+    elif target_date.weekday() == 4:
+        return target_date.time() >= time(14, 30)  
+    else:
+        return True
+
+def is_today(date_str: str) -> bool:
+    """
+    判斷傳入的日期字串是否為今天
+    參數格式：'YYYY-MM-DD'
+    """
+    try:
+        input_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        today = datetime.today().date()
+        return input_date == today
+    except ValueError:
+        return False  # 日期格式錯誤時回傳 False
+    
+def is_last_day_of_month(date: datetime) -> bool:
+    """
+    判斷傳入日期是否為當月最後一天
+    """
+    last_day = calendar.monthrange(date.year, date.month)[1]
+    if date.day == last_day:
+        if date.time() >= time(14, 30):
+            return True
+        else:
+            return False
+    else:
+        return False
+
+
 # 🔍 測試範例
 # date_to_check = "20250630"
 
@@ -57,3 +92,16 @@ def is_last_trade_day_of_month(target_date: str) -> bool:
 
 # print(f"{date_to_check} 是當週最後交易日？→ {'是' if is_week_last else '否'}")
 # print(f"{date_to_check} 是當月最後交易日？→ {'是' if is_month_last else '否'}")
+
+print(datetime.strptime("2025-07-23", '%Y-%m-%d'))
+print(datetime.strptime("2025-07-23", '%Y-%m-%d').date())
+print(datetime.strptime("2025-07-23", '%Y-%m-%d').time())
+print(is_after_friday_1430(datetime.strptime("2025-07-23", '%Y-%m-%d')))
+print(is_today("2025-07-24"))
+print(is_today("2025-07-23"))
+print(is_today("2025-07-22"))
+print(is_today("2025-07-21"))
+print(is_today("2025-07-20"))
+print(is_today("2025-07-19"))
+print(is_today("2025-07-18"))
+print(is_today("2025-07-17"))

@@ -98,68 +98,28 @@ class Math:
         weekly_sma_60_diff = np.nan
         weekly_sma_120_diff = np.nan
 
-        index = -1
-        # if close_date:
-        #     # 轉換成date
-        #     if isinstance(close_date, str):
-        #         # 如果是字符串，嘗試解析成date
-        #         try:
-        #             close_date_obj = datetime.strptime(close_date, '%Y-%m-%d').date()
-        #         except ValueError:
-        #             try:
-        #                 close_date_obj = datetime.strptime(close_date, '%Y/%m/%d').date()
-        #             except ValueError:
-        #                 close_date_obj = None
-        #     elif hasattr(close_date, 'date'):
-        #         # 如果是datetime物件，轉換成date
-        #         close_date_obj = close_date.date()
-        #     elif hasattr(close_date, 'weekday'):
-        #         # 如果已經是date物件，直接使用
-        #         close_date_obj = close_date
-        #     else:
-        #         # 如果都不是，設為None
-        #         close_date_obj = None
-                
-        #     if close_date_obj:
-        #         now = datetime.now().date()
-        #         diff = (close_date_obj - now).days
-                
-        #         week_date = close_date_obj.weekday()
-        #         if week_date < 4:
-        #             index = -2
-        #         elif week_date == 4 and diff == 0:
-        #             cutoff_time = time(14, 30)
-        #             if datetime.now().time() > cutoff_time:
-        #                 index = -1
-        #             else:
-        #                 index = -2
-        #         else:
-        #             index = -1
-        # close_date轉為yyyymmdd格式
-        end_date = datetime.strptime(close_date, '%Y-%m-%d').strftime('%Y%m%d')
-        # 判斷日期的周是否是當周
-        weekly_index = -1
-        if end_date:
-            if not Utils.is_last_trade_day_of_week(end_date):
-                print(f"{end_date} 不是當週最後交易日")
+        weekly_index = -2
+        if close_date:
+            close_datetime = datetime.strptime(close_date, '%Y-%m-%d')
+            if Utils.is_today(close_date):
+                if Utils.is_after_friday_1430(close_datetime):
+                    weekly_index = -1
+                else:
+                    weekly_index = -2
+            else:
                 weekly_index = -2
-            else:
-                print(f"{end_date} 是當週最後交易日")
-                weekly_index = -1
-        else:
-            weekly_index = -1
 
-        # 判斷日期的月份是否是當月
-        monthly_index = -1
-        if end_date:
-            if not Utils.is_last_trade_day_of_month(end_date):
-                print(f"{end_date} 不是當月最後交易日")
-                monthly_index = -2
+        monthly_index = -2
+        if close_date:
+            close_datetime = datetime.strptime(close_date, '%Y-%m-%d')
+            if Utils.is_today(close_date):
+                if Utils.is_last_day_of_month(close_datetime):
+                    monthly_index = -1
+                else:
+                    monthly_index = -2
             else:
-                print(f"{end_date} 是當月最後交易日")
-                monthly_index = -1
-        else:
-            monthly_index = -1
+                monthly_index = -2
+
 
         if not weekly_prices.empty:
             if len(weekly_prices) >= 5:
