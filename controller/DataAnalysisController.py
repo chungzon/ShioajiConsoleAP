@@ -160,9 +160,13 @@ class DataAnalysisController:
             self.view.set_status("波段日期區間不在總波段日期區間內")
             return
         
-        stock_name = self.model.get_stock_name(stock_id)
-        if stock_name is not NULL:
-            stock_name = stock_name.replace('*', '-')
+        try:
+            stock_name = self.model.get_stock_name(stock_id)
+            if stock_name is not NULL:
+                stock_name = stock_name.replace('*', '-')
+        except Exception as e:
+            print(f"取得股票名稱時發生錯誤: {e}")
+            stock_name = stock_id
 
         total_segment, recent_segment, gap_df, now_price, latest_close_price_by_date, next_open_price = self.model.get_stock_data_from_all_wave_extremes(stock_id, start_date, end_date, recent_start_date, recent_end_date)
         if total_segment is None:

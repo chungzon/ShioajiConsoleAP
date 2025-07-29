@@ -560,7 +560,14 @@ class DataAnalysisModel(SelectStockModel):
             wave_extremes_df = self.find_peaks_troughs_v34_small(stock_id, stock_data_df, latest_close_price, recent_end_date)
             if wave_extremes_df is not None and not wave_extremes_df.empty:
                 wave_extremes_df['stock_id'] = stock_id  # 加入股票代號
-                wave_extremes_df['name'] = self.get_stock_name(stock_id)
+                stock_name = ""
+                try:
+                    stock_name = self.get_stock_name(stock_id)
+                except Exception as e:
+                    stock_name = stock_id
+                    print(f"取得股票名稱時發生錯誤: {e}")
+
+                wave_extremes_df['name'] = stock_name
                 recent_segment, highest_segment = self.evaluate_segment(wave_extremes_df, recent_start_date, recent_end_date)
                 recent_data_df = self.get_stock_data(stock_id, recent_start_date, recent_end_date)
                 recent_segments = self.find_peaks_troughs_v34_small(stock_id, recent_data_df, latest_close_price, recent_end_date)
@@ -716,7 +723,11 @@ class DataAnalysisModel(SelectStockModel):
                 }
                 gap_df = self.get_gap_stocks(stock_data_df)
 
-                now_price = self.get_latest_close_price(stock_id)
+                try:
+                    now_price = self.get_latest_close_price(stock_id)
+                except Exception as e:
+                    now_price = latest_close_price
+                    print(f"取得現價時發生錯誤: {e}；以最新收盤價: {latest_close_price} 代替")
 
                 # 取得總波段結束日期的下一個交易日開盤價格
                 next_open_price = self.get_next_open_price_date(stock_id, end_date)

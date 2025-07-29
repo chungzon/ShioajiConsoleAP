@@ -84,6 +84,7 @@ def is_last_day_of_month(date: datetime) -> bool:
         return False
 
 
+
 # 🔍 測試範例
 # date_to_check = "20250630"
 
@@ -93,15 +94,5 @@ def is_last_day_of_month(date: datetime) -> bool:
 # print(f"{date_to_check} 是當週最後交易日？→ {'是' if is_week_last else '否'}")
 # print(f"{date_to_check} 是當月最後交易日？→ {'是' if is_month_last else '否'}")
 
-print(datetime.strptime("2025-07-23", '%Y-%m-%d'))
-print(datetime.strptime("2025-07-23", '%Y-%m-%d').date())
-print(datetime.strptime("2025-07-23", '%Y-%m-%d').time())
-print(is_after_friday_1430(datetime.strptime("2025-07-23", '%Y-%m-%d')))
-print(is_today("2025-07-24"))
-print(is_today("2025-07-23"))
-print(is_today("2025-07-22"))
-print(is_today("2025-07-21"))
-print(is_today("2025-07-20"))
-print(is_today("2025-07-19"))
-print(is_today("2025-07-18"))
-print(is_today("2025-07-17"))
+# print(calculate_down_limit_price(44.2))
+# print(calculate_up_limit_price(44.2))

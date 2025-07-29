@@ -298,3 +298,14 @@ class Math:
     @staticmethod
     def calculate_price_diff(price_1, price_2):
         return round(price_1 - price_2, 2)
+
+    
+    # 計算價格的跌停價
+    @staticmethod
+    def calculate_down_limit_price(price: float) -> float:
+        return round(price * 0.9, 2)
+
+    # 計算價格的漲停價
+    @staticmethod
+    def calculate_up_limit_price(price: float) -> float:
+        return round(price * 1.1, 2)
