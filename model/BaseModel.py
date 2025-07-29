@@ -206,8 +206,12 @@ class BaseModel:
         
     # 商品名稱
     def get_stock_name(self, sotckid):
-        contract = self.api.Contracts.Stocks[str(sotckid)]
-        return contract['name']
+        try:
+            contract = self.api.Contracts.Stocks[str(sotckid)]
+            return contract['name']
+        except Exception as e:
+            print(f"取得股票名稱時發生錯誤: {e}")
+            return sotckid
     
     def get_kbars_data(self, stock_id, date):
         contract = self.api.Contracts.Stocks[stock_id]

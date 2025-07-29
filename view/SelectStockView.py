@@ -702,12 +702,13 @@ class SelectStockView(tk.Frame):
                         value = ma_data[ma_period]
                         period_num = ma_period.replace('MA', '')
                         name = f"{prefix}({period_num})"
+                        now_price = organized_ma_data['latest_close_price']
                         if 'DIFF' in ma_period:
-                            now_price = organized_ma_data['latest_close_price']
                             diff_ratio = Math.calculate_price_diff_ratio(value, now_price)
                             period_num = ma_period.replace('_DIFF', '')
                             name = f"{prefix}({period_num}) 扣抵值[{diff_ratio}%]"
-                        all_prices.append((name, value, False))
+                        if value != 'N/A' and (float(value) <= Math.calculate_up_limit_price(now_price) and float(value) >= Math.calculate_down_limit_price(now_price)):
+                            all_prices.append((name, value, False))
             
             # 添加最近波段數據
             if recent_ratio_prices:
@@ -719,7 +720,8 @@ class SelectStockView(tk.Frame):
                 for index, row in gap_df.iterrows():
                     gap_type = '↑' if row['gap_type'] == '向上跳空' else '↓'
                     gap_price = row['previous_close'] if row['gap_type'] == '向上跳空' else row['current_open']
-                    all_prices.append((f"({row['previous_close']}~{row['current_open']})  [{row['date'].strftime('%Y-%m-%d')}] {gap_type}", gap_price, False))
+                    if (float(gap_price) <= Math.calculate_up_limit_price(now_price) and float(gap_price) >= Math.calculate_down_limit_price(now_price)):
+                        all_prices.append((f"({row['previous_close']}~{row['current_open']})  [{row['date'].strftime('%Y-%m-%d')}] {gap_type}", gap_price, False))
             
             return all_prices
 

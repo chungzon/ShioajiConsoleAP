@@ -166,8 +166,13 @@ class SelectStockModel(BaseModel):
                     stock_segment = []
                     stock_data_df = self.get_stock_data(stock_id, start_date, end_date)
                     last_day_volume = None
+                    latest_close_price = None
                     if stock_data_df is not None and not stock_data_df.empty:
-                        latest_close_price = self.get_latest_close_price(stock_id)
+                        try:
+                            latest_close_price = self.get_latest_close_price(stock_id)
+                        except Exception as e:
+                            latest_close_price = stock_data_df['close_price'].iloc[-1]
+                            print(f"取得最新收盤價時發生錯誤: {e}；以區間最後一天的收盤價: {latest_close_price} 代替")
                         last_day_volume = self.get_last_day_volume(stock_id, end_date)
 
                     wave_extremes_df = self.find_peaks_troughs_v34_small(stock_id, stock_data_df, latest_close_price, end_date)
@@ -344,7 +349,11 @@ class SelectStockModel(BaseModel):
                         latest_dates = recent_segment['latest_dates']
 
                         gap_df = self.get_gap_stocks(stock_data_df)
-                        now_price = self.get_latest_close_price(stock_id)
+                        try:
+                            now_price = self.get_latest_close_price(stock_id)
+                        except Exception as e:
+                            now_price = latest_close_price
+                            print(f"取得現價時發生錯誤: {e}；以最新收盤價: {latest_close_price} 代替")
                         next_open_price = self.get_next_open_price_date(stock_id, end_date)
                         latest_close_price_date = stock_data_df[stock_data_df['date'] == pd.to_datetime(end_date)]
                         latest_close_price_by_date = None
