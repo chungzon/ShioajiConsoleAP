@@ -118,5 +118,37 @@
 # print(f'未來5日內「上漲」的機率：{future_prob*100:.2f}%')
 # print(f'未來5日內「下跌或盤整」的機率：{(1-future_prob)*100:.2f}%')
 
-# 利用永豐金API
+# 利用永豐金API，抓取股票資料
+
+import shioaji as sj
+
+def get_api():
+    api = sj.Shioaji(simulation=True)
+    api.login(
+            api_key="CV7uuCJ7pB7x2i4T7783dBwiP7NwqhgwNj96J9uPd7PK",
+            secret_key="HvDpMQ84VfgsGqBPN4nqfPV1iY9XsoWHst4rd4UimHaf"
+        )
+    return api
+
+api = get_api()
+
+def get_stock_data(stock_id, start_date, end_date):
+    stock = api.Contracts.Stocks[stock_id]
+    kbars = api.kbars(
+        contract=stock,
+        start=start_date,
+        end=end_date
+    )
+    return kbars
+
+stock_id = "2330"
+start_date = "2024-01-01"
+end_date = "2024-01-05"
+kbars = get_stock_data(stock_id, start_date, end_date)
+print(kbars)
+
+
+
+
+
 

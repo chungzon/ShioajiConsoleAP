@@ -29,8 +29,8 @@ class MainApplication(tk.Tk):
     def initialize_api():
         api = sj.Shioaji(simulation=True)
         api.login(
-            api_key="9o7ruXLDR2psg46JJF1s9eK3W79PduD1skFfNQF5948A",
-            secret_key="FitCPzfFjQCRd3cabRSD7QpovDVsVWNxh4MgwygshCBK"
+            api_key="CV7uuCJ7pB7x2i4T7783dBwiP7NwqhgwNj96J9uPd7PK",
+            secret_key="HvDpMQ84VfgsGqBPN4nqfPV1iY9XsoWHst4rd4UimHaf"
         )
         return api
 
