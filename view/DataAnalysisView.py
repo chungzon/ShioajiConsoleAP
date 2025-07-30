@@ -394,7 +394,7 @@ class DataAnalysisView(tk.Frame):
                             period_num = ma_period.replace('_DIFF', '')
                             name = f"{prefix}({period_num}) 扣抵值[{diff_ratio}%]"
                         
-                        if value != 'N/A' and (float(value) <= Math.calculate_up_limit_price(now_price) and float(value) >= Math.calculate_down_limit_price(now_price)):
+                        if value != 'N/A' and (float(value) <= Math.calculate_up_limit_price_1_15(now_price) and float(value) >= Math.calculate_down_limit_price_1_15(now_price)):
                             all_prices.append((name, value, False))
             
             # 添加最近波段數據
@@ -407,7 +407,7 @@ class DataAnalysisView(tk.Frame):
                 for index, row in gap_df.iterrows():
                     gap_type = '↑' if row['gap_type'] == '向上跳空' else '↓'
                     gap_price = row['previous_close'] if row['gap_type'] == '向上跳空' else row['current_open']
-                    if (float(gap_price) <= Math.calculate_up_limit_price(now_price) and float(gap_price) >= Math.calculate_down_limit_price(now_price)):
+                    if (float(gap_price) <= Math.calculate_up_limit_price_1_15(now_price) and float(gap_price) >= Math.calculate_down_limit_price_1_15(now_price)):
                         all_prices.append((f"({row['previous_close']}~{row['current_open']})  [{row['date'].strftime('%Y-%m-%d')}] {gap_type}", gap_price, False))
             
             return all_prices

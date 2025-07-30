@@ -309,3 +309,13 @@ class Math:
     @staticmethod
     def calculate_up_limit_price(price: float) -> float:
         return round(price * 1.1, 2)
+    
+    # 計算價格的1.15倍漲停價
+    @staticmethod
+    def calculate_up_limit_price_1_15(price: float) -> float:
+        return round(price * 1.15, 2)
+    
+    # 計算價格的1.15倍跌停價
+    @staticmethod
+    def calculate_down_limit_price_1_15(price: float) -> float:
+        return round(price * 0.85, 2)
