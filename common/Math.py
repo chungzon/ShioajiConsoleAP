@@ -118,7 +118,12 @@ class Math:
                 else:
                     monthly_index = -2
             else:
-                monthly_index = -2
+                # 把close_date的時間設為14:30
+                close_datetime = close_datetime.replace(hour=14, minute=30, second=0, microsecond=0)
+                if Utils.is_last_day_of_month(close_datetime):
+                    monthly_index = -1
+                else:
+                    monthly_index = -2
 
 
         if not weekly_prices.empty:
