@@ -937,7 +937,11 @@ class DataAnalysisView(tk.Frame):
             'AL', ('周', '5'), 'NL', ('15K', '20'), 'CDP', ('15K', '10'),
             ('15K', '5'), ('15K', 'strong'), ('15K', 'weak'), ('日', '10'), ('日', '5'), 'NH', 'AH',
             ('月', '10'), ('月', '20'), ('月', '60'), ('月', '120'),('日', 'strong'), ('日', 'weak'),
-            ('周', 'strong'), ('周', 'weak')
+            ('周', 'strong'), ('周', 'weak'),
+            # 扣抵值集合
+            ('日', '5MA_DIFF'), ('日', '10MA_DIFF'), ('日', '20MA_DIFF'), ('日', '60MA_DIFF'), ('日', '120MA_DIFF'),
+            ('周', '5MA_DIFF'), ('周', '10MA_DIFF'), ('周', '20MA_DIFF'), ('周', '60MA_DIFF'), ('周', '120MA_DIFF'),
+            ('月', '5MA_DIFF'), ('月', '10MA_DIFF'), ('月', '20MA_DIFF'), ('月', '60MA_DIFF'), ('月', '120MA_DIFF')
         ]
         
         # 添加均線和指標數據
@@ -947,8 +951,11 @@ class DataAnalysisView(tk.Frame):
                 key = f"{prefix}({period})_DC"
                 if prefix in {'日': '日均線', '周': '週均線', '月': '月均線', '15K': '15分鐘均線'}:
                     ma_type = {'日': '日均線', '周': '週均線', '月': '月均線', '15K': '15分鐘均線'}[prefix]
+                    # 處理扣抵值
+                    if period.endswith('MA_DIFF'):
+                        ma_period = period.replace('MA_DIFF', 'MA_DIFF')
                     # 對於15分鐘均線，需要特殊處理strong和weak
-                    if prefix != '月' and period in ['strong', 'weak']:
+                    elif prefix != '月' and period in ['strong', 'weak']:
                         ma_period = period
                     else:
                         ma_period = f"{period}MA"
