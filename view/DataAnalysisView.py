@@ -394,8 +394,9 @@ class DataAnalysisView(tk.Frame):
                             period_num = ma_period.replace('_DIFF', '')
                             name = f"{prefix}({period_num}) 扣抵值[{diff_ratio}%]"
                         
-                        if value != 'N/A' and (float(value) <= Math.calculate_up_limit_price_1_15(now_price) and float(value) >= Math.calculate_down_limit_price_1_15(now_price)):
-                            all_prices.append((name, value, False))
+                        # if value != 'N/A' and (float(value) <= Math.calculate_up_limit_price_1_15(now_price) and float(value) >= Math.calculate_down_limit_price_1_15(now_price)):
+                        #     all_prices.append((name, value, False))
+                        all_prices.append((name, value, False))
             
             # 添加最近波段數據
             if recent_ratio_prices:
