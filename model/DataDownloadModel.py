@@ -3,6 +3,7 @@ import pandas as pd
 
 from Event import EventBus, Event
 from model.BaseModel import BaseModel
+from resource.Resources import get_resource_path, ResourceFileNames
 
 
 class DataDownloadModel(BaseModel):

@@ -6,6 +6,7 @@ import time
 from datetime import datetime, timedelta
 import os
 from common.Math import Math
+from resource.Resources import get_resource_path, ResourceFileNames
 
 class BaseModel:
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -14,12 +15,12 @@ class BaseModel:
 
     def __init__(self, api):
         self.api = api
-                # 獲取當前文件的目錄
-        # current_dir = os.path.dirname(os.path.abspath(__file__))
+        # 獲取當前文件的目錄
+        current_dir = os.path.dirname(os.path.abspath(__file__))
         
-        # # 構建相對路徑
-        # resource_dir = os.path.join(current_dir, '..', 'resource')
-        # self.file_path = os.path.join(resource_dir, 'stock_top.xlsx')
+        # 構建相對路徑到resource目錄
+        resource_dir = os.path.join(current_dir, '..', 'resource')
+        self.file_path = os.path.join(resource_dir, 'tw_all_stocks.csv')
         
     def connect_db(self):
         conn = pymssql.connect(
@@ -1047,27 +1048,27 @@ class BaseModel:
 
     def get_top_volumn_stocks(self, top_n=None):
         try:
-            # 從 Excel 文件中讀取數據
-            stock_df = pd.read_excel(
-                self.file_path, 
-                dtype={'股票代號': str}  # 將股票代號列指定為字串類型
+            # 從 CSV 文件中讀取數據
+            stock_df = pd.read_csv(
+                get_resource_path(ResourceFileNames.TW_ALL_STOCKS_CSV), 
+                dtype={'StockCode': str}  # 將股票代號列指定為字串類型
              )
 
-            # 確認列標題是否包含 '股票代號'
-            if '股票代號' in stock_df.columns:
-                available_stocks = len(stock_df['股票代號'])
+            # 確認列標題是否包含 'StockCode'
+            if 'StockCode' in stock_df.columns:
+                available_stocks = len(stock_df['StockCode'])
                 if top_n is None:
-                    top_stocks = stock_df['股票代號']
+                    top_stocks = stock_df['StockCode']
                     return top_stocks.tolist()
                 
                 top_n = int(top_n)  # 确保 top_n 是整数
                 if available_stocks < top_n:
                     return f"錯誤：只有 {available_stocks} 筆資料可用，少於要求的 {top_n} 筆"
                 else:
-                    top_stocks = stock_df['股票代號'][:top_n]
+                    top_stocks = stock_df['StockCode'][:top_n]
                     return top_stocks.tolist()
             else:
-                print("列標題中沒有 '股票代號'")
+                print("列標題中沒有 'StockCode'")
                 return []
 
         except Exception as e:

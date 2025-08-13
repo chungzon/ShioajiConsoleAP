@@ -1,0 +1,327 @@
+﻿import os
+import pandas as pd
+import shioaji as sj
+import time
+from datetime import datetime, timedelta
+from model.BaseModel import BaseModel
+from common.Math import Math
+from common.Event import Event
+
+class SelectStockModel(BaseModel):
+    # 創建log資料夾和檔案
+    log_dir = "logs"
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    log_filename = os.path.join(log_dir, f"log_select_stock_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
+    
+    def __init__(self, api):
+        super().__init__(api)  # 繼承父類的初始化
+        self.event = Event()
+
+    def get_stock_data(self, stock_id, start_date, end_date):
+        try:
+            # 建立資料庫連接
+            conn = self.connect_db()
+
+            # 查詢語句
+            query = f"""
+                SELECT distinct date, open_price, high_price, low_price, close_price
+                FROM stock_data
+                WHERE stock_id = '{stock_id}' AND date >= '{start_date}' AND date <= '{end_date}' ORDER BY date ASC
+            """
+            df = pd.read_sql(query, conn)
+            df['date'] = pd.to_datetime(df['date'])
+            # 關閉連接
+            conn.close()
+
+            return df
+
+        except Exception as e:
+            print(f"讀取資料時發生錯誤: {e}")
+            return None
+
+    def calculate_wave_extremes(self, df, stock_id):
+        # 初始化波段列表
+        segments = []
+        
+        # 找出所有極值點
+        peaks_troughs = self.find_peaks_troughs_v34(df, stock_id, df['close_price'].iloc[-1])
+        
+        if peaks_troughs is None or len(peaks_troughs) < 2:
+            return None
+        
+        # 將極值點轉換為DataFrame
+        peaks_troughs_df = pd.DataFrame(peaks_troughs)
+        
+        # 計算每個波段的價格變化比例
+        for i in range(len(peaks_troughs_df) - 1):
+            current_point = peaks_troughs_df.iloc[i]
+            next_point = peaks_troughs_df.iloc[i + 1]
+            
+            # 計算價格變化比例
+            price_change_ratio = (next_point['price'] - current_point['price']) / current_point['price']
+            
+            # 添加波段資訊
+            segment = {
+                'start_date': current_point['date'],
+                'end_date': next_point['date'],
+                'start_price': current_point['price'],
+                'end_price': next_point['price'],
+                'price_change_ratio': price_change_ratio,
+                'type': 'up' if price_change_ratio > 0 else 'down'
+            }
+            segments.append(segment)
+        
+        return pd.DataFrame(segments)
+
+    def organize_ma_data(self, sma_values, weekly_sma_values, monthly_sma_values):
+        organized_data = {
+            '日均線': {},
+            '週均線': {},
+            '月均線': {},
+            '15分鐘均線': {}
+        }
+        
+        # 整理日均線數據
+        for period, value in sma_values.items():
+            organized_data['日均線'][f"{period}MA"] = value
+        
+        # 整理週均線數據
+        for period, value in weekly_sma_values.items():
+            organized_data['週均線'][f"{period}MA"] = value
+        
+        # 整理月均線數據
+        for period, value in monthly_sma_values.items():
+            organized_data['月均線'][f"{period}MA"] = value
+        
+        return organized_data
+
+    def process_all_stocks(self, start_date, end_date, ratio, positive_ratio, native_ratio, top_n, recent_wave_var, highest_wave_var, total_wave_var, ma_selections, ratio_all_vars, ratio_type_vars):
+        # 獲取交易量前N名的股票
+        top_stocks = self.get_top_volumn_stocks(top_n)
+        
+        if isinstance(top_stocks, str):  # 如果返回錯誤訊息
+            self.write_log(top_stocks)
+            return
+        
+        all_wave_extremes = []
+        
+        for stock_id in top_stocks:
+            try:
+                # 獲取股票數據
+                df = self.get_stock_data(stock_id, start_date, end_date)
+                if df is None or len(df) == 0:
+                    continue
+                
+                # 計算波段極值
+                segments_df = self.calculate_wave_extremes(df, stock_id)
+                if segments_df is None or len(segments_df) == 0:
+                    continue
+                
+                # 獲取股票名稱
+                stock_name = self.get_stock_name(stock_id)
+                
+                # 獲取最新收盤價
+                latest_close_price = self.get_latest_close_price(stock_id)
+                
+                # 獲取均線數據
+                sma_values = self.calculate_sma(stock_id)
+                weekly_sma_values = self.calculate_weekly_average(df['close_price'], 5)
+                monthly_sma_values = self.calculate_monthly_average(df['close_price'], 5)
+                
+                # 整理均線數據
+                organized_ma_data = self.organize_ma_data(sma_values, weekly_sma_values, monthly_sma_values)
+                
+                # 獲取跳空缺口數據
+                gap_df = self.get_gap_stocks(df)
+                
+                # 獲取當前價格
+                now_price = self.get_now_price(stock_id)
+                
+                # 獲取最新收盤價（按日期）
+                latest_close_price_by_date = self.get_latest_close_price_by_date(stock_id)
+                
+                # 獲取下一個開盤價
+                next_open_price = self.get_next_open_price_date(stock_id, end_date)
+                
+                # 評估波段
+                stock_data = self.evaluate_segment(segments_df)
+                
+                if stock_data:
+                    stock_data.update({
+                        'stock_id': stock_id,
+                        'name': stock_name,
+                        'latest_close_price': latest_close_price,
+                        'organized_ma_data': organized_ma_data,
+                        'gap_df': gap_df,
+                        'now_price': now_price,
+                        'latest_close_price_by_date': latest_close_price_by_date,
+                        'next_open_price': next_open_price
+                    })
+                    
+                    all_wave_extremes.append(stock_data)
+                    
+                    # 觸發事件通知視圖更新
+                    self.event.emit(stock_data)
+            
+            except Exception as e:
+                self.write_log(f"處理股票 {stock_id} 時發生錯誤: {str(e)}")
+                continue
+        
+        return all_wave_extremes
+
+    def get_recent_segment(self, segments_df):
+        # 获取最近一次波段数据
+        if len(segments_df) > 0:
+            return segments_df.iloc[-1]
+        return None
+
+    def get_highest_segment(self, segments_df):
+        # 获取最高点波段数据
+        if len(segments_df) > 0:
+            return segments_df.loc[segments_df['end_price'].idxmax()]
+        return None
+
+    def evaluate_segment(self, segments_df):
+        # 評估波段並返回相關數據
+        if segments_df is None or len(segments_df) == 0:
+            return None
+            
+        recent_segment = self.get_recent_segment(segments_df)
+        highest_segment = self.get_highest_segment(segments_df)
+        
+        if recent_segment is None or highest_segment is None:
+            return None
+            
+        return {
+            'recent_segment': recent_segment,
+            'highest_segment': highest_segment,
+            'total_segment': segments_df
+        }
+
+    def add_wave_segment(self, segment_data, wave_type, max_value_of_all_waves, min_value_after_max):
+        # 添加波段數據
+        if segment_data is None:
+            return None
+            
+        return {
+            'stock_id': segment_data['stock_id'],
+            'name': segment_data['name'],
+            'latest_close_price': segment_data['latest_close_price'],
+            'wave_type': wave_type,
+            'max_value': max_value_of_all_waves,
+            'min_value': min_value_after_max,
+            'organized_ma_data': segment_data['organized_ma_data'],
+            'gap_df': segment_data['gap_df'],
+            'now_price': segment_data['now_price'],
+            'latest_close_price_by_date': segment_data['latest_close_price_by_date'],
+            'next_open_price': segment_data['next_open_price']
+        }
+
+    def check_price_above_selected_ma(self, current_price, segment_data, ma_selections):
+        # 檢查價格是否高於選擇的均線
+        if segment_data is None or 'organized_ma_data' not in segment_data:
+            return False
+            
+        organized_ma_data = segment_data['organized_ma_data']
+        
+        for ma_type, periods in ma_selections.items():
+            if not periods:  # 如果該類型的均線沒有被選擇
+                continue
+                
+            ma_data = organized_ma_data.get(ma_type, {})
+            for period, selected in periods.items():
+                if selected and period in ma_data:
+                    ma_value = ma_data[period]
+                    if ma_value != 'N/A' and current_price > float(ma_value):
+                        return True
+        
+        return False
+
+    def get_ratio_prices(self, stock_id):
+        # 獲取股票的基準價格（例如最新收盤價）
+        latest_close_price = self.get_latest_close_price(stock_id)
+        if latest_close_price is None:
+            return None
+            
+        # 計算各比例價格
+        ratio_prices = {}
+        ratios = [0.191, 0.382, 0.5, 0.618, 0.809, 1.0, 1.191, 1.382, 1.5, 1.618, 1.809, 2.0]
+        
+        for ratio in ratios:
+            ratio_prices[ratio] = latest_close_price * ratio
+            
+        return ratio_prices
+
+    def get_stock_data_from_all_wave_extremes(self, stock_id):
+        # 從所有波段極值中獲取股票數據
+        try:
+            df = self.get_stock_data(stock_id)
+            if df is None or len(df) == 0:
+                return None
+                
+            return self.calculate_wave_extremes(df, stock_id)
+        except Exception as e:
+            self.write_log(f"獲取股票 {stock_id} 數據時發生錯誤: {str(e)}")
+            return None
+
+    def write_log(self, message):
+        # 寫入日誌
+        with open(self.log_filename, 'a', encoding='utf-8') as f:
+            f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
+
+    def get_gap_data(self, stock_id):
+        # 獲取跳空缺口數據
+        try:
+            df = self.get_stock_data(stock_id)
+            if df is None or len(df) == 0:
+                return None
+                
+            return self.get_gap_stocks(df)
+        except Exception as e:
+            self.write_log(f"獲取股票 {stock_id} 跳空缺口數據時發生錯誤: {str(e)}")
+            return None
+
+    def get_now_price(self, stock_id):
+        # 獲取當前價格
+        try:
+            df = self.get_stock_data(stock_id)
+            if df is None or len(df) == 0:
+                return None
+                
+            return df['close_price'].iloc[-1]
+        except Exception as e:
+            self.write_log(f"獲取股票 {stock_id} 當前價格時發生錯誤: {str(e)}")
+            return None
+
+    def get_latest_close_price_by_date(self, stock_id):
+        # 獲取最新收盤價（按日期）
+        try:
+            df = self.get_stock_data(stock_id)
+            if df is None or len(df) == 0:
+                return None
+                
+            return df['close_price'].iloc[-1]
+        except Exception as e:
+            self.write_log(f"獲取股票 {stock_id} 最新收盤價時發生錯誤: {str(e)}")
+            return None
+
+    # def get_next_open_price(self, stock_id):
+    #     """獲取下一個開盤價"""
+    #     try:
+    #         # 獲取最近一個交易日的數據
+    #         latest_date = self.get_latest_trading_date()
+    #         df = self.get_stock_data_from_db(stock_id, latest_date, latest_date)
+    #         if df.empty:
+    #             return None
+            
+    #         # 返回最新一筆的開盤價
+    #         return df['Open_Price'].iloc[-1]
+    #     except Exception as e:
+    #         print(f"獲取下一個開盤價時發生錯誤: {str(e)}")
+    #         return None
+
+
+
+
+

@@ -1,5 +1,6 @@
 ﻿import tkinter as tk
 from tkinter import ttk
+from DailyKbarsDownloadScheduler import start_daily_kbars_scheduler
 from model.RealtimeMonitorModel import RealtimeMonitorModel
 from view.DataAnalysisView import DataAnalysisView
 from model.DataAnalysisModel import DataAnalysisModel
@@ -99,6 +100,7 @@ class MainApplication(tk.Tk):
         self.tab_control.pack(expand=1, fill="both")
 
         self.scheduler = start_scheduler()
+        self.daily_kbars_scheduler = start_daily_kbars_scheduler(self.api)
         # self.scheduler.run()
 
 
