@@ -1,7 +1,6 @@
 ﻿import time
 from threading import Thread
 from datetime import datetime, date, timedelta
-from win10toast import ToastNotifier
 import requests
 import json
 import logging
@@ -9,14 +8,15 @@ import pymssql
 import csv
 import io
 from utils.unified_scheduler_manager import get_unified_scheduler_manager
+from plyer import notification
+
+
+# python -m pip install plyer
 
 class DataDownloadScheduler:
     def __init__(self, api=None):
         # 初始化Shioaji API（可选）
         self.api = api
-        
-        # 初始化通知器
-        self.toaster = ToastNotifier()
         
         # 初始化日志
         self.logger = self.setup_logger()
@@ -39,13 +39,32 @@ class DataDownloadScheduler:
         return logger
 
     def show_notification(self, title, message, duration=5):
-        """顯示Windows通知"""
+        """顯示系統通知"""
         try:
-            self.toaster.show_toast(title, message, duration=duration, threaded=True)
+            # 尝试使用 plyer
+            from plyer import notification
+            notification.notify(
+                title=title,
+                message=message,
+                timeout=duration
+            )
+        except ImportError:
+            # 如果 plyer 不可用，使用控制台通知
+            self._console_notification(title, message)
         except Exception as e:
-            # 如果通知失败，至少打印到控制台
-            print(f"通知发送失败: {e}")
-            print(f"通知内容: {title} - {message}")
+            self.logger.warning(f"通知发送失败: {e}")
+            # 降级到控制台通知
+            self._console_notification(title, message)
+
+    def _console_notification(self, title, message):
+        """控制台通知"""
+        separator = "=" * 60
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        print(f"\n{separator}")
+        print(f"📢 通知时间: {timestamp}")
+        print(f"📋 标题: {title}")
+        print(f"📝 内容: {message}")
+        print(f"{separator}\n")
 
     def connect_db(self):
         """连接数据库"""
@@ -322,7 +341,7 @@ class DataDownloadScheduler:
 
             if today <= last_download_date:
                 self.logger.info(f"今天 ({today}) 的數據已經下載過了,最後下載日期為 {last_download_date}")
-                # self.show_notification('股票數據下載', f'今天 ({today}) 的數據已經下載過了')
+                self.show_notification('股票數據下載', f'今天 ({today}) 的數據已經下載過了')
                 return
 
             # 下载TWSE数据
@@ -379,7 +398,7 @@ class DataDownloadScheduler:
         self.scheduler_manager.add_scheduler(
             name="daily_close_price_download",
             task_func=self.download_task,
-            schedule_time="00:18",
+            schedule_time="18:30",
             task_type="daily"
         )
         

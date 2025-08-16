@@ -1,7 +1,6 @@
 import time
 from threading import Thread
 from datetime import datetime, date
-from win10toast import ToastNotifier
 from model.DataDownloadModel import DataDownloadModel
 from utils.unified_scheduler_manager import get_unified_scheduler_manager
 
@@ -12,7 +11,6 @@ class DailyKbarsDownloadScheduler:
         
         # 初始化數據下載模型
         self.download_model = DataDownloadModel(self.api)
-        self.toaster = ToastNotifier()
         
         # 获取统一调度器管理器
         self.scheduler_manager = get_unified_scheduler_manager()
@@ -20,11 +18,30 @@ class DailyKbarsDownloadScheduler:
     def show_notification(self, title, message, duration=5):
         """顯示系統通知"""
         try:
-            self.toaster.show_toast(title, message, duration=duration, threaded=True)
+            # 尝试使用 plyer
+            from plyer import notification
+            notification.notify(
+                title=title,
+                message=message,
+                timeout=duration
+            )
+        except ImportError:
+            # 如果 plyer 不可用，使用控制台通知
+            self._console_notification(title, message)
         except Exception as e:
-            # 如果通知失败，至少打印到控制台
-            print(f"通知发送失败: {e}")
-            print(f"通知内容: {title} - {message}")
+            print(f"通知发送异常: {e}")
+            # 降级到控制台通知
+            self._console_notification(title, message)
+
+    def _console_notification(self, title, message):
+        """控制台通知"""
+        separator = "=" * 60
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        print(f"\n{separator}")
+        print(f"📢 通知时间: {timestamp}")
+        print(f"📋 标题: {title}")
+        print(f"📝 内容: {message}")
+        print(f"{separator}\n")
 
     def download_daily_kbars_task(self):
         """下載當日KBar資料的任務"""
