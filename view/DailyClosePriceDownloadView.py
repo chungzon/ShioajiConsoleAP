@@ -80,10 +80,11 @@ class DailyClosePriceDownloadView(tk.Frame):
         thread.start()
 
     def run_auto_download(self):
-        auto_downloader = AutoDownloadDailyClosePrice.AutoDownloadDailyClosePrice()
-        # 訂閱日誌消息
-        auto_downloader.event_bus.subscribe("log_message", self.handle_log_message)
-        auto_downloader.run()
+        # auto_downloader = AutoDownloadDailyClosePrice.AutoDownloadDailyClosePrice()
+        # # 訂閱日誌消息
+        # auto_downloader.event_bus.subscribe("log_message", self.handle_log_message)
+        # auto_downloader.run()
+        pass
 
     def handle_log_message(self, event):
         # 在GUI中顯示日誌消息

@@ -99,8 +99,12 @@ class MainApplication(tk.Tk):
         self.tab_control.add(self.select_stock_view, text="選股策略")
         self.tab_control.pack(expand=1, fill="both")
 
-        self.scheduler = start_scheduler()
+        # 启动调度器
+        print("正在启动调度器...")
+        self.scheduler = start_scheduler(self.api)
         self.daily_kbars_scheduler = start_daily_kbars_scheduler(self.api)
+        print("调度器启动完成")
+        
         # self.scheduler.run()
 
 
