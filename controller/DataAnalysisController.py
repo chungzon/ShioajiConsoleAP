@@ -350,9 +350,9 @@ class DataAnalysisController:
         df = df.set_index('ts')
         start_time = pd.Timestamp(end_date).replace(hour=9, minute=3)
         df_3k = df.resample('3T', origin=start_time, closed='right', label='right').agg({
-            'Open_Price': 'last',
-            'High': 'last',
-            'Low': 'last',
+            'Open_Price': 'first',
+            'High': 'max',
+            'Low': 'min',
             'Close_Price': 'last',
             'Volume': 'sum'
         })
@@ -372,9 +372,9 @@ class DataAnalysisController:
         df = df.set_index('ts')
         start_time = pd.Timestamp(end_date).replace(hour=9, minute=5)
         df_5k = df.resample('5T', origin=start_time, closed='right', label='right').agg({
-            'Open_Price': 'last',
-            'High': 'last',
-            'Low': 'last',
+            'Open_Price': 'first',
+            'High': 'max',
+            'Low': 'min',
             'Close_Price': 'last',
             'Volume': 'sum'
         })
