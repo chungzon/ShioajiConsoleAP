@@ -1,4 +1,5 @@
-﻿import pymssql
+﻿import logging
+import pymssql
 import pandas as pd
 
 from Event import EventBus, Event
@@ -12,6 +13,17 @@ class DataDownloadModel(BaseModel):
     def __init__(self, api):
         self.api = api
         self.event_bus = EventBus()
+        self.logger = self.setup_logger()
+
+    def setup_logger(self):
+        """设置日志记录器"""
+        logger = logging.getLogger('DataDownloadModel')
+        logger.setLevel(logging.INFO)
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+        return logger
         
     def connect_db(self):
         conn = pymssql.connect(
@@ -76,6 +88,7 @@ class DataDownloadModel(BaseModel):
                     continue
                 self.insert_kbars(kbars_df, stock_id)
                 self.event_bus.publish(Event("log_message", f"下載股票 {stock_id} 的KBar資料"))
+                self.logger.info(f"下載股票 {stock_id} 的KBar資料")
             except Exception as e:
                 self.event_bus.publish(Event("log_message", f"下載股票 {stock_id} 的KBar資料失敗: {e}"))
 

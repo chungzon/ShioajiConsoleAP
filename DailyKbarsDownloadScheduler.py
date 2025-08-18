@@ -54,7 +54,7 @@ class DailyKbarsDownloadScheduler:
         
         try:
             # 使用DataDownloadModel的get_all_stocks_kbars方法下載當日資料
-            # self.download_model.get_all_stocks_kbars(today_str, today_str)
+            self.download_model.get_all_stocks_kbars(today_str, today_str)
             
             end_time = datetime.now()
             duration = (end_time - start_time).total_seconds()
@@ -77,11 +77,11 @@ class DailyKbarsDownloadScheduler:
         self.scheduler_manager.add_scheduler(
             name="daily_kbars_download",
             task_func=self.download_daily_kbars_task,
-            schedule_time="18:30",
+            schedule_time="17:30",
             task_type="daily"
         )
         
-        print("🕕 KBar資料下載排程任務已設置，將在每日18:30執行下載任務")
+        print("🕕 KBar資料下載排程任務已設置，將在每日17:30執行下載任務")
 
 def start_daily_kbars_scheduler(api):
     """啟動每日KBar資料下載排程器"""
