@@ -98,16 +98,24 @@ class Math:
         weekly_sma_60_diff = np.nan
         weekly_sma_120_diff = np.nan
 
-        weekly_index = -2
+        weekly_index = -2  # 默认取上周周均
         if close_date:
             close_datetime = datetime.strptime(close_date, '%Y-%m-%d')
-            if Utils.is_today(close_date):
+            is_today = Utils.is_today(close_date)
+            is_friday = close_datetime.weekday() >= 4  # 周五 (0=周一, 4=周五)
+            
+            if is_today and is_friday:
+                # 是今天且是周五，判断是否下午14:30以后
                 if Utils.is_after_friday_1430(close_datetime):
-                    weekly_index = -1
+                    weekly_index = -1  # 是，取本周周均
                 else:
-                    weekly_index = -2
+                    weekly_index = -2  # 否，取上周周均
             else:
-                weekly_index = -2
+                # 不是今天且周五，判断是否为周五
+                if is_friday:
+                    weekly_index = -1  # 是，取本周周均
+                else:
+                    weekly_index = -2  # 否，取上周周均
 
         monthly_index = -2
         if close_date:
