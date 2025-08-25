@@ -120,11 +120,23 @@ class DailyClosePriceDownloadModel:
                 for row in reader:
                     gregorian_date_str = self.convert_taiwan_date_to_gregorian(row['日期'].strip())
                     date = pd.to_datetime(gregorian_date_str, format='%Y/%m/%d').strftime('%Y-%m-%d')
-                    open_price = float(row['開盤價'].replace(',', '').strip())
-                    high_price = float(row['最高價'].replace(',', '').strip())
-                    low_price = float(row['最低價'].replace(',', '').strip())
-                    close_price = float(row['收盤價'].replace(',', '').strip())
+                    # {'日期': '114/08/19', '成交股數': '289', '成交金額': '3,622', '開盤價': '--', '最高價': '--', '最低價': '--', '收盤價': '--', '漲跌價差': ' 0.00', '成交筆數': '2', '': ''}
                     volume = int(row['成交股數'].replace(',', '').strip())
+                    str_open_price = row['開盤價'].replace(',', '').strip()
+                    str_high_price = row['最高價'].replace(',', '').strip()
+                    str_low_price = row['最低價'].replace(',', '').strip()
+                    str_close_price = row['收盤價'].replace(',', '').strip()
+                    if volume < 1000 and (str_open_price == '--' and str_high_price == '--' and str_low_price == '--' and str_close_price == '--'):
+                        open_price = open_price
+                        high_price = open_price
+                        low_price = open_price
+                        close_price = open_price
+                        volume = 0
+                    else:
+                        open_price = float(str_open_price)
+                        high_price = float(str_high_price)
+                        low_price = float(str_low_price)
+                        close_price = float(str_close_price)
                     
                     cursor.execute(
                         """INSERT INTO stock_data 
