@@ -127,10 +127,10 @@ class DailyClosePriceDownloadModel:
                     str_low_price = row['最低價'].replace(',', '').strip()
                     str_close_price = row['收盤價'].replace(',', '').strip()
                     if volume < 1000 and (str_open_price == '--' and str_high_price == '--' and str_low_price == '--' and str_close_price == '--'):
-                        open_price = open_price
-                        high_price = open_price
-                        low_price = open_price
-                        close_price = open_price
+                        open_price = close_price
+                        high_price = close_price
+                        low_price = close_price
+                        close_price = close_price
                         volume = 0
                     else:
                         open_price = float(str_open_price)
