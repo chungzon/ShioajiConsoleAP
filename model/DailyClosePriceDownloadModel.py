@@ -2,12 +2,13 @@
 import pandas as pd
 import time
 import os
-from datetime import datetime
+from datetime import date, datetime, timedelta
 import shioaji as sj
 import csv
 import io
 import requests
 from common.Event import Event
+import json
 
 
 class DailyClosePriceDownloadModel:
@@ -26,7 +27,7 @@ class DailyClosePriceDownloadModel:
         
         # 構建相對路徑
         resource_dir = os.path.join(current_dir, '..', 'resource')
-        self.stock_top_file = os.path.join(resource_dir, 'stock_top.xlsx')
+        self.tw_all_stocks_file = os.path.join(resource_dir, 'tw_all_stocks.csv')
         self.event = Event()
   
 
@@ -72,9 +73,9 @@ class DailyClosePriceDownloadModel:
                 self.download_otc_stock_data(self.api, stock_id, conn, cursor, view, start_date, end_date)
         else:
             # 讀取 CSV 檔案，取得所有股票代碼
-            stock_df = pd.read_csv(self.stock_top_file)
+            stock_df = pd.read_csv(self.tw_all_stocks_file)
             print(stock_df.columns)  # 打印出列標題名稱
-            top_30_stocks = stock_df['StockCode'][:1763]
+            top_30_stocks = stock_df['StockCode']
             # 下載資料並存入資料庫
             for code in top_30_stocks:
                 if self.check_stock_exists(code):
@@ -271,3 +272,330 @@ class DailyClosePriceDownloadModel:
     
         # If result[0] > 0, the stock exists
         return result[0] > 0
+
+    def download_daily_close_price(self):
+        """下載每日收盤價數據的任務"""
+        from datetime import date, datetime
+        import logging
+        
+        # 设置日志记录器
+        logger = logging.getLogger('DailyClosePriceDownloadModel')
+        logger.setLevel(logging.INFO)
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+        
+        today = date.today()
+        today_str = today.strftime("%Y-%m-%d")
+        
+        # self.write_log(f'開始下載 {today_str} 的每日收盤價數據')
+        logger.info(f"开始下载 {today_str} 的每日收盘价数据")
+
+        start_time = datetime.now()
+        success = False
+        
+        try:
+            # 检查是否已经下载过
+            if not self.ensure_system_config_table():
+                logger.error("無法確保 system_config 表存在,退出程序")
+                raise Exception("无法确保系统配置表存在")
+
+            last_download_date = self.get_last_download_date()
+            if last_download_date is None:
+                logger.error("無法獲取上次下載日期,退出程序")
+                raise Exception("无法获取上次下载日期")
+
+            if today <= last_download_date:
+                logger.info(f"今天 ({today}) 的數據已經下載過了,最後下載日期為 {last_download_date}")
+                self.write_log(f'今天 ({today}) 的數據已經下載過了')
+                return
+
+            # 下载TWSE数据
+            logger.info("開始從 TWSE 下載每日收盤價數據")
+            twse_data = self.download_data_from_twse()
+            if twse_data:
+                if self.insert_data_to_database(twse_data, is_twse=True):
+                    logger.info(f"成功下載TWSE數據，共 {len(twse_data)} 筆")
+                    success = True
+                else:
+                    logger.error("TWSE數據插入數據庫失敗")
+            else:
+                logger.error("無法從TWSE獲取數據")
+
+            # 下载TPEx数据
+            logger.info("開始從 TPEx 下載每日收盤價數據")
+            tpex_data = self.download_data_from_tpex()
+            if tpex_data:
+                if self.insert_data_to_database(tpex_data, is_twse=False):
+                    logger.info(f"成功下載TPEx數據，共 {len(tpex_data)} 筆")
+                    success = True
+                else:
+                    logger.error("TPEx數據插入數據庫失敗")
+            else:
+                logger.error("無法從TPEx獲取數據")
+
+            # 更新最后下载日期
+            if self.update_last_download_date(today):
+                logger.info(f"成功更新最後下載日期為 {today}")
+            else:
+                logger.error("更新最後下載日期失敗")
+
+            end_time = datetime.now()
+            duration = (end_time - start_time).total_seconds()
+
+            if success:
+                message = f'{today_str} 每日收盤價數據下載成功,耗時 {duration:.2f} 秒'
+            else:
+                message = f'{today_str} 每日收盤價數據下載失敗,請檢查日誌'
+
+            # self.write_log(message)
+            print(f"✅ {message}")
+            logger.info(f"下载任务完成: {message}")
+            
+        except Exception as e:
+            error_message = f'{today_str} 每日收盤價數據下載過程中發生錯誤: {str(e)}'
+            # self.write_log(error_message)
+            print(f"❌ {error_message}")
+            logger.error(f"下载任务异常: {error_message}")
+
+    def ensure_system_config_table(self):
+        """确保系统配置表存在"""
+        conn = self.connect_db()
+        if not conn:
+            return False
+
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='system_config' AND xtype='U')
+                CREATE TABLE system_config (
+                    name VARCHAR(100) PRIMARY KEY,
+                    value VARCHAR(100)
+                )
+            """)
+            conn.commit()
+            return True
+        except Exception as err:
+            self.write_log(f"創建 system_config 表時發生錯誤: {err}")
+            return False
+        finally:
+            cursor.close()
+            conn.close()
+
+    def get_last_download_date(self):
+        """获取上次下载日期"""
+        conn = self.connect_db()
+        if not conn:
+            return None
+
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT value FROM system_config WHERE name = 'last_download_date'")
+            result = cursor.fetchone()
+            if result:
+                return datetime.strptime(result[0], '%Y-%m-%d').date()
+            else:
+                # 如果參數不存在,創建它並設置為前一天
+                yesterday = date.today() - timedelta(days=1)
+                cursor.execute(
+                    "INSERT INTO system_config (name, value) VALUES (%s, %s)",
+                    ('last_download_date', yesterday.strftime('%Y-%m-%d'))
+                )
+                conn.commit()
+                return yesterday
+        except Exception as err:
+            self.write_log(f"獲取上次下載日期時發生錯誤: {err}")
+            return None
+        finally:
+            cursor.close()
+            conn.close()
+
+    def update_last_download_date(self, download_date):
+        """更新最后下载日期"""
+        conn = self.connect_db()
+        if not conn:
+            return False
+
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                IF EXISTS (SELECT * FROM system_config WHERE name = 'last_download_date')
+                    UPDATE system_config SET value = %s WHERE name = 'last_download_date'
+                ELSE
+                    INSERT INTO system_config (name, value) VALUES ('last_download_date', %s)
+            """, (download_date.strftime('%Y-%m-%d'), download_date.strftime('%Y-%m-%d')))
+            conn.commit()
+            return True
+        except Exception as err:
+            self.write_log(f"更新上次下載日期時發生錯誤: {err}")
+            return False
+        finally:
+            cursor.close()
+            conn.close()
+
+    def download_data_from_twse(self):
+        """从TWSE下载数据"""
+        try:
+            today = date.today().strftime('%Y%m%d')
+            
+            # 根據日期和股票代碼來構建請求URL
+            resp = requests.get(
+                f'https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX?date={today}&type=ALLBUT0999&response=csv')
+
+            if resp.status_code != 200:
+                raise Exception(f'HTTP response code is not 200: {resp.status_code}')
+                    
+            # 解析CSV數據
+            lines = io.StringIO(resp.text).readlines()
+            # 找到目標字符串所在的行
+            TARGET_STRING = "每日收盤行情(全部(不含權證、牛熊證))"
+            start_index = next((i for i, line in enumerate(lines) if TARGET_STRING in line), -1)
+            
+            if start_index == -1:
+                raise Exception(f"未找到包含 '{TARGET_STRING}' 的行")
+            
+            # 漲跌(+/-)欄位符號說明:+/-/X表示漲/跌/不比價。
+            end_index = next((i for i, line in enumerate(lines) if '漲跌(+/-)欄位符號說明:+/-/X表示漲/跌/不比價。' in line), -1)
+            
+            # 從目標字符串後的第三行開始讀取數據
+            lines = lines[start_index + 2:end_index - 1]
+
+            reader = csv.DictReader(io.StringIO('\n'.join(lines)))
+            conn = self.connect_db()
+            if not conn:
+                return None
+            
+            data = []
+            for row in reader:
+                try:
+                    stock_id = row['證券代號'].strip()
+                    stock_name = row['證券名稱'].strip()
+                    if row['開盤價'] is not None:
+                        open_price = self.parse_float(row['開盤價'].replace(',', '').strip())
+                    else:
+                        open_price = None
+
+                    if row['最高價'] is not None:
+                        high_price = self.parse_float(row['最高價'].replace(',', '').strip())
+                    else:
+                        high_price = None
+
+                    if row['最低價'] is not None:
+                        low_price = self.parse_float(row['最低價'].replace(',', '').strip())
+                    else:
+                        low_price = None
+
+                    if row['收盤價'] is not None:
+                        close_price = self.parse_float(row['收盤價'].replace(',', '').strip())
+                    else:
+                        close_price = None
+
+                    if row['成交股數'] is not None:
+                        volume = self.parse_int(row['成交股數'])
+                    else:
+                        volume = None
+
+                    stock_data = {
+                        'Code': stock_id,
+                        'Name': stock_name,
+                        'Date': today,
+                        'OpeningPrice': open_price,
+                        'HighestPrice': high_price,
+                        'LowestPrice': low_price,
+                        'ClosingPrice': close_price,
+                        'TradeVolume': volume
+                    }
+                    data.append(stock_data)
+                except Exception as e:
+                    self.write_log(f"處理TWSE數據時發生錯誤: {e}")
+
+            return data
+
+        except Exception as e:
+            self.write_log(f"下載TWSE數據時發生錯誤: {e}")
+            return None
+
+    def download_data_from_tpex(self):
+        """从TPEx下载数据"""
+        try:
+            tpex_api_url = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_quotes"
+            response = requests.get(tpex_api_url)
+            response.raise_for_status()
+            return json.loads(response.text)
+        except requests.RequestException as e:
+            self.write_log(f"TPEx API 請求錯誤: {e}")
+            return None
+
+    def insert_data_to_database(self, data, is_twse):
+        """将数据插入数据库"""
+        conn = self.connect_db()
+        if not conn:
+            return False
+
+        cursor = conn.cursor()
+        sql = """INSERT INTO stock_data 
+                 (stock_id, date, open_price, high_price, low_price, close_price, volume) 
+                 VALUES (%s, %s, %s, %s, %s, %s, %s)"""
+
+        today = date.today().strftime('%Y-%m-%d')
+
+        try:
+            for stock in data:
+                if is_twse:
+                    values = (
+                        stock['Code'].replace('=', '').replace('"', ''),
+                        today,
+                        stock['OpeningPrice'],
+                        stock['HighestPrice'],
+                        stock['LowestPrice'],
+                        stock['ClosingPrice'],
+                        stock['TradeVolume']
+                    )
+                else:  # TPEx data
+                    values = (
+                        stock['SecuritiesCompanyCode'].replace('=', '').replace('"', ''),
+                        self.convert_tw_date_to_ad(stock['Date']),
+                        self.parse_float(stock['Open']),
+                        self.parse_float(stock['High']),
+                        self.parse_float(stock['Low']),
+                        self.parse_float(stock['Close']),
+                        self.parse_int(stock['TradingShares'])
+                    )
+                cursor.execute(sql, values)
+
+            conn.commit()
+            self.write_log(f"數據已成功下載並存儲到 stock_data 表中，日期為 {today}")
+            return True
+        except Exception as err:
+            self.write_log(f"數據插入錯誤: {err}")
+            conn.rollback()
+            return False
+        finally:
+            cursor.close()
+            conn.close()
+
+    def parse_float(self, value):
+        """解析浮点数"""
+        return float(value) if value not in ['--', '----', ''] else None
+
+    def parse_int(self, value):
+        """解析整数"""
+        return int(value.replace(',', '')) if value not in ['--', '----', ''] else None
+
+    def convert_tw_date_to_ad(self, tw_date_str):
+        """转换台湾日期为西元日期"""
+        tw_date_str = str(tw_date_str)
+        
+        if len(tw_date_str) != 7:
+            raise ValueError("輸入的日期格式不正確。應為 7 位數字，例如 '1131004'")
+        
+        tw_year = int(tw_date_str[:3])
+        month = int(tw_date_str[3:5])
+        day = int(tw_date_str[5:])
+        
+        ad_year = tw_year + 1911
+        date_obj = datetime(ad_year, month, day)
+        
+        return date_obj.strftime('%Y-%m-%d') 
+        

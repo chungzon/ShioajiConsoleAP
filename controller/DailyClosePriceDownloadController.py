@@ -9,4 +9,7 @@ class DailyClosePriceDownloadController:
         self.view.controller = self
             
     def download_daily_close_price(self, start_date, end_date, stock_id=None):
-        self.model.download_daily_close_top30_stock(self.view, start_date, end_date, stock_id)
+        if stock_id is None:
+            self.model.download_daily_close_price()
+        else:
+            self.model.download_daily_close_top30_stock(self.view, start_date, end_date, stock_id)

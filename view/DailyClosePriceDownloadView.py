@@ -35,7 +35,7 @@ class DailyClosePriceDownloadView(tk.Frame):
 
         ttk.Button(self, text="下載", command=self.start_download_thread).grid(row=5, column=0, columnspan=2, pady=10)
 
-        ttk.Button(self, text="下載當日收盤價", command=self.start_download_all_thread).grid(row=5, column=1, pady=10)
+        ttk.Button(self, text="下載當日收盤價", command=self.start_download_thread).grid(row=5, column=1, pady=10)
 
     def start_download_thread(self):
         # 開始一個新線程來處理下載，以防止卡住GUI
@@ -80,6 +80,7 @@ class DailyClosePriceDownloadView(tk.Frame):
         thread.start()
 
     def run_auto_download(self):
+        
         # auto_downloader = AutoDownloadDailyClosePrice.AutoDownloadDailyClosePrice()
         # # 訂閱日誌消息
         # auto_downloader.event_bus.subscribe("log_message", self.handle_log_message)
