@@ -1409,10 +1409,15 @@ class SelectStockView(tk.Frame):
             screenshot.save(file_path, "PNG")
 
     def recalculate(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state):
-        # 分別取得ratio比例為0和1的價格，並轉為float
+        # 分別取得ratio比例為0和2的價格，並轉為float
         # 取得table中ratio比例為0和2的價格
         ratio_0_price = float(self.ratio_table.item(1, 1).text())
         ratio_2_price = float(self.ratio_table.item(25, 1).text())
+        
+        # 確保 max_value 和 min_value 的順序正確
+        max_value = max(ratio_2_price, ratio_0_price)
+        min_value = min(ratio_2_price, ratio_0_price)
+        
         # 重新計算各比例價格
         ratios = list(ratio_prices.keys())
         for ratio in ratios:
@@ -1422,7 +1427,7 @@ class SelectStockView(tk.Frame):
                 ratio_prices[ratio] = ratio_2_price
             else:
                 # 修正參數順序：max_value, min_value, ratio
-                ratio_prices[ratio] = Math.calculate_ratio_value(ratio_2_price, ratio_0_price, float(ratio))
+                ratio_prices[ratio] = Math.calculate_ratio_value(max_value, min_value, float(ratio))
         
         # 清空指標、總波段及獲利列
         for r in range(self.ratio_table.rowCount()):
