@@ -73,6 +73,7 @@ def is_today(date_str: str) -> bool:
 def is_last_day_of_month(date: datetime) -> bool:
     """
     判斷傳入日期是否為當月最後一天
+    如果傳入的日期為當月最後一周的六、日，且日期為當月最後三天，則回傳True
     """
     last_day = calendar.monthrange(date.year, date.month)[1]
     if date.day == last_day:
@@ -80,6 +81,8 @@ def is_last_day_of_month(date: datetime) -> bool:
             return True
         else:
             return False
+    elif date.weekday() >= 5 and date.day >= last_day - 2:
+        return True
     else:
         return False
 
