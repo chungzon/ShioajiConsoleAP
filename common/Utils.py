@@ -81,7 +81,7 @@ def is_last_day_of_month(date: datetime) -> bool:
             return True
         else:
             return False
-    elif date.weekday() >= 5 and date.day >= last_day - 2:
+    elif date.weekday() >= 4 and date.day >= last_day - 2:
         return True
     else:
         return False
