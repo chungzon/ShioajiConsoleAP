@@ -73,7 +73,7 @@ class BaseModel:
         conn = self.connect_db()
         if recent_end_date is None:
             query = f"""
-            SELECT DISTINCT TOP 300 ts, Open_Price, High, Low, Close_Price, Volume
+            SELECT DISTINCT TOP 900 ts, Open_Price, High, Low, Close_Price, Volume
             FROM Kbars
             WHERE stock_id = '{stock_id}' ORDER BY ts DESC
             """
@@ -81,7 +81,7 @@ class BaseModel:
             # recent_end_date 往前推30天
             recent_end_date = pd.to_datetime(recent_end_date) + pd.Timedelta(days=1)
             query = f"""
-            SELECT DISTINCT TOP 300 ts, Open_Price, High, Low, Close_Price, Volume
+            SELECT DISTINCT TOP 900 ts, Open_Price, High, Low, Close_Price, Volume
             FROM Kbars
             WHERE stock_id = '{stock_id}' AND ts <= '{recent_end_date}' ORDER BY ts DESC
             """
