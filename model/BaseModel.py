@@ -251,7 +251,7 @@ class BaseModel:
         k15_sma_values = self.calculate_k15_sma(stock_id, recent_end_date)
         sma_values, weekly_sma_values, monthly_sma_values, latest_close_prices, latest_dates = self.calculate_sma(stock_id, recent_end_date)
 
-        periods = [5, 10, 20, 60, 120, 'strong', 'weak']
+        periods = [5, 10, 20, 60, 120, 'strong', 'weak', '60_diff']
         sma_periods = [5, 10, 20, 60, 120, '5_diff', '10_diff', '20_diff', '60_diff', '120_diff']
         sma_columns = [f'sma_{period}' for period in sma_periods]
         weekly_sma_periods = [5, 10, 20, 60, 120, '5_diff', '10_diff', '20_diff', '60_diff', '120_diff']
@@ -974,7 +974,7 @@ class BaseModel:
             kbars = self.get_stock_kbar_from_db_top300(stock_id, recent_end_date)
 
         if kbars.empty:
-            return [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+            return [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
         
         # 轉換時間格式
         kbars['date'] = pd.to_datetime(kbars['date'])
@@ -1005,19 +1005,20 @@ class BaseModel:
         k15 = pd.concat(all_k15)
 
         # 計算15分鐘K線的SMA，處理數據不足的情況
-        k15_5sma = k15['Close_Price'].rolling(window=5, min_periods=5).mean().iloc[-1]
-        k15_10sma = k15['Close_Price'].rolling(window=10, min_periods=10).mean().iloc[-1]
-        k15_20sma = k15['Close_Price'].rolling(window=20, min_periods=20).mean().iloc[-1]
-        k15_60sma = k15['Close_Price'].rolling(window=60, min_periods=60).mean().iloc[-1]
-        k15_120sma = k15['Close_Price'].rolling(window=120, min_periods=120).mean().iloc[-1]
+        k15_5sma = Math.calculate_moving_average(k15['Close_Price'], 5)
+        k15_10sma = Math.calculate_moving_average(k15['Close_Price'], 10)
+        k15_20sma = Math.calculate_moving_average(k15['Close_Price'], 20)
+        k15_60sma = Math.calculate_moving_average(k15['Close_Price'], 60)
+        k15_120sma = Math.calculate_moving_average(k15['Close_Price'], 120)
+
 
         # 計算15分鐘K線的SMA
         k15_sma = [
-            round(k15_5sma if not np.isnan(k15_5sma) else np.nan, 2),
-            round(k15_10sma if not np.isnan(k15_10sma) else np.nan, 2),
-            round(k15_20sma if not np.isnan(k15_20sma) else np.nan, 2),
-            round(k15_60sma if not np.isnan(k15_60sma) else np.nan, 2),
-            round(k15_120sma if not np.isnan(k15_120sma) else np.nan, 2)
+            round(k15_5sma.iloc[-1] if not np.isnan(k15_5sma.iloc[-1]) else np.nan, 2),
+            round(k15_10sma.iloc[-1] if not np.isnan(k15_10sma.iloc[-1]) else np.nan, 2),
+            round(k15_20sma.iloc[-1] if not np.isnan(k15_20sma.iloc[-1]) else np.nan, 2),
+            round(k15_60sma.iloc[-1] if not np.isnan(k15_60sma.iloc[-1]) else np.nan, 2),
+            round(k15_120sma.iloc[-1] if not np.isnan(k15_120sma.iloc[-1]) else np.nan, 2)
         ]
 
         # 日期不為NULL
@@ -1034,8 +1035,8 @@ class BaseModel:
             if not k15.empty and len(k15) >= 20:
                 # k15_stock_strong = (k15_10sma*10 - k15['Close_Price'].iloc[-10] + k15['Close_Price'].iloc[-1])/(10-1) # 續強公式
                 # k15_stock_weak = (k15_20sma*20 - k15['Close_Price'].iloc[-20] + k15['Close_Price'].iloc[-1])/(20-1) # 續弱公式
-                k15_stock_strong = (k15_10sma*10 - k15['Close_Price'].iloc[-10])/(10-1) # 續強公式
-                k15_stock_weak = (k15_20sma*20 - k15['Close_Price'].iloc[-20])/(20-1) # 續弱公式
+                k15_stock_strong = (k15_10sma.iloc[-1]*10 - k15['Close_Price'].iloc[-10])/(10-1) # 續強公式
+                k15_stock_weak = (k15_20sma.iloc[-1]*20 - k15['Close_Price'].iloc[-20])/(20-1) # 續弱公式
                 k15_sma.append(round(k15_stock_strong, 2))
                 k15_sma.append(round(k15_stock_weak, 2))
             else:
@@ -1043,6 +1044,15 @@ class BaseModel:
         else:
             # 當 recent_end_date 為 None 時，也要返回7個值以匹配期望的列數
             k15_sma.extend([np.nan, np.nan])
+
+        
+    
+        k15_60sma_diff = np.nan
+        if len(k15_60sma) >= 60:
+            k15_60sma_diff = (k15_60sma.iloc[-1]*60 - k15['Close_Price'].iloc[-60])/(60-1)
+            k15_sma.append(round(k15_60sma_diff, 2))
+        else:
+            k15_sma.append(np.nan)
 
         return k15_sma
 
