@@ -74,7 +74,8 @@ class SelectStockController:
                 "60MA": recent_segment.get('15min_sma_60', 'N/A'),
                 "120MA": recent_segment.get('15min_sma_120', 'N/A'),
                 "strong": recent_segment.get('15min_sma_strong', 'N/A'),
-                "weak": recent_segment.get('15min_sma_weak', 'N/A')
+                "weak": recent_segment.get('15min_sma_weak', 'N/A'),
+                "60_diff": recent_segment.get('15min_sma_60_diff', 'N/A')
             },
             "latest_close_price": total_segment.get('latest_close_price', 'N/A')
         }
