@@ -1,0 +1,32 @@
+# 核心依賴套件
+shioaji>=1.0.0
+pandas>=1.3.0
+numpy>=1.21.0
+pymssql>=2.2.0
+
+# GUI 相關套件
+tkcalendar>=1.6.0
+tkintertable>=1.2.0
+PyQt5>=5.15.0
+
+# 數據視覺化
+matplotlib>=3.5.0
+Pillow>=8.3.0
+
+# 機器學習
+scikit-learn>=1.0.0
+joblib>=1.1.0
+
+# 網路和爬蟲
+requests>=2.25.0
+beautifulsoup4>=4.9.0
+selenium>=4.0.0
+
+# 排程和通知
+schedule>=1.1.0
+plyer>=2.0.0
+win10toast>=0.9
+
+# 其他工具
+pyperclip>=1.8.0
+xlsxwriter>=3.0.0
