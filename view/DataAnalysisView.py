@@ -945,6 +945,7 @@ class DataAnalysisView(tk.Frame):
             ('月', '10'), ('月', '20'), ('月', '60'), ('月', '120'),('日', 'strong'), ('日', 'weak'),
             ('周', 'strong'), ('周', 'weak'),
             # 扣抵值集合
+            ('15K', '60MA_DIFF'),
             ('日', '5MA_DIFF'), ('日', '10MA_DIFF'), ('日', '20MA_DIFF'), ('日', '60MA_DIFF'), ('日', '120MA_DIFF'),
             ('周', '5MA_DIFF'), ('周', '10MA_DIFF'), ('周', '20MA_DIFF'), ('周', '60MA_DIFF'), ('周', '120MA_DIFF'),
             ('月', '5MA_DIFF'), ('月', '10MA_DIFF'), ('月', '20MA_DIFF'), ('月', '60MA_DIFF'), ('月', '120MA_DIFF')
