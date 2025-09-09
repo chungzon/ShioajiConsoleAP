@@ -550,7 +550,7 @@ class SelectStockView(tk.Frame):
         table.resizeColumnsToContents()
         return table
 
-    def create_ratio_table(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state):
+    def create_ratio_table(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, ma_checkbox_state=True):
         # self.ratio_table = QTableWidget()
         # self.ratio_table.setColumnCount(5)  # 比例、總波段、指標, 最近波段
         
@@ -694,6 +694,7 @@ class SelectStockView(tk.Frame):
                 all_prices.append((name, value, False))
             
             # 添加均線數據
+            # 當ma_checkbox為False時，不顯示均價指標，但顯示扣抵值
             ma_types = {'日均線': '日', '週均線': '周', '月均線': '月', '15分鐘均線': '15K'}
             for ma_key, prefix in ma_types.items():
                 ma_data = organized_ma_data[ma_key]
@@ -703,13 +704,16 @@ class SelectStockView(tk.Frame):
                         period_num = ma_period.replace('MA', '')
                         name = f"{prefix}({period_num})"
                         now_price = organized_ma_data['latest_close_price']
+                        
+                        # 如果是扣抵值，總是顯示
                         if 'DIFF' in ma_period:
                             diff_ratio = Math.calculate_price_diff_ratio(value, now_price)
                             period_num = ma_period.replace('_DIFF', '')
                             name = f"{prefix}({period_num}) 扣抵值[{diff_ratio}%]"
-                        # if value != 'N/A' and (float(value) <= Math.calculate_up_limit_price_1_15(now_price) and float(value) >= Math.calculate_down_limit_price_1_15(now_price)):
-                        #     all_prices.append((name, value, False))
-                        all_prices.append((name, value, False))
+                            all_prices.append((name, value, False))
+                        # 如果是均價指標，根據ma_checkbox_state決定是否顯示
+                        elif ma_checkbox_state:
+                            all_prices.append((name, value, False))
             
             # 添加最近波段數據
             if recent_ratio_prices:
@@ -912,7 +916,14 @@ class SelectStockView(tk.Frame):
         gap_checkbox.setChecked(True)
         gap_checkbox.setFont(font)
         export_layout.addWidget(gap_checkbox)
-        gap_checkbox.stateChanged.connect(lambda: self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked()))
+        gap_checkbox.stateChanged.connect(lambda: self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked(), ma_checkbox.isChecked()))
+
+        # 顯示均價指標checkbox
+        ma_checkbox = QCheckBox("顯示均價指標")
+        ma_checkbox.setChecked(True)
+        ma_checkbox.setFont(font)
+        export_layout.addWidget(ma_checkbox)
+        ma_checkbox.stateChanged.connect(lambda: self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked(), ma_checkbox.isChecked()))
         # 匯出json檔案按鈕
         export_json_button = QPushButton("匯出json檔案")
         export_json_button.setFont(font)
@@ -922,7 +933,7 @@ class SelectStockView(tk.Frame):
         # 重新計算按鈕
         recalculate_button = QPushButton("重新計算")
         recalculate_button.setFont(font)
-        recalculate_button.clicked.connect(lambda: self.recalculate(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked()))
+        recalculate_button.clicked.connect(lambda: self.recalculate(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked(), ma_checkbox.isChecked()))
         export_layout.addWidget(recalculate_button)
 
         self.ratio_layout.addLayout(export_layout)
@@ -935,7 +946,7 @@ class SelectStockView(tk.Frame):
         self.ratio_table.setColumnCount(5)  # 比例、最近波段、總波段、指標, 獲利
         self.ratio_layout.addWidget(self.ratio_table)
         self.ratio_tab.setLayout(self.ratio_layout)
-        self.update_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked())
+        self.update_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked(), ma_checkbox.isChecked())
         
 
         # 设置主布局
@@ -972,9 +983,9 @@ class SelectStockView(tk.Frame):
         
         self.detail_window.show()
 
-    def update_table(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state):
+    def update_table(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, ma_checkbox_state=True):
         # 創建比例表格
-        self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state)
+        self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, ma_checkbox_state)
 
     def insert_table_row(self, table, row, values):
         """輔助函數：插一行數據到表格中"""
@@ -1408,7 +1419,7 @@ class SelectStockView(tk.Frame):
             # 保存截圖
             screenshot.save(file_path, "PNG")
 
-    def recalculate(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state):
+    def recalculate(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, ma_checkbox_state=True):
         # 分別取得ratio比例為0和2的價格，並轉為float
         # 取得table中ratio比例為0和2的價格
         ratio_0_price = float(self.ratio_table.item(1, 1).text())
@@ -1435,7 +1446,7 @@ class SelectStockView(tk.Frame):
             self.ratio_table.setItem(r, 3, QTableWidgetItem(""))
             self.ratio_table.setItem(r, 4, QTableWidgetItem(""))
 
-        self.update_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state)
+        self.update_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, ma_checkbox_state)
 
     def save_kbars_data(self, event):
         # 儲存1分K資料為txt檔案，檔名為{stock_id}_{end_date}.txt
