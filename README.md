@@ -186,3 +186,5 @@ conda install pymssql
 ---
 
 **注意**: 本專案主要針對 Windows 環境開發，其他作業系統可能需要額外設定。
+
+
