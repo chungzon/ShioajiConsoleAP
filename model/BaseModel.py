@@ -568,7 +568,7 @@ class BaseModel:
 
             # 查詢語句
             query = f"""
-            SELECT DISTINCT stock_id, date, high_price, low_price 
+            SELECT DISTINCT stock_id, date, high_price, low_price, close_price
             FROM stock_data
             WHERE stock_id = '{stock_id}'
             AND date >= '{start_date}'
