@@ -523,6 +523,110 @@ class StockAPIGUIView(ttk.Frame):
                         'error': f'伺服器內部錯誤: {str(e)}'
                     }), 500
 
+            # 5分K資料匯出
+            @app.route('/api/export-5min-kbar', methods=['POST'])
+            def export_5min_kbar():
+                try:
+                    log_callback("收到5分K資料匯出請求")
+                    
+                    # 獲取請求資料
+                    data = request.get_json()
+                    log_callback(f"請求資料: {json.dumps(data, ensure_ascii=False)}")
+                    
+                    # 驗證必要參數
+                    if not data:
+                        log_callback("錯誤: 請提供JSON格式的請求資料", "ERROR")
+                        return jsonify({
+                            'success': False,
+                            'error': '請提供JSON格式的請求資料'
+                        }), 400
+                    
+                    required_fields = ['stock_id', 'start_date', 'end_date']
+                    for field in required_fields:
+                        if field not in data:
+                            log_callback(f"錯誤: 缺少必要參數: {field}", "ERROR")
+                            return jsonify({
+                                'success': False,
+                                'error': f'缺少必要參數: {field}'
+                            }), 400
+                    
+                    # 解析參數
+                    stock_id = data['stock_id']
+                    start_date_str = data['start_date']
+                    end_date_str = data['end_date']
+                    
+                    log_callback(f"處理股票代碼: {stock_id}, 日期範圍: {start_date_str} 到 {end_date_str}")
+                    
+                    # 解析日期
+                    try:
+                        from datetime import datetime, timedelta
+                        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+                    except ValueError as e:
+                        log_callback(f"錯誤: 日期格式錯誤: {e}", "ERROR")
+                        return jsonify({
+                            'success': False,
+                            'error': f'日期格式錯誤: {e}。請使用 YYYY-MM-DD 格式'
+                        }), 400
+
+                    # df = self.export_json.get_stock_data(stock_id, start_date, end_date)
+                    kbars_df = self.export_json.get_stock_KBars(stock_id, start_date, end_date)
+
+                    # if df is None or df.empty:
+                    #     log_callback(f"錯誤: 無法取得股票 {stock_id} 的資料", "ERROR")
+                    #     return jsonify({
+                    #         'success': False,
+                    #         'error': f'無法取得股票 {stock_id} 的資料，請檢查股票代碼或日期範圍'
+                    #     }), 404
+                    # log_callback(f"成功取得 {len(df)} 筆股票資料")
+
+                    if kbars_df is None or kbars_df.empty:
+                        log_callback(f"錯誤: 無法取得股票 {stock_id} 的資料", "ERROR")
+                        return jsonify({
+                            'success': False,
+                            'error': f'無法取得股票 {stock_id} 的資料，請檢查股票代碼或日期範圍'
+                        }), 404
+
+                    # 生成5分K資料
+                    kbar_data = self.export_json.generate_5min_kbar(kbars_df)
+                    if kbar_data:
+                        log_callback("5分K資料處理完成，返回結果")
+                        log_callback(f"返回資料大小: {len(json.dumps(kbar_data, ensure_ascii=False))} 字元")
+                        return jsonify({
+                            'success': True,
+                            'data': kbar_data,
+                            'count': len(kbar_data),
+                            'message': f'成功取得股票 {stock_id} 的5分K資料，共 {len(kbar_data)} 筆'
+                        })
+                    else:
+                        log_callback("錯誤: 5分K資料處理失敗", "ERROR")
+                        return jsonify({
+                            'success': False,
+                            'error': '5分K資料處理失敗'
+                        }), 500
+                    
+                    if kbar_data:
+                        log_callback("5分K資料處理完成，返回結果")
+                        log_callback(f"返回資料大小: {len(json.dumps(kbar_data, ensure_ascii=False))} 字元")
+                        return jsonify({
+                            'success': True,
+                            'data': kbar_data,
+                            'count': len(kbar_data),
+                            'message': f'成功取得股票 {stock_id} 的5分K資料，共 {len(kbar_data)} 筆'
+                        })
+                    else:
+                        log_callback("錯誤: 5分K資料處理失敗", "ERROR")
+                        return jsonify({
+                            'success': False,
+                            'error': '5分K資料處理失敗'
+                        }), 500
+                except Exception as e:
+                    log_callback(f"錯誤: 伺服器內部錯誤: {str(e)}", "ERROR")
+                    return jsonify({
+                        'success': False,
+                        'error': f'伺服器內部錯誤: {str(e)}'
+                    }), 500
+
             @app.route('/api/health', methods=['GET'])
             def health_check():
                 log_callback("收到健康檢查請求")
