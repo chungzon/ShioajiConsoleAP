@@ -372,7 +372,7 @@ class StockAPIGUIView(ttk.Frame):
                             result = self.data_analysis_model.get_stock_data_from_all_wave_extremes(
                                 stock_id, start_date_str, end_date_str, recent_start_date_str, recent_end_date_str
                             )
-                            
+                            next_open_price = None
                             if result is not None:
                                 segment, recent_segment, gap_df, now_price, latest_close_price_by_date, next_open_price = result
                                 
@@ -396,14 +396,25 @@ class StockAPIGUIView(ttk.Frame):
                                             ratio_num = col.replace('Ratio_', '')
                                             ratio_data[f'[{ratio_num}]'] = "nan"
                                 
-                                # 整理SMA資料
                                 sma_data = {}
+                                # 整理15K資料
+                                k15_data = {}
+                                for period in [10, 20, 60]:
+                                    col_name = f'15min_sma_{period}_diff'
+                                    if col_name in recent_segment:
+                                        value = recent_segment[col_name]
+                                        if value is not None and str(value) != 'N/A' and str(value) != 'nan':
+                                            sma_data[f'15K({period})_DIFF'] = f"{float(value):.2f}"
+                                        else:
+                                            sma_data[f'15K({period})_DIFF'] = "nan"
+
+                                # 整理SMA資料
                                 
                                 # 日線SMA
                                 for period in [5, 10, 20, 60, 120]:
-                                    col_name = f'sma_{period}'
-                                    if col_name in segment:
-                                        value = segment[col_name]
+                                    col_name = f'sma_{period}_diff'
+                                    if col_name in recent_segment:
+                                        value = recent_segment[col_name]
                                         if value is not None and str(value) != 'N/A' and str(value) != 'nan':
                                             sma_data[f'日({period})_DIFF'] = f"{float(value):.2f}"
                                         else:
@@ -411,9 +422,9 @@ class StockAPIGUIView(ttk.Frame):
                                 
                                 # 週線SMA
                                 for period in [5, 10, 20, 60, 120]:
-                                    col_name = f'weekly_sma_{period}'
-                                    if col_name in segment:
-                                        value = segment[col_name]
+                                    col_name = f'weekly_sma_{period}_diff'
+                                    if col_name in recent_segment:
+                                        value = recent_segment[col_name]
                                         if value is not None and str(value) != 'N/A' and str(value) != 'nan':
                                             sma_data[f'週({period})_DIFF'] = f"{float(value):.2f}"
                                         else:
@@ -421,9 +432,9 @@ class StockAPIGUIView(ttk.Frame):
                                 
                                 # 月線SMA
                                 for period in [5, 10, 20, 60, 120]:
-                                    col_name = f'monthly_sma_{period}'
-                                    if col_name in segment:
-                                        value = segment[col_name]
+                                    col_name = f'monthly_sma_{period}_diff'
+                                    if col_name in recent_segment:
+                                        value = recent_segment[col_name]
                                         if value is not None and str(value) != 'N/A' and str(value) != 'nan':
                                             sma_data[f'月({period})_DIFF'] = f"{float(value):.2f}"
                                         else:
@@ -450,7 +461,7 @@ class StockAPIGUIView(ttk.Frame):
                                 # 整理要回傳的資料
                                 json_data = {
                                     'stock_code': stock_id,
-                                    'base': f"{segment.get('latest_close_price', 0):.2f}",
+                                    'base': f"{next_open_price['open_price']:.2f}",
                                     'before_n': "2",
                                     'date': end_date.strftime('%Y-%m-%d'),
                                     'enable_15k10ma': True,

@@ -1,190 +1,311 @@
-# ShioajiConsoleAP 股票分析系統
+# ShioajiConsole 股票分析與資料匯出系統
 
-## 📋 專案概述
+## 版本資訊
+- **版本**: 1.0.0
+- **發布日期**: 2024年12月
+- **支援平台**: Windows 10/11
+- **Python版本**: 3.8+
 
-ShioajiConsoleAP 是一個基於永豐金證券API的股票分析系統，提供數據下載、即時監控、技術分析、回測和選股等功能。
+## 系統簡介
 
-## 🚀 快速開始
+ShioajiConsole 是一個功能完整的股票分析與資料匯出系統，整合了永豐證券 Shioaji API，提供以下主要功能：
 
-### 1. 環境要求
-- **Python**: 3.7 或更高版本
-- **作業系統**: Windows 10/11 (主要支援)
-- **記憶體**: 4GB 以上
-- **網路**: 穩定的網路連接
+### 主要功能模組
 
-### 2. 安裝依賴套件
+1. **資料分析** - 技術指標計算與波段分析
+2. **資料下載** - 股票歷史資料下載與管理
+3. **即時監控** - 即時股價監控與警示
+4. **資料回測** - 策略回測與績效分析
+5. **年度交易量下載** - 年度交易量統計
+6. **選股策略** - 多種選股策略與篩選
+7. **API服務** - RESTful API 服務提供
 
+## 安裝與執行
+
+### 方法一：直接執行（推薦）
+1. 下載 `ShioajiConsole.exe`
+2. 雙擊執行即可
+
+### 方法二：從原始碼執行
+1. 確保已安裝 Python 3.8+
+2. 安裝必要套件：
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. 執行主程式：
+   ```bash
+   python Main.py
+   ```
+
+## API 使用說明
+
+### 啟動 API 服務
+
+1. 開啟 ShioajiConsole 應用程式
+2. 切換到「API服務」分頁
+3. 設定服務參數：
+   - **IP地址**: 預設為 `localhost`
+   - **端口**: 預設為 `5000`
+4. 點擊「啟動服務」按鈕
+5. 服務啟動後會顯示服務狀態和 URL
+
+### API 端點說明
+
+#### 1. 健康檢查
+```http
+GET http://localhost:5000/api/health
+```
+
+**回應範例**:
+```json
+{
+    "status": "healthy",
+    "message": "股票資料匯出API服務正常運行",
+    "timestamp": "2024-12-19T10:30:00"
+}
+```
+
+#### 2. 股票資料匯出
+```http
+POST http://localhost:5000/api/export-stock-data
+Content-Type: application/json
+```
+
+**請求參數**:
+```json
+{
+    "stock_id": "2330",
+    "start_date": "2024-01-01",
+    "end_date_start": "2024-12-01",
+    "end_date_end": "2024-12-31"
+}
+```
+
+**參數說明**:
+- `stock_id`: 股票代碼（字串）
+- `start_date`: 起始日期（YYYY-MM-DD 格式）
+- `end_date_start`: 結束日期開始（YYYY-MM-DD 格式）
+- `end_date_end`: 結束日期結束（YYYY-MM-DD 格式）
+
+**回應範例**:
+```json
+{
+    "success": true,
+    "data": [
+        {
+            "stock_code": "2330",
+            "base": "580.00",
+            "before_n": "5",
+            "calculation_date": "2024-12-01",
+            "date": "2024-12-01",
+            "date_index": 1,
+            "day_of_week": "Sunday",
+            "data": {
+                "[0]": "450.00",
+                "[0.191]": "474.80",
+                "[0.382]": "499.60",
+                "[0.5]": "515.00",
+                "[0.618]": "530.40",
+                "[0.809]": "555.20",
+                "[1]": "580.00",
+                "日(5)_DIFF": "2.50",
+                "日(10)_DIFF": "1.80",
+                "日(20)_DIFF": "0.95",
+                "CDP": "575.00",
+                "NH": "580.00",
+                "NL": "570.00",
+                "AH": "585.00",
+                "AL": "565.00",
+                "NOW PRICE": "580.00"
+            },
+            "enable_15k10ma": true,
+            "enable_15k20ma": true,
+            "extend_over_ratio_dont_buy": "0.03",
+            "extend_time": "00:30:00",
+            "final_buy": "12:00:00",
+            "no_buy_after": "10:00:00",
+            "over_ratio_dont_buy": "0.03",
+            "success": true
+        }
+    ],
+    "count": 31,
+    "successful_count": 31,
+    "date_range": {
+        "start_date": "2024-01-01",
+        "end_date_start": "2024-12-01",
+        "end_date_end": "2024-12-31",
+        "total_days": 31
+    },
+    "message": "成功取得股票 2330 的資料，日期區間 2024-12-01 至 2024-12-31，共 31 個日期，成功 31 個"
+}
+```
+
+#### 3. API 說明
+```http
+GET http://localhost:5000/
+```
+
+**回應範例**:
+```json
+{
+    "service": "股票資料匯出API",
+    "version": "1.0.0",
+    "endpoints": {
+        "POST /api/export-stock-data": {
+            "description": "匯出股票資料",
+            "parameters": {
+                "stock_id": "股票代碼 (字串)",
+                "start_date": "起始日期 (YYYY-MM-DD)",
+                "end_date_start": "結束日期開始 (YYYY-MM-DD)",
+                "end_date_end": "結束日期結束 (YYYY-MM-DD)"
+            }
+        },
+        "GET /api/health": "健康檢查",
+        "GET /": "API說明"
+    }
+}
+```
+
+### 使用範例
+
+#### Python 範例
+```python
+import requests
+import json
+
+# API 服務地址
+base_url = "http://localhost:5000"
+
+# 測試健康檢查
+response = requests.get(f"{base_url}/api/health")
+print("健康檢查:", response.json())
+
+# 匯出股票資料
+data = {
+    "stock_id": "2330",
+    "start_date": "2024-01-01",
+    "end_date_start": "2024-12-01",
+    "end_date_end": "2024-12-31"
+}
+
+response = requests.post(
+    f"{base_url}/api/export-stock-data",
+    json=data,
+    headers={'Content-Type': 'application/json'}
+)
+
+result = response.json()
+print("匯出結果:", json.dumps(result, ensure_ascii=False, indent=2))
+```
+
+#### JavaScript 範例
+```javascript
+// 測試健康檢查
+fetch('http://localhost:5000/api/health')
+    .then(response => response.json())
+    .then(data => console.log('健康檢查:', data));
+
+// 匯出股票資料
+const data = {
+    stock_id: "2330",
+    start_date: "2024-01-01",
+    end_date_start: "2024-12-01",
+    end_date_end: "2024-12-31"
+};
+
+fetch('http://localhost:5000/api/export-stock-data', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data)
+})
+.then(response => response.json())
+.then(data => console.log('匯出結果:', data));
+```
+
+#### cURL 範例
 ```bash
-# 一鍵安裝所有依賴
-pip install -r requirements.txt
+# 健康檢查
+curl -X GET http://localhost:5000/api/health
+
+# 匯出股票資料
+curl -X POST http://localhost:5000/api/export-stock-data \
+  -H "Content-Type: application/json" \
+  -d '{
+    "stock_id": "2330",
+    "start_date": "2024-01-01",
+    "end_date_start": "2024-12-01",
+    "end_date_end": "2024-12-31"
+  }'
 ```
 
-### 3. 運行主程式
+## 資料格式說明
 
-```bash
-python Main.py
-```
+### 比例價格資料
+- `[0]` 到 `[6]`: 斐波那契比例價格
+- 基於波段最高價和最低價計算的技術分析支撐阻力位
 
-## 📁 專案結構
+### SMA 移動平均線資料
+- `日(5)_DIFF` 到 `日(120)_DIFF`: 日線移動平均線差異
+- `週(5)_DIFF` 到 `週(120)_DIFF`: 週線移動平均線差異
+- `月(5)_DIFF` 到 `月(120)_DIFF`: 月線移動平均線差異
 
-```
-ShioajiConsoleAP_export/
-├── Main.py                           # 主程式入口
-├── requirements.txt                  # 依賴套件清單
-├── README.md                        # 專案說明
-├── INSTALL_GUIDE.md                 # 安裝指南
-├── IMPORT_DEPENDENCIES.md           # 詳細依賴說明
-├── model/                           # 數據模型層
-│   ├── BaseModel.py
-│   ├── DataDownloadModel.py
-│   ├── DataAnalysisModel.py
-│   ├── RealtimeMonitorModel.py
-│   ├── BacktestModel.py
-│   ├── SelectStockModel.py
-│   └── DailyClosePriceDownloadModel.py
-├── view/                            # 視圖層
-│   ├── DataDownloadView.py
-│   ├── DataAnalysisView.py
-│   ├── RealtimeMonitorView.py
-│   ├── BacktestView.py
-│   ├── SelectStockView.py
-│   └── DailyClosePriceDownloadView.py
-├── controller/                      # 控制器層
-│   ├── DataDownloadController.py
-│   ├── DataAnalysisController.py
-│   ├── RealtimeMonitorController.py
-│   ├── BacktestController.py
-│   ├── SelectStockController.py
-│   └── DailyClosePriceDownloadController.py
-├── common/                          # 共用模組
-│   ├── Event.py
-│   ├── Math.py
-│   ├── Utils.py
-│   └── enum/
-│       └── StockType.py
-├── resource/                        # 資源文件
-│   ├── Resources.py
-│   ├── tw_all_stocks.csv
-│   └── chromedriver-win64/
-├── utils/                           # 工具模組
-│   └── unified_scheduler_manager.py
-└── 其他功能檔案...
-```
+### CDP 資料
+- `CDP`: 中心價格
+- `NH`: 近高
+- `NL`: 近低
+- `AH`: 最高價
+- `AL`: 最低價
 
-## 🔧 主要功能
+## 系統需求
 
-### 1. 數據下載
-- 股票KBar數據下載
-- 即時Tick數據獲取
-- 日收盤價數據下載
-- 自動排程下載
+### 最低需求
+- Windows 10 或更新版本
+- 4GB RAM
+- 1GB 可用磁碟空間
+- 網路連線（用於 API 資料存取）
 
-### 2. 即時監控
-- 股票即時價格監控
-- 技術指標計算
-- 圖表顯示
+### 建議需求
+- Windows 11
+- 8GB RAM
+- 2GB 可用磁碟空間
+- 穩定的網路連線
 
-### 3. 數據分析
-- 技術分析工具
-- 統計分析功能
-- 數據視覺化
-
-### 4. 回測系統
-- 策略回測
-- 績效分析
-- 風險評估
-
-### 5. 選股策略
-- 多種選股條件
-- 策略組合
-- 結果導出
-
-## 📦 核心依賴套件
-
-### 主要套件
-- **shioaji**: 永豐金證券API
-- **pandas**: 數據處理
-- **numpy**: 數值計算
-- **pymssql**: SQL Server連接
-- **matplotlib**: 圖表繪製
-- **tkinter**: GUI框架 (Python標準庫)
-
-### 完整清單
-詳細的依賴套件說明請參考 [IMPORT_DEPENDENCIES.md](IMPORT_DEPENDENCIES.md)
-
-## ⚙️ 系統設定
-
-### 1. 資料庫設定
-- 安裝 SQL Server 或 SQL Server Express
-- 建立資料庫 `TSE`
-- 建立使用者 `TSE_USER`
-- 設定連接字串: `127.0.0.1:1433`
-
-### 2. API 設定
-- 申請永豐金證券 API 金鑰
-- 在 `Main.py` 中更新 API 金鑰和密鑰
-
-### 3. ChromeDriver 設定
-- 確保 `resource/chromedriver-win64/chromedriver.exe` 存在
-- 版本需與 Chrome 瀏覽器匹配
-
-## 🛠️ 故障排除
+## 故障排除
 
 ### 常見問題
 
-#### 1. tkinter 錯誤
-- **問題**: `ERROR: Could not find a version that satisfies the requirement tkinter`
-- **解決**: tkinter 是 Python 標準庫，無需通過 pip 安裝
-- **Windows**: 通常隨 Python 一起安裝
-- **Linux**: `sudo apt-get install python3-tk`
+1. **API 服務無法啟動**
+   - 檢查端口是否被其他程式佔用
+   - 確認防火牆設定
+   - 檢查網路連線
 
-#### 2. 套件安裝失敗
-```bash
-# 升級 pip
-python -m pip install --upgrade pip
+2. **資料匯出失敗**
+   - 確認股票代碼正確
+   - 檢查日期格式是否為 YYYY-MM-DD
+   - 確認日期範圍合理
 
-# 使用國內鏡像
-pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple/
-```
+3. **應用程式無法啟動**
+   - 檢查系統需求
+   - 確認所有必要檔案存在
+   - 檢查防毒軟體設定
 
-#### 3. PyQt5 安裝問題
-```bash
-# Windows
-pip install PyQt5
+### 日誌查看
+- 應用程式內建日誌功能
+- 在「API服務」分頁可查看詳細執行日誌
+- 錯誤訊息會標示為 ERROR 級別
 
-# 或使用 conda
-conda install pyqt
-```
+## 技術支援
 
-#### 4. pymssql 安裝問題
-```bash
-# 可能需要 Visual C++ Build Tools
-# 或使用 conda
-conda install pymssql
-```
+如有任何問題或建議，請聯繫：
+- 電子郵件: support@example.com
+- 技術文件: [GitHub Repository](https://github.com/your-repo/shioajiconsole)
 
-## 📚 文件說明
+## 授權條款
 
-- **[INSTALL_GUIDE.md](INSTALL_GUIDE.md)**: 快速安裝指南
-- **[IMPORT_DEPENDENCIES.md](IMPORT_DEPENDENCIES.md)**: 詳細的依賴套件說明
-- **[README_DailyKbarsScheduler.md](README_DailyKbarsScheduler.md)**: 每日KBar下載排程器說明
-
-## 🔄 版本資訊
-
-- **版本**: 1.0.0
-- **Python**: 3.7+
-- **最後更新**: 2024年1月
-- **相容性**: Windows 10/11
-
-## 📞 支援
-
-如有問題或建議，請：
-1. 查看相關文件
-2. 檢查錯誤日誌
-3. 聯繫開發團隊
+本軟體僅供學習和研究使用，請遵守相關法規和永豐證券 API 使用條款。
 
 ---
 
-**注意**: 本專案主要針對 Windows 環境開發，其他作業系統可能需要額外設定。
-
-
+**注意**: 本系統僅提供技術分析工具，不構成投資建議。投資有風險，請謹慎評估。

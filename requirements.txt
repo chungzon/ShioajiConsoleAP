@@ -7,7 +7,6 @@ pymssql>=2.2.0
 # GUI 相關套件
 tkcalendar>=1.6.0
 tkintertable>=1.2.0
-PyQt5>=5.15.0
 
 # 數據視覺化
 matplotlib>=3.5.0
@@ -22,6 +21,9 @@ requests>=2.25.0
 beautifulsoup4>=4.9.0
 selenium>=4.0.0
 
+# Web 框架
+Flask>=2.0.0
+
 # 排程和通知
 schedule>=1.1.0
 plyer>=2.0.0
@@ -30,3 +32,9 @@ win10toast>=0.9
 # 其他工具
 pyperclip>=1.8.0
 xlsxwriter>=3.0.0
+
+# 打包工具
+cx_Freeze>=6.0.0
+
+# 系統工具
+psutil>=5.8.0
