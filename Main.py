@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
+
+from flask import Response
 from DailyKbarsDownloadScheduler import start_daily_kbars_scheduler
 from model.RealtimeMonitorModel import RealtimeMonitorModel
 from view.DataAnalysisView import DataAnalysisView
@@ -398,7 +400,6 @@ class StockAPIGUIView(ttk.Frame):
                                 
                                 sma_data = {}
                                 # 整理15K資料
-                                k15_data = {}
                                 for period in [10, 20, 60]:
                                     col_name = f'15min_sma_{period}_diff'
                                     if col_name in recent_segment:
@@ -442,7 +443,7 @@ class StockAPIGUIView(ttk.Frame):
                                 
                                 # 整理CDP資料
                                 cdp_data = {}
-                                cdp_columns = ['CDP', 'NH', 'NL', 'AH', 'AL']
+                                cdp_columns = ['AL', 'NL', 'CDP', 'NH', 'AH']
                                 for col in cdp_columns:
                                     if col in segment:
                                         value = segment[col]
@@ -451,31 +452,81 @@ class StockAPIGUIView(ttk.Frame):
                                         else:
                                             cdp_data[col] = "nan"
                                 
-                                # 合併所有資料
+                                # 按照指定順序合併所有資料
                                 all_data = {}
-                                all_data.update(ratio_data)
-                                all_data.update(sma_data)
-                                all_data.update(cdp_data)
+                                
+                                # 1. 現價資料
                                 all_data['NOW PRICE'] = f"{segment.get('latest_close_price', 0):.2f}"
                                 
-                                # 整理要回傳的資料
-                                json_data = {
-                                    'stock_code': stock_id,
-                                    'base': f"{next_open_price['open_price']:.2f}",
-                                    'before_n': "2",
-                                    'date': end_date.strftime('%Y-%m-%d'),
-                                    'enable_15k10ma': True,
-                                    'enable_15k20ma': True,
-                                    'extend_over_ratio_dont_buy': "0.03",
-                                    'extend_time': "00:30:00",
-                                    'final_buy': "12:00:00",
-                                    'no_buy_after': "10:00:00",
-                                    'over_ratio_dont_buy': "0.03",
-                                    'success': True,
-                                    'data': all_data
-                                }
+                                # 2. 比例價格資料（按照指定順序）
+                                for col in ratio_columns:
+                                    if col in segment:
+                                        value = segment[col]
+                                        if value is not None and str(value) != 'nan':
+                                            ratio_num = col.replace('Ratio_', '')
+                                            all_data[f'[{ratio_num}]'] = f"{float(value):.2f}"
+                                        else:
+                                            ratio_num = col.replace('Ratio_', '')
+                                            all_data[f'[{ratio_num}]'] = "nan"
                                 
-                                results.append(json_data)
+                                # 3. CDP資料
+                                for col in cdp_columns:
+                                    if col in segment:
+                                        value = segment[col]
+                                        if value is not None and str(value) != 'nan':
+                                            all_data[col] = f"{float(value):.2f}"
+                                        else:
+                                            all_data[col] = "nan"
+                                
+                                # 4. 15K扣抵值資料
+                                for period in [10, 20, 60]:
+                                    col_name = f'15min_sma_{period}_diff'
+                                    if col_name in recent_segment:
+                                        value = recent_segment[col_name]
+                                        if value is not None and str(value) != 'N/A' and str(value) != 'nan':
+                                            all_data[f'15K({period})_DIFF'] = f"{float(value):.2f}"
+                                        else:
+                                            all_data[f'15K({period})_DIFF'] = "nan"
+                                
+                                # 5. 日線扣抵值資料
+                                for period in [5, 10, 20, 60, 120]:
+                                    col_name = f'sma_{period}_diff'
+                                    if col_name in recent_segment:
+                                        value = recent_segment[col_name]
+                                        if value is not None and str(value) != 'N/A' and str(value) != 'nan':
+                                            all_data[f'日({period})_DIFF'] = f"{float(value):.2f}"
+                                        else:
+                                            all_data[f'日({period})_DIFF'] = "nan"
+                                
+                                # 6. 週線扣抵值資料
+                                for period in [5, 10, 20, 60, 120]:
+                                    col_name = f'weekly_sma_{period}_diff'
+                                    if col_name in recent_segment:
+                                        value = recent_segment[col_name]
+                                        if value is not None and str(value) != 'N/A' and str(value) != 'nan':
+                                            all_data[f'週({period})_DIFF'] = f"{float(value):.2f}"
+                                        else:
+                                            all_data[f'週({period})_DIFF'] = "nan"
+                                
+                                # 7. 月線扣抵值資料
+                                for period in [5, 10, 20, 60, 120]:
+                                    col_name = f'monthly_sma_{period}_diff'
+                                    if col_name in recent_segment:
+                                        value = recent_segment[col_name]
+                                        if value is not None and str(value) != 'N/A' and str(value) != 'nan':
+                                            all_data[f'月({period})_DIFF'] = f"{float(value):.2f}"
+                                        else:
+                                            all_data[f'月({period})_DIFF'] = "nan"
+                                
+                                # 讀取JSON模板
+                                with open('resource/export_json_templete.json', 'r') as f:
+                                    json_template = json.load(f)
+                                json_template['stock_code'] = stock_id
+                                json_template['base'] = f"{next_open_price['open_price']:.2f}"
+                                json_template['date'] = end_date.strftime('%Y-%m-%d')
+                                json_template['data'] = all_data
+
+                                results.append(json_template)
                                 log_callback(f"✓ 日期 {end_date.strftime('%Y-%m-%d')} 計算成功")
                             else:
                                 # 如果某個日期計算失敗，添加錯誤資訊
@@ -506,7 +557,8 @@ class StockAPIGUIView(ttk.Frame):
                     
                     if successful_results:
                         log_callback(f"計算完成: 共 {len(results)} 個日期，成功 {len(successful_results)} 個")
-                        return jsonify({
+                        # result_json = json.dumps(results, ensure_ascii=False)
+                        result_json = {
                             'success': True,
                             'data': results,
                             'count': len(results),
@@ -518,7 +570,9 @@ class StockAPIGUIView(ttk.Frame):
                                 'total_days': len(date_list)
                             },
                             'message': f'成功取得股票 {stock_id} 的資料，日期區間 {end_date_start.strftime("%Y-%m-%d")} 至 {end_date_end.strftime("%Y-%m-%d")}，共 {len(results)} 個日期，成功 {len(successful_results)} 個'
-                        })
+                        }
+
+                        return Response(json.dumps(result_json, ensure_ascii=False), mimetype='application/json')
                     else:
                         log_callback("錯誤: 所有日期的資料處理都失敗", "ERROR")
                         return jsonify({
