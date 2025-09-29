@@ -519,7 +519,7 @@ class StockAPIGUIView(ttk.Frame):
                                             all_data[f'月({period})_DIFF'] = "nan"
                                 
                                 # 讀取JSON模板
-                                with open('resource/export_json_templete.json', 'r') as f:
+                                with open('resource/export_json_templete.json', 'r', encoding='utf-8') as f:
                                     json_template = json.load(f)
                                 json_template['stock_code'] = stock_id
                                 json_template['base'] = f"{next_open_price['open_price']:.2f}"
