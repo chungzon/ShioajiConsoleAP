@@ -13,3 +13,6 @@ class DailyClosePriceDownloadController:
             self.model.download_daily_close_price()
         else:
             self.model.download_daily_close_top30_stock(self.view, start_date, end_date, stock_id)
+
+    def start_download_all(self, start_date, end_date):
+        self.model.download_daily_close_price_all(self.view, start_date, end_date)

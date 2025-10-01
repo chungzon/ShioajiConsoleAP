@@ -1,4 +1,5 @@
-﻿import tkinter as tk
+﻿from textwrap import dedent
+import tkinter as tk
 from tkinter import ttk
 from tkcalendar import DateEntry
 import datetime
@@ -34,8 +35,8 @@ class DailyClosePriceDownloadView(tk.Frame):
         self.log_text.grid(row=4, column=0, columnspan=3, padx=10, pady=5, sticky="we")
 
         ttk.Button(self, text="下載", command=self.start_download_thread).grid(row=5, column=0, columnspan=2, pady=10)
-
-        ttk.Button(self, text="下載當日收盤價", command=self.start_download_thread).grid(row=5, column=1, pady=10)
+        ttk.Button(self, text="下載所有", command=self.start_manual_download_all_thread).grid(row=5, column=1, pady=10)
+        ttk.Button(self, text="下載當日收盤價", command=self.start_download_thread).grid(row=5, column=2, pady=10)
 
     def start_download_thread(self):
         # 開始一個新線程來處理下載，以防止卡住GUI
@@ -59,6 +60,18 @@ class DailyClosePriceDownloadView(tk.Frame):
 
     def download_daily_close_price(self, start_date, end_date):
         self.model.download_daily_close_top30_stock(start_date, end_date)
+
+    def start_manual_download_all_thread(self):
+        thread = threading.Thread(target=self.start_manual_download_all)
+        thread.start()
+
+    def start_manual_download_all(self):
+        start_date = self.start_date_ticks_entry.get()
+        end_date = self.end_date_ticks_entry.get()
+        start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d")
+        end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d")
+        self.controller.start_download_all(start_date, end_date)
+        
 
     def update_progress(self, value):
         self.progress_var.set(value)

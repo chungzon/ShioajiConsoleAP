@@ -45,26 +45,13 @@ class DailyClosePriceDownloadModel:
         return conn
         
     def download_daily_close_top30_stock(self, view, start_date, end_date, stock_id=None):
-        
+        # 確保資料庫結構正確
+        if not self.ensure_database_structure():
+            self.write_log("無法確保資料庫結構，退出下載程序")
+            return
         
         conn = self.connect_db()
         cursor = conn.cursor()
-        
-        # 創建表格
-        cursor.execute("""
-            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='stock_data' AND xtype='U')
-            CREATE TABLE stock_data (
-                stock_id VARCHAR(10),
-                date DATE,
-                open_price FLOAT,
-                high_price FLOAT,
-                low_price FLOAT,
-                close_price FLOAT,
-                volume INT
-            )
-        """)
-
-        conn.commit()
 
         if stock_id:
             if self.check_stock_exists(stock_id):
@@ -100,73 +87,84 @@ class DailyClosePriceDownloadModel:
         end_date = pd.to_datetime(end_date)
 
         while current_date <= end_date:
-            try:
-                date_str = current_date.strftime('%Y%m')  # 将日期格式化为YYYYmm
-                # 根據日期和股票代碼來構建請求URL
-                resp = requests.get(
-                    f'https://www.twse.com.tw/exchangeReport/STOCK_DAY?' +
-                    f'response=csv&date={date_str}01&stockNo={stock_id}')
-                
-                if resp.status_code != 200:
-                    raise Exception(f'HTTP response code is not 200: {resp.status_code}')
-                
-                # 解析CSV數據
-                lines = io.StringIO(resp.text).readlines()
-                lines = lines[1:-5]  # 去除第一行和最後五行
-                # 檢查是否包含說明列，並只保留有效數據
-                if '說明' in lines[-1]:
-                    lines = lines[:lines.index('"說明:"\r\n')]
-                reader = csv.DictReader(io.StringIO('\n'.join(lines)))
-
-                for row in reader:
-                    gregorian_date_str = self.convert_taiwan_date_to_gregorian(row['日期'].strip())
-                    date = pd.to_datetime(gregorian_date_str, format='%Y/%m/%d').strftime('%Y-%m-%d')
-                    # {'日期': '114/08/19', '成交股數': '289', '成交金額': '3,622', '開盤價': '--', '最高價': '--', '最低價': '--', '收盤價': '--', '漲跌價差': ' 0.00', '成交筆數': '2', '': ''}
-                    volume = int(row['成交股數'].replace(',', '').strip())
-                    str_open_price = row['開盤價'].replace(',', '').strip()
-                    str_high_price = row['最高價'].replace(',', '').strip()
-                    str_low_price = row['最低價'].replace(',', '').strip()
-                    str_close_price = row['收盤價'].replace(',', '').strip()
-                    if volume < 1000 and (str_open_price == '--' and str_high_price == '--' and str_low_price == '--' and str_close_price == '--'):
-                        open_price = close_price
-                        high_price = close_price
-                        low_price = close_price
-                        close_price = close_price
-                        volume = 0
-                    else:
-                        open_price = float(str_open_price)
-                        high_price = float(str_high_price)
-                        low_price = float(str_low_price)
-                        close_price = float(str_close_price)
+            retry_count = 0
+            max_retries = 1
+            
+            while retry_count < max_retries:
+                try:
+                    date_str = current_date.strftime('%Y%m')  # 将日期格式化为YYYYmm
+                    # 根據日期和股票代碼來構建請求URL
+                    resp = requests.get(
+                        f'https://www.twse.com.tw/exchangeReport/STOCK_DAY?' +
+                        f'response=csv&date={date_str}01&stockNo={stock_id}',
+                        timeout=30)
                     
-                    cursor.execute(
-                        """INSERT INTO stock_data 
-                        (stock_id, date, open_price, high_price, low_price, close_price, volume) 
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-                        (stock_id, date, open_price, high_price, low_price, close_price, volume)
-                    )
-                    conn.commit()
+                    if resp.status_code != 200:
+                        raise Exception(f'HTTP response code is not 200: {resp.status_code}')
+                    
+                    # 解析CSV數據
+                    lines = io.StringIO(resp.text).readlines()
+                    lines = lines[1:-5]  # 去除第一行和最後五行
+                    # 檢查是否包含說明列，並只保留有效數據
+                    if '說明' in lines[-1]:
+                        lines = lines[:lines.index('"說明:"\r\n')]
+                    reader = csv.DictReader(io.StringIO('\n'.join(lines)))
 
-                    self.write_log(f"成功處理 {stock_id} - {gregorian_date_str}")
-                    print(f"成功處理 {stock_id} - {gregorian_date_str}")
-                    # view.append_log(f"成功處理 {stock_id} - {gregorian_date_str}")
-                    self.event.notify(f"成功處理 {stock_id} - {gregorian_date_str}")
-                time.sleep(1)  # 每天間隔1秒
+                    # 收集所有資料，使用 MERGE 語句一次性處理
+                    stock_data_list = []
+                    for row in reader:
+                        gregorian_date_str = self.convert_taiwan_date_to_gregorian(row['日期'].strip())
+                        date = pd.to_datetime(gregorian_date_str, format='%Y/%m/%d').strftime('%Y-%m-%d')
+                        # {'日期': '114/08/19', '成交股數': '289', '成交金額': '3,622', '開盤價': '--', '最高價': '--', '最低價': '--', '收盤價': '--', '漲跌價差': ' 0.00', '成交筆數': '2', '': ''}
+                        volume = int(row['成交股數'].replace(',', '').strip())
+                        str_open_price = row['開盤價'].replace(',', '').strip()
+                        str_high_price = row['最高價'].replace(',', '').strip()
+                        str_low_price = row['最低價'].replace(',', '').strip()
+                        str_close_price = row['收盤價'].replace(',', '').strip()
+                        
+                        if volume < 1000 and (str_open_price == '--' and str_high_price == '--' and str_low_price == '--' and str_close_price == '--'):
+                            open_price = 0.0
+                            high_price = 0.0
+                            low_price = 0.0
+                            close_price = 0.0
+                            volume = 0
+                        else:
+                            open_price = float(str_open_price) if str_open_price != '--' else 0.0
+                            high_price = float(str_high_price) if str_high_price != '--' else 0.0
+                            low_price = float(str_low_price) if str_low_price != '--' else 0.0
+                            close_price = float(str_close_price) if str_close_price != '--' else 0.0
+                        
+                        stock_data_list.append((stock_id, date, open_price, high_price, low_price, close_price, volume))
 
-            except Exception as e:
-                self.write_log(f"錯誤處理 {stock_id} - {current_date.strftime('%Y-%m')}: {e}")
-                print(f"錯誤處理 {stock_id} - {current_date.strftime('%Y-%m')}: {e}")
-                # view.append_log(f"錯誤處理 {stock_id} - {current_date.strftime('%Y-%m')}: {e}")
-                self.event.notify(f"錯誤處理 {stock_id} - {current_date.strftime('%Y-%m')}: {e}")
-                if str(e) == 'No data available' and not is_retry:
-                    # view.append_log(f"上市股票 {stock_id} 無資料")
-                    self.event.notify(f"上市股票 {stock_id} 無資料")
-                    # view.append_log(f"嘗試從上櫃股票處理 {stock_id}")
-                    self.event.notify(f"嘗試從上櫃股票處理 {stock_id}") 
-                    self.download_otc_stock_data(self, api, stock_id, conn, cursor, view, start_date, end_date, is_retry=True)
+                    # 使用 MERGE 語句避免重複資料
+                    if stock_data_list:
+                        self.merge_stock_data_batch(conn, cursor, stock_data_list)
+                        self.write_log(f"成功處理 {stock_id} - {current_date.strftime('%Y-%m')} 共 {len(stock_data_list)} 筆資料")
+                        print(f"成功處理 {stock_id} - {current_date.strftime('%Y-%m')} 共 {len(stock_data_list)} 筆資料")
+                        self.event.notify(f"成功處理 {stock_id} - {current_date.strftime('%Y-%m')} 共 {len(stock_data_list)} 筆資料")
+                    
+                    break  # 成功處理，跳出重試迴圈
+                    
+                except Exception as e:
+                    retry_count += 1
+                    self.write_log(f"錯誤處理 {stock_id} - {current_date.strftime('%Y-%m')} (重試 {retry_count}/{max_retries}): {e}")
+                    print(f"錯誤處理 {stock_id} - {current_date.strftime('%Y-%m')} (重試 {retry_count}/{max_retries}): {e}")
+                    self.event.notify(f"錯誤處理 {stock_id} - {current_date.strftime('%Y-%m')} (重試 {retry_count}/{max_retries}): {e}")
+                    
+                    if retry_count < max_retries:
+                        time.sleep(2 ** retry_count)  # 指數退避
+                    else:
+                        if str(e) == 'No data available' and not is_retry:
+                            # view.append_log(f"上市股票 {stock_id} 無資料")
+                            self.event.notify(f"上市股票 {stock_id} 無資料")
+                            # view.append_log(f"嘗試從上櫃股票處理 {stock_id}")
+                            self.event.notify(f"嘗試從上櫃股票處理 {stock_id}") 
+                            self.download_otc_stock_data(api, stock_id, conn, cursor, view, start_date, end_date, is_retry=True)
+                        break
 
+            time.sleep(1)  # 每天間隔1秒
             current_date += pd.DateOffset(months=1)  # 每次移動到下一個月的開始日期
-        time.sleep(5)  # 每支股票之間間隔30秒
+        time.sleep(5)  # 每支股票之間間隔5秒
 
     # 先將民國年轉換為西元年
     def convert_taiwan_date_to_gregorian(self, taiwan_date_str):
@@ -183,73 +181,81 @@ class DailyClosePriceDownloadModel:
         end_date = pd.to_datetime(end_date)
 
         while current_date <= end_date:
-            try:
-                # 將日期轉換為YYYY/MM/DD格式
-                date_str = current_date.strftime('%Y/%m/%d')
-                
-                # 使用新的API URL
-                url = f'https://www.tpex.org.tw/www/zh-tw/afterTrading/tradingStock?response=&date={date_str}&code={stock_id}'
-                resp = requests.get(url)
+            retry_count = 0
+            max_retries = 1
             
-                if resp.status_code != 200:
-                    raise Exception(f'HTTP response code is not 200: {resp.status_code}')
-            
-                # 解析JSON數據
-                json_data = resp.json()
-                if json_data['stat'] != 'ok':
-                    raise Exception('API response status is not ok')
-
-                # 獲取數據表
-                if not json_data['tables'] or not json_data['tables'][0]['data']:
-                    raise Exception('No data available')
-
-                data_rows = json_data['tables'][0]['data']
-                
-                for row in data_rows:
-                    # 檢查數據是否有效
-                    if '--' in [row[3], row[4], row[5], row[6]]:  # 開盤、最高、最低、收盤價位置
-                        continue
-
-                    # 轉換民國日期為西元日期
-                    gregorian_date_str = self.convert_taiwan_date_to_gregorian(row[0].strip())
-                    date = pd.to_datetime(gregorian_date_str, format='%Y/%m/%d').strftime('%Y-%m-%d')
+            while retry_count < max_retries:
+                try:
+                    # 將日期轉換為YYYY/MM/DD格式
+                    date_str = current_date.strftime('%Y/%m/%d')
                     
-                    # 解析數據
-                    volume = int(row[1].replace(',', '').strip())
-                    open_price = float(row[3].replace(',', '').strip())
-                    high_price = float(row[4].replace(',', '').strip())
-                    low_price = float(row[5].replace(',', '').strip())
-                    close_price = float(row[6].replace(',', '').strip())
+                    # 使用新的API URL
+                    url = f'https://www.tpex.org.tw/www/zh-tw/afterTrading/tradingStock?response=&date={date_str}&code={stock_id}'
+                    resp = requests.get(url, timeout=30)
+                
+                    if resp.status_code != 200:
+                        raise Exception(f'HTTP response code is not 200: {resp.status_code}')
+                
+                    # 解析JSON數據
+                    json_data = resp.json()
+                    if json_data['stat'] != 'ok':
+                        raise Exception('API response status is not ok')
 
-                    cursor.execute(
-                        """INSERT INTO stock_data 
-                        (stock_id, date, open_price, high_price, low_price, close_price, volume) 
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-                        (stock_id, date, open_price, high_price, low_price, close_price, volume)
-                    )
-                    conn.commit()
+                    # 獲取數據表
+                    if not json_data['tables'] or not json_data['tables'][0]['data']:
+                        raise Exception('No data available')
 
-                    self.write_log(f"成功處理上櫃股票 {stock_id} - {gregorian_date_str}")
-                    print(f"成功處理上櫃股票 {stock_id} - {gregorian_date_str}")
-                    # view.append_log(f"成功處理上櫃股票 {stock_id} - {gregorian_date_str}")
-                    self.event.notify(f"成功處理上櫃股票 {stock_id} - {gregorian_date_str}")
+                    data_rows = json_data['tables'][0]['data']
+                    
+                    # 收集所有資料，使用 MERGE 語句一次性處理
+                    stock_data_list = []
+                    for row in data_rows:
+                        # 檢查數據是否有效
+                        if '--' in [row[3], row[4], row[5], row[6]]:  # 開盤、最高、最低、收盤價位置
+                            continue
 
-                time.sleep(1)  # 每天間隔1秒
+                        # 轉換民國日期為西元日期
+                        gregorian_date_str = self.convert_taiwan_date_to_gregorian(row[0].strip())
+                        date = pd.to_datetime(gregorian_date_str, format='%Y/%m/%d').strftime('%Y-%m-%d')
+                        
+                        # 解析數據
+                        volume = int(row[1].replace(',', '').strip())
+                        open_price = float(row[3].replace(',', '').strip())
+                        high_price = float(row[4].replace(',', '').strip())
+                        low_price = float(row[5].replace(',', '').strip())
+                        close_price = float(row[6].replace(',', '').strip())
 
-            except Exception as e:
-                self.write_log(f"錯誤處理上櫃股票 {stock_id} - {current_date.strftime('%Y-%m')}: {e}")
-                print(f"錯誤處理上櫃股票 {stock_id} - {current_date.strftime('%Y-%m')}: {e}")
-                # view.append_log(f"錯誤處理上櫃股票 {stock_id} - {current_date.strftime('%Y-%m')}: {e}")
-                self.event.notify(f"錯誤處理上櫃股票 {stock_id} - {current_date.strftime('%Y-%m')}: {e}")
-                if str(e) == 'No data available' and not is_retry:
-                    # view.append_log(f"上櫃股票 {stock_id} 無資料")
-                    self.event.notify(f"上櫃股票 {stock_id} 無資料")
-                    # view.append_log(f"嘗試從上市股票處理 {stock_id}")
-                    self.event.notify(f"嘗試從上市股票處理 {stock_id}")
-                    self.download_stock_data(api, stock_id, conn, cursor, view, start_date, end_date)
+                        stock_data_list.append((stock_id, date, open_price, high_price, low_price, close_price, volume))
 
+                    # 使用 MERGE 語句避免重複資料
+                    if stock_data_list:
+                        self.merge_stock_data_batch(conn, cursor, stock_data_list)
+                        self.write_log(f"成功處理上櫃股票 {stock_id} - {current_date.strftime('%Y-%m')} 共 {len(stock_data_list)} 筆資料")
+                        print(f"成功處理上櫃股票 {stock_id} - {current_date.strftime('%Y-%m')} 共 {len(stock_data_list)} 筆資料")
+                        self.event.notify(f"成功處理上櫃股票 {stock_id} - {current_date.strftime('%Y-%m')} 共 {len(stock_data_list)} 筆資料")
+
+                    break  # 成功處理，跳出重試迴圈
+
+                except Exception as e:
+                    retry_count += 1
+                    self.write_log(f"錯誤處理上櫃股票 {stock_id} - {current_date.strftime('%Y-%m')} (重試 {retry_count}/{max_retries}): {e}")
+                    print(f"錯誤處理上櫃股票 {stock_id} - {current_date.strftime('%Y-%m')} (重試 {retry_count}/{max_retries}): {e}")
+                    self.event.notify(f"錯誤處理上櫃股票 {stock_id} - {current_date.strftime('%Y-%m')} (重試 {retry_count}/{max_retries}): {e}")
+                    
+                    if retry_count < max_retries:
+                        time.sleep(2 ** retry_count)  # 指數退避
+                    else:
+                        if str(e) == 'No data available' and not is_retry:
+                            # view.append_log(f"上櫃股票 {stock_id} 無資料")
+                            self.event.notify(f"上櫃股票 {stock_id} 無資料")
+                            # view.append_log(f"嘗試從上市股票處理 {stock_id}")
+                            self.event.notify(f"嘗試從上市股票處理 {stock_id}")
+                            self.download_stock_data(api, stock_id, conn, cursor, view, start_date, end_date)
+                        break
+
+            time.sleep(1)  # 每天間隔1秒
             current_date += pd.DateOffset(months=1)  # 每次移動到下一個月的開始日期
-        time.sleep(5)  # 每支股票之間間隔30秒
+        time.sleep(5)  # 每支股票之間間隔5秒
         
     def convert_to_taiwan_date(self, current_date):
         year = current_date.year - 1911  # 将年份转换为民国年
@@ -260,18 +266,23 @@ class DailyClosePriceDownloadModel:
         conn = self.connect_db()
         cursor = conn.cursor()
     
-        # SQL query to check if the stock exists
-        query = "SELECT COUNT(1) FROM StockTable WHERE id = %s"
-        cursor.execute(query, (stock_id,))
+        try:
+            # SQL query to check if the stock exists - 使用字串比較而不是整數
+            query = "SELECT COUNT(1) FROM StockTable WHERE id = %s"
+            cursor.execute(query, (str(stock_id),))
     
-        # Fetch the result
-        result = cursor.fetchone()
+            # Fetch the result
+            result = cursor.fetchone()
     
-        # Close the connection
-        conn.close()
-    
-        # If result[0] > 0, the stock exists
-        return result[0] > 0
+            # If result[0] > 0, the stock exists
+            return result[0] > 0
+        except Exception as e:
+            self.write_log(f"檢查股票 {stock_id} 是否存在時發生錯誤: {e}")
+            return False
+        finally:
+            # Close the connection
+            cursor.close()
+            conn.close()
 
     def download_daily_close_price(self):
         """下載每日收盤價數據的任務"""
@@ -358,6 +369,9 @@ class DailyClosePriceDownloadModel:
             # self.write_log(error_message)
             print(f"❌ {error_message}")
             logger.error(f"下载任务异常: {error_message}")
+
+    def download_daily_close_price_all(self, view, start_date, end_date):
+        self.download_daily_close_top30_stock(view, start_date, end_date)
 
     def ensure_system_config_table(self):
         """确保系统配置表存在"""
@@ -528,19 +542,17 @@ class DailyClosePriceDownloadModel:
             return None
 
     def insert_data_to_database(self, data, is_twse):
-        """将数据插入数据库"""
+        """将数据插入数据库，使用 MERGE 语句避免重复数据"""
         conn = self.connect_db()
         if not conn:
             return False
 
         cursor = conn.cursor()
-        sql = """INSERT INTO stock_data 
-                 (stock_id, date, open_price, high_price, low_price, close_price, volume) 
-                 VALUES (%s, %s, %s, %s, %s, %s, %s)"""
-
         today = date.today().strftime('%Y-%m-%d')
 
         try:
+            # 准备批量数据
+            stock_data_list = []
             for stock in data:
                 if is_twse:
                     values = (
@@ -562,11 +574,17 @@ class DailyClosePriceDownloadModel:
                         self.parse_float(stock['Close']),
                         self.parse_int(stock['TradingShares'])
                     )
-                cursor.execute(sql, values)
+                stock_data_list.append(values)
 
-            conn.commit()
-            self.write_log(f"數據已成功下載並存儲到 stock_data 表中，日期為 {today}")
-            return True
+            # 使用 MERGE 语句批量处理
+            if stock_data_list:
+                self.merge_stock_data_batch(conn, cursor, stock_data_list)
+                self.write_log(f"數據已成功下載並存儲到 stock_data 表中，日期為 {today}，共 {len(stock_data_list)} 筆資料")
+                return True
+            else:
+                self.write_log(f"沒有有效數據需要插入，日期為 {today}")
+                return True
+                
         except Exception as err:
             self.write_log(f"數據插入錯誤: {err}")
             conn.rollback()
@@ -574,6 +592,60 @@ class DailyClosePriceDownloadModel:
         finally:
             cursor.close()
             conn.close()
+
+    def merge_stock_data_batch(self, conn, cursor, stock_data_list):
+        """使用 MERGE 語句批量處理股票資料，避免重複資料"""
+        try:
+            # 創建臨時表來存儲批量資料
+            cursor.execute("""
+                CREATE TABLE #temp_stock_data (
+                    stock_id VARCHAR(10),
+                    date DATE,
+                    open_price FLOAT,
+                    high_price FLOAT,
+                    low_price FLOAT,
+                    close_price FLOAT,
+                    volume INT
+                )
+            """)
+            
+            # 批量插入到臨時表
+            insert_sql = """
+                INSERT INTO #temp_stock_data 
+                (stock_id, date, open_price, high_price, low_price, close_price, volume) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """
+            cursor.executemany(insert_sql, stock_data_list)
+            
+            # 使用 MERGE 語句合併資料
+            merge_sql = """
+                MERGE stock_data AS target
+                USING #temp_stock_data AS source
+                ON target.stock_id = source.stock_id AND target.date = source.date
+                WHEN MATCHED THEN
+                    UPDATE SET 
+                        open_price = source.open_price,
+                        high_price = source.high_price,
+                        low_price = source.low_price,
+                        close_price = source.close_price,
+                        volume = source.volume
+                WHEN NOT MATCHED THEN
+                    INSERT (stock_id, date, open_price, high_price, low_price, close_price, volume)
+                    VALUES (source.stock_id, source.date, source.open_price, source.high_price, 
+                           source.low_price, source.close_price, source.volume);
+            """
+            cursor.execute(merge_sql)
+            
+            # 刪除臨時表
+            cursor.execute("DROP TABLE #temp_stock_data")
+            
+            conn.commit()
+            return True
+            
+        except Exception as e:
+            self.write_log(f"MERGE 語句執行錯誤: {e}")
+            conn.rollback()
+            return False
 
     def parse_float(self, value):
         """解析浮点数"""
@@ -597,5 +669,183 @@ class DailyClosePriceDownloadModel:
         ad_year = tw_year + 1911
         date_obj = datetime(ad_year, month, day)
         
-        return date_obj.strftime('%Y-%m-%d') 
+        return date_obj.strftime('%Y-%m-%d')
+
+    def ensure_database_structure(self):
+        """確保資料庫結構正確，包括表格、索引和約束"""
+        conn = self.connect_db()
+        if not conn:
+            return False
+
+        cursor = conn.cursor()
+        try:
+            # 檢查並創建 stock_data 表格
+            cursor.execute("""
+                IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='stock_data' AND xtype='U')
+                CREATE TABLE stock_data (
+                    stock_id VARCHAR(10) NOT NULL,
+                    date DATE NOT NULL,
+                    open_price FLOAT,
+                    high_price FLOAT,
+                    low_price FLOAT,
+                    close_price FLOAT,
+                    volume INT,
+                    created_at DATETIME2 DEFAULT GETDATE(),
+                    updated_at DATETIME2 DEFAULT GETDATE(),
+                    CONSTRAINT PK_stock_data PRIMARY KEY (stock_id, date)
+                )
+            """)
+            
+            # 檢查並創建索引
+            indexes = [
+                ("IX_stock_data_stock_id", "CREATE INDEX IX_stock_data_stock_id ON stock_data (stock_id)"),
+                ("IX_stock_data_date", "CREATE INDEX IX_stock_data_date ON stock_data (date)"),
+                ("IX_stock_data_stock_date", "CREATE INDEX IX_stock_data_stock_date ON stock_data (stock_id, date)")
+            ]
+            
+            for index_name, create_sql in indexes:
+                cursor.execute(f"""
+                    IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = '{index_name}' AND object_id = OBJECT_ID('stock_data'))
+                    {create_sql}
+                """)
+            
+            conn.commit()
+            self.write_log("資料庫結構檢查完成")
+            return True
+            
+        except Exception as e:
+            self.write_log(f"資料庫結構檢查錯誤: {e}")
+            return False
+        finally:
+            cursor.close()
+            conn.close()
+
+    def check_data_integrity(self, stock_id=None, start_date=None, end_date=None):
+        """檢查資料完整性，找出可能的遺漏或重複資料"""
+        conn = self.connect_db()
+        if not conn:
+            return None
+
+        cursor = conn.cursor()
+        try:
+            # 檢查重複資料
+            if stock_id:
+                cursor.execute("""
+                    SELECT stock_id, date, COUNT(*) as count
+                    FROM stock_data 
+                    WHERE stock_id = %s
+                    GROUP BY stock_id, date
+                    HAVING COUNT(*) > 1
+                """, (stock_id,))
+            else:
+                cursor.execute("""
+                    SELECT stock_id, date, COUNT(*) as count
+                    FROM stock_data 
+                    GROUP BY stock_id, date
+                    HAVING COUNT(*) > 1
+                """)
+            
+            duplicates = cursor.fetchall()
+            
+            # 檢查資料遺漏（簡單檢查：檢查是否有連續日期缺失）
+            if stock_id and start_date and end_date:
+                cursor.execute("""
+                    WITH date_series AS (
+                        SELECT CAST(dateadd(day, number, %s) AS DATE) as date
+                        FROM master.dbo.spt_values
+                        WHERE type = 'P' AND number <= DATEDIFF(day, %s, %s)
+                    )
+                    SELECT ds.date
+                    FROM date_series ds
+                    LEFT JOIN stock_data sd ON ds.date = sd.date AND sd.stock_id = %s
+                    WHERE sd.date IS NULL
+                    AND ds.date NOT IN (
+                        SELECT date FROM stock_data WHERE stock_id = %s
+                    )
+                    ORDER BY ds.date
+                """, (start_date, start_date, end_date, stock_id, stock_id))
+                
+                missing_dates = cursor.fetchall()
+            else:
+                missing_dates = []
+            
+            result = {
+                'duplicates': duplicates,
+                'missing_dates': missing_dates,
+                'total_duplicates': len(duplicates),
+                'total_missing': len(missing_dates)
+            }
+            
+            if duplicates:
+                self.write_log(f"發現 {len(duplicates)} 筆重複資料")
+            if missing_dates:
+                self.write_log(f"發現 {len(missing_dates)} 個遺漏日期")
+                
+            return result
+            
+        except Exception as e:
+            self.write_log(f"資料完整性檢查錯誤: {e}")
+            return None
+        finally:
+            cursor.close()
+            conn.close()
+
+    def clean_duplicate_data(self, stock_id=None):
+        """清理重複資料，保留最新的記錄"""
+        conn = self.connect_db()
+        if not conn:
+            return False
+
+        cursor = conn.cursor()
+        try:
+            if stock_id:
+                # 清理特定股票的重複資料
+                cursor.execute("""
+                    WITH RankedData AS (
+                        SELECT *,
+                               ROW_NUMBER() OVER (PARTITION BY stock_id, date ORDER BY updated_at DESC) as rn
+                        FROM stock_data
+                        WHERE stock_id = %s
+                    )
+                    DELETE FROM stock_data
+                    WHERE stock_id = %s
+                    AND (stock_id, date, updated_at) IN (
+                        SELECT stock_id, date, updated_at
+                        FROM RankedData
+                        WHERE rn > 1
+                    )
+                """, (stock_id, stock_id))
+            else:
+                # 清理所有重複資料
+                cursor.execute("""
+                    WITH RankedData AS (
+                        SELECT *,
+                               ROW_NUMBER() OVER (PARTITION BY stock_id, date ORDER BY updated_at DESC) as rn
+                        FROM stock_data
+                    )
+                    DELETE FROM stock_data
+                    WHERE (stock_id, date, updated_at) IN (
+                        SELECT stock_id, date, updated_at
+                        FROM RankedData
+                        WHERE rn > 1
+                    )
+                """)
+            
+            deleted_count = cursor.rowcount
+            conn.commit()
+            
+            if deleted_count > 0:
+                self.write_log(f"成功清理 {deleted_count} 筆重複資料")
+            else:
+                self.write_log("沒有發現重複資料需要清理")
+                
+            return True
+            
+        except Exception as e:
+            self.write_log(f"清理重複資料錯誤: {e}")
+            conn.rollback()
+            return False
+        finally:
+            cursor.close()
+            conn.close()
         
