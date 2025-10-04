@@ -523,7 +523,8 @@ class StockAPIGUIView(ttk.Frame):
                                     json_template = json.load(f)
                                 json_template['stock_code'] = stock_id
                                 json_template['base'] = f"{next_open_price['open_price']:.2f}"
-                                json_template['date'] = end_date.strftime('%Y-%m-%d')
+                                next_open_price_date = next_open_price['date']
+                                json_template['date'] = next_open_price_date.strftime('%Y-%m-%d')
                                 json_template['data'] = all_data
 
                                 results.append(json_template)
