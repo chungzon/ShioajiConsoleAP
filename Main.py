@@ -522,9 +522,14 @@ class StockAPIGUIView(ttk.Frame):
                                 with open('resource/export_json_templete.json', 'r', encoding='utf-8') as f:
                                     json_template = json.load(f)
                                 json_template['stock_code'] = stock_id
-                                json_template['base'] = f"{next_open_price['open_price']:.2f}"
-                                next_open_price_date = next_open_price['date']
-                                json_template['date'] = next_open_price_date.strftime('%Y-%m-%d')
+                                next_open_price_open_price = next_open_price['open_price'] if next_open_price else "nan"
+                                if isinstance(next_open_price_open_price, float):
+                                    next_open_price_open_price = f"{next_open_price_open_price:.2f}"
+                                else:
+                                    next_open_price_open_price = "nan"
+                                json_template['base'] = next_open_price_open_price
+                                next_open_price_date = next_open_price['date'] if next_open_price else "nan"
+                                json_template['date'] = next_open_price_date
                                 json_template['data'] = all_data
 
                                 results.append(json_template)
