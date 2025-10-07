@@ -11,9 +11,14 @@ class DataDownloadView(tk.Frame):
         self.init_ui()
 
     def init_ui(self):
+        # 設定網格權重，讓文字框可以自動調整大小
+        self.grid_rowconfigure(4, weight=1)  # 文字框所在的行
+        self.grid_columnconfigure(0, weight=1)  # 第一欄
+        self.grid_columnconfigure(1, weight=1)  # 第二欄
+        
         ttk.Label(self, text="股票代碼:").grid(row=0, column=0, padx=10, pady=5, sticky='e')
         self.stock_id_entry = ttk.Entry(self)
-        self.stock_id_entry.grid(row=0, column=1, padx=10, pady=5, sticky='e')
+        self.stock_id_entry.grid(row=0, column=1, padx=10, pady=5, sticky='w')
 
         ttk.Label(self, text="開始日期 (YYYY-MM-DD):").grid(row=1, column=0, padx=10, pady=5, sticky='e')
         self.start_date_ticks_entry = DateEntry(self, background='white', foreground='black', borderwidth=2, date_pattern='yyyy-mm-dd', locale='zh_TW')
@@ -25,16 +30,20 @@ class DataDownloadView(tk.Frame):
 
         self.progress_var = tk.DoubleVar()
         self.progress = ttk.Progressbar(self, orient='horizontal', length=200, mode='determinate', variable=self.progress_var, maximum=100)
-        self.progress.grid(row=3, column=0, columnspan=3, padx=10, pady=5, sticky="we")
+        # self.progress.grid(row=3, column=0, columnspan=3, padx=10, pady=5, sticky="we")
+
+        # 下載按鈕區域
+        ttk.Button(self, text="下載", command=self.start_download).grid(row=3, column=0, pady=10)
+        ttk.Button(self, text="下載全部股票分KBar資料", command=self.start_download_all).grid(row=3, column=1, pady=10)
 
         # 產生一個文字框，顯示下載的資料
         self.log_text = tk.Text(self, wrap='word', width=50, height=10)
-        self.log_text.grid(row=4, column=0, columnspan=3, padx=10, pady=5, sticky="we")
-
-        ttk.Button(self, text="下載", command=self.start_download).grid(row=5, column=0, columnspan=2, pady=10)
-
-        # 下載全部股票KBar
-        ttk.Button(self, text="下載全部股票分KBar資料", command=self.start_download_all).grid(row=5, column=2, pady=10)
+        self.log_text.grid(row=4, column=0, columnspan=2, padx=10, pady=5, sticky="nsew")
+        
+        # 添加垂直卷軸
+        scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.log_text.yview)
+        scrollbar.grid(row=4, column=2, sticky="ns")
+        self.log_text.configure(yscrollcommand=scrollbar.set)
 
     def start_download(self):
         stock_id = self.stock_id_entry.get()
