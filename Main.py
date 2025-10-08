@@ -528,7 +528,9 @@ class StockAPIGUIView(ttk.Frame):
                                 else:
                                     next_open_price_open_price = "nan"
                                 json_template['base'] = next_open_price_open_price
-                                next_open_price_date = next_open_price['date'] if next_open_price else "nan"
+                                next_open_price_date = "nan"
+                                if next_open_price:
+                                    next_open_price_date = next_open_price['date'].strftime('%Y-%m-%d')
                                 json_template['date'] = next_open_price_date
                                 json_template['data'] = all_data
 
