@@ -1132,16 +1132,18 @@ class SelectStockModel(BaseModel):
     def check_price_above_selected_ma(self, current_price, segment_data, ma_selections):
         """
         檢查現價是否同時大於或等於所有選擇的均線價格。
+        對於15分K，支援高於和低於兩種條件。
 
         :param current_price: 股票當前價格
         :param segment_data: 包含均線數據的字典
         :param ma_selections: 用戶選擇的均線
-        :return: 元組 (是否有選擇均線, 是否大於等於所有選擇的均線)
+        :return: 元組 (是否有選擇均線, 是否滿足所有選擇的均線條件)
         """
         is_any_ma_selected = False
         is_above_all_selected_ma = True
 
-        for ma_type in ['daily', 'weekly', 'monthly', '15min']:
+        # 處理日均線、週均線、月均線（保持原有邏輯）
+        for ma_type in ['daily', 'weekly', 'monthly']:
             for period, is_selected in ma_selections[ma_type].items():
                 if is_selected:
                     is_any_ma_selected = True
@@ -1154,6 +1156,34 @@ class SelectStockModel(BaseModel):
                         print(f"警告: {ma_column} 不在 segment_data 中")
                         is_above_all_selected_ma = False
                         return is_any_ma_selected, is_above_all_selected_ma
+
+        # 處理15分K高於條件
+        for period, is_selected in ma_selections.get('15min_above', {}).items():
+            if is_selected:
+                is_any_ma_selected = True
+                ma_column = f"15min_sma_{period}"
+                if ma_column in segment_data:
+                    if current_price < segment_data[ma_column]:
+                        is_above_all_selected_ma = False
+                        return is_any_ma_selected, is_above_all_selected_ma
+                else:
+                    print(f"警告: {ma_column} 不在 segment_data 中")
+                    is_above_all_selected_ma = False
+                    return is_any_ma_selected, is_above_all_selected_ma
+
+        # 處理15分K低於條件
+        for period, is_selected in ma_selections.get('15min_below', {}).items():
+            if is_selected:
+                is_any_ma_selected = True
+                ma_column = f"15min_sma_{period}"
+                if ma_column in segment_data:
+                    if current_price > segment_data[ma_column]:
+                        is_above_all_selected_ma = False
+                        return is_any_ma_selected, is_above_all_selected_ma
+                else:
+                    print(f"警告: {ma_column} 不在 segment_data 中")
+                    is_above_all_selected_ma = False
+                    return is_any_ma_selected, is_above_all_selected_ma
 
         return is_any_ma_selected, is_above_all_selected_ma
     

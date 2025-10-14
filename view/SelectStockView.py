@@ -113,23 +113,24 @@ class SelectStockView(tk.Frame):
             'monthly': {5: tk.BooleanVar(value=False), 10: tk.BooleanVar(value=False), 
                         20: tk.BooleanVar(value=False), 60: tk.BooleanVar(value=True), 
                         120: tk.BooleanVar(value=False)},
-            '15min': {5: tk.BooleanVar(value=True), 10: tk.BooleanVar(value=True), 
-                     20: tk.BooleanVar(value=True)}
+            '15min_above': {5: tk.BooleanVar(value=True), 10: tk.BooleanVar(value=True), 
+                           20: tk.BooleanVar(value=True), 60: tk.BooleanVar(value=False)},
+            '15min_below': {5: tk.BooleanVar(value=False), 10: tk.BooleanVar(value=False), 
+                           20: tk.BooleanVar(value=False), 60: tk.BooleanVar(value=False)}
         }
         self.select_all_vars = {
             'daily': tk.BooleanVar(value=False),
             'weekly': tk.BooleanVar(value=False),
             'monthly': tk.BooleanVar(value=False),
-            '15min': tk.BooleanVar(value=True)
+            '15min_above': tk.BooleanVar(value=True),
+            '15min_below': tk.BooleanVar(value=False)
         }
-        ma_types = [("日均線", 'daily'), ("週均線", 'weekly'), ("月均線", 'monthly'), ("15分K", '15min')]
+        ma_types = [("日均線", 'daily'), ("週均線", 'weekly'), ("月均線", 'monthly')]
         ma_frame = ttk.LabelFrame(row2_frame, text="均線")
         ma_frame.grid(row=0, column=0, sticky="nw", pady=(0, 5))
+        
+        # 處理前三種均線
         for i, (ma_type, ma_key) in enumerate(ma_types):
-            # frame = ttk.Frame(ma_frame)
-            # frame.pack(padx=5, pady=5, anchor="w")
-            
-            # ttk.Label(ma_frame, text=ma_type, width=8).pack(side="left")
             ttk.Label(ma_frame, text=ma_type, width=8).grid(row=i, column=0, sticky="w", padx=(0, 5))
             
             # 添加全選 checkbox
@@ -139,13 +140,45 @@ class SelectStockView(tk.Frame):
             select_all_cb.grid(row=i, column=1, sticky="w", padx=(0, 10))
             j = 1
             for period in [5, 10, 20, 60, 120]:
-                if ma_key == '15min' and period not in [5, 10, 20]:
-                    continue
                 j = j + 1
                 cb = ttk.Checkbutton(ma_frame, text=f"{period}", 
                                      variable=self.ma_selections[ma_key][period],
                                      command=lambda k=ma_key: self.update_select_all(k))
                 cb.grid(row=i, column=j, sticky="w", padx=(0, 5))
+        
+        # 處理15分K的高於條件
+        i = len(ma_types)
+        ttk.Label(ma_frame, text="15分K高於", width=8).grid(row=i, column=0, sticky="w", padx=(0, 5))
+        
+        select_all_cb_above = ttk.Checkbutton(ma_frame, text="全選", 
+                                              variable=self.select_all_vars['15min_above'],
+                                              command=lambda: self.toggle_all('15min_above'))
+        select_all_cb_above.grid(row=i, column=1, sticky="w", padx=(0, 10))
+        
+        j = 1
+        for period in [5, 10, 20, 60]:
+            j = j + 1
+            cb = ttk.Checkbutton(ma_frame, text=f"{period}", 
+                                 variable=self.ma_selections['15min_above'][period],
+                                 command=lambda: self.update_select_all('15min_above'))
+            cb.grid(row=i, column=j, sticky="w", padx=(0, 5))
+        
+        # 處理15分K的低於條件
+        i = i + 1
+        ttk.Label(ma_frame, text="低於", width=8, foreground="red").grid(row=i, column=0, sticky="w", padx=(0, 5))
+        
+        select_all_cb_below = ttk.Checkbutton(ma_frame, text="全選", 
+                                              variable=self.select_all_vars['15min_below'],
+                                              command=lambda: self.toggle_all('15min_below'))
+        select_all_cb_below.grid(row=i, column=1, sticky="w", padx=(0, 10))
+        
+        j = 1
+        for period in [5, 10, 20, 60]:
+            j = j + 1
+            cb = ttk.Checkbutton(ma_frame, text=f"{period}", 
+                                 variable=self.ma_selections['15min_below'][period],
+                                 command=lambda: self.update_select_all('15min_below'))
+            cb.grid(row=i, column=j, sticky="w", padx=(0, 5))
 
         # self.ratio_checkbox_frame = ttk.Frame(row2_frame)
         self.ratio_checkbox_frame = ttk.LabelFrame(row2_frame, text="[買價、現價]價差比例")
@@ -285,7 +318,8 @@ class SelectStockView(tk.Frame):
             'daily': {period: var.get() for period, var in self.ma_selections['daily'].items()},
             'weekly': {period: var.get() for period, var in self.ma_selections['weekly'].items()},
             'monthly': {period: var.get() for period, var in self.ma_selections['monthly'].items()},
-            '15min': {period: var.get() for period, var in self.ma_selections['15min'].items()}
+            '15min_above': {period: var.get() for period, var in self.ma_selections['15min_above'].items()},
+            '15min_below': {period: var.get() for period, var in self.ma_selections['15min_below'].items()}
         }
 
         ratio_all_vars = {ratio: var.get() for ratio, var in self.ratio_all_vars.items()}
@@ -455,10 +489,15 @@ class SelectStockView(tk.Frame):
                 if monthly_selected:
                     ma_conditions.append(f"月均:{','.join(monthly_selected)}")
                 
-                # 15分K
-                min15_selected = [str(period) for period, var in self.ma_selections['15min'].items() if var.get()]
-                if min15_selected:
-                    ma_conditions.append(f"15分均:{','.join(min15_selected)}")
+                # 15分K高於
+                min15_above_selected = [str(period) for period, var in self.ma_selections['15min_above'].items() if var.get()]
+                if min15_above_selected:
+                    ma_conditions.append(f"15分均高於:{','.join(min15_above_selected)}")
+                
+                # 15分K低於
+                min15_below_selected = [str(period) for period, var in self.ma_selections['15min_below'].items() if var.get()]
+                if min15_below_selected:
+                    ma_conditions.append(f"15分均低於:{','.join(min15_below_selected)}")
                 
                 # 寫入均線條件
                 if ma_conditions:
