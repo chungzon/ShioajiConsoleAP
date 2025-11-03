@@ -1,10 +1,18 @@
 # ShioajiConsole 股票分析與資料匯出系統
 
 ## 版本資訊
-- **版本**: 1.0.0
-- **發布日期**: 2024年12月
+- **版本**: 1.1.0 ⭐ 新版本
+- **發布日期**: 2025年11月
 - **支援平台**: Windows 10/11
 - **Python版本**: 3.8+
+
+### 更新內容 (v1.1.0)
+- ✅ **新增 SQL 查詢版 API** (`/api/export-stock-data-use-sql`)
+  - 使用 SQL 直接查詢總波段，效能更優
+  - 獨立實現，不影響原有程式碼
+  - 支援完整的技術指標計算（CDP、均線、扣抵值）
+- ✅ 優化資料處理流程
+- ✅ 增強錯誤處理機制
 
 ## 系統簡介
 
@@ -87,6 +95,75 @@ Content-Type: application/json
 - `end_date_start`: 結束日期開始（YYYY-MM-DD 格式）
 - `end_date_end`: 結束日期結束（YYYY-MM-DD 格式）
 
+**說明**: 此端點使用 Python 波段計算方法（`find_peaks_troughs_v34_small`）來分析總波段。
+
+#### 3. 股票資料匯出（使用 SQL 查詢）⭐ 新功能
+```http
+POST http://localhost:5000/api/export-stock-data-use-sql
+Content-Type: application/json
+```
+
+**請求參數**:
+```json
+{
+    "stock_id": "2467",
+    "start_date": "2020-01-01",
+    "end_date_start": "2025-10-15",
+    "end_date_end": "2025-10-17"
+}
+```
+
+**參數說明**:
+- `stock_id`: 股票代碼（字串）
+- `start_date`: 起始日期（YYYY-MM-DD 格式）
+- `end_date_start`: 結束日期開始（YYYY-MM-DD 格式）
+- `end_date_end`: 結束日期結束（YYYY-MM-DD 格式）
+
+**功能特色**:
+- ✅ 使用 SQL 查詢直接從資料庫查找總波段最高價和最低價
+- ✅ 完全獨立實現，不依賴波段計算方法
+- ✅ 直接計算 CDP、均線和扣抵值
+- ✅ 效能更優，計算速度更快
+- ✅ 不影響原有程式碼邏輯
+
+**SQL 查詢邏輯**:
+```sql
+-- 查找期間內的最高價及其日期
+-- 以及最高價之後的最低價及其日期
+WITH PeriodData AS (
+    SELECT *
+    FROM stock_data
+    WHERE stock_id = '2467'
+    AND date BETWEEN '2020-01-01' AND '2025-10-17'
+),
+MaxHigh AS (
+    SELECT TOP 1 date AS max_high_date, high_price AS max_high
+    FROM PeriodData
+    ORDER BY high_price DESC, date ASC
+)
+SELECT
+    P1.max_high,
+    P1.max_high_date,
+    P2.date AS min_low_date_after_high,
+    P2.low_price AS min_low_after_high
+FROM MaxHigh P1
+CROSS APPLY (
+    SELECT TOP 1 low_price, date
+    FROM PeriodData
+    WHERE date > P1.max_high_date
+    ORDER BY low_price ASC, date ASC
+) P2
+```
+
+**與標準版的差異**:
+| 項目 | 標準版 (`/api/export-stock-data`) | SQL版 (`/api/export-stock-data-use-sql`) |
+|------|-----------------------------------|-------------------------------------------|
+| 總波段查找 | Python 波段計算 | SQL 直接查詢 |
+| CDP 計算 | 透過波段計算獲取 | 直接使用最後一天數據計算 |
+| 均線計算 | 透過波段計算獲取 | 直接調用計算方法 |
+| 效能 | 需完整波段分析 | 僅需 SQL 查詢 + 直接計算 |
+| 程式碼獨立性 | 與波段計算耦合 | 完全獨立 |
+
 **回應範例**:
 ```json
 {
@@ -140,7 +217,7 @@ Content-Type: application/json
 }
 ```
 
-#### 3. API 說明
+#### 4. API 說明
 ```http
 GET http://localhost:5000/
 ```
@@ -160,6 +237,15 @@ GET http://localhost:5000/
                 "end_date_end": "結束日期結束 (YYYY-MM-DD)"
             }
         },
+        "POST /api/export-stock-data-use-sql": {
+            "description": "匯出股票資料（使用SQL查詢總波段）",
+            "parameters": {
+                "stock_id": "股票代碼 (字串)",
+                "start_date": "起始日期 (YYYY-MM-DD)",
+                "end_date_start": "結束日期開始 (YYYY-MM-DD)",
+                "end_date_end": "結束日期結束 (YYYY-MM-DD)"
+            }
+        },
         "GET /api/health": "健康檢查",
         "GET /": "API說明"
     }
@@ -169,6 +255,8 @@ GET http://localhost:5000/
 ### 使用範例
 
 #### Python 範例
+
+**標準版 API**:
 ```python
 import requests
 import json
@@ -180,7 +268,7 @@ base_url = "http://localhost:5000"
 response = requests.get(f"{base_url}/api/health")
 print("健康檢查:", response.json())
 
-# 匯出股票資料
+# 匯出股票資料（標準版）
 data = {
     "stock_id": "2330",
     "start_date": "2024-01-01",
@@ -196,6 +284,37 @@ response = requests.post(
 
 result = response.json()
 print("匯出結果:", json.dumps(result, ensure_ascii=False, indent=2))
+```
+
+**SQL 版 API** ⭐ 推薦使用:
+```python
+import requests
+import json
+
+# API 服務地址
+base_url = "http://localhost:5000"
+
+# 匯出股票資料（SQL版 - 效能更佳）
+data = {
+    "stock_id": "2467",
+    "start_date": "2020-01-01",
+    "end_date_start": "2025-10-15",
+    "end_date_end": "2025-10-17"
+}
+
+response = requests.post(
+    f"{base_url}/api/export-stock-data-use-sql",
+    json=data,
+    headers={'Content-Type': 'application/json'},
+    timeout=60  # SQL版通常更快，但建議設定timeout
+)
+
+if response.status_code == 200:
+    result = response.json()
+    print(f"成功: {result['successful_count']}/{result['count']} 個日期")
+    print("資料:", json.dumps(result['data'][:2], ensure_ascii=False, indent=2))  # 顯示前2筆
+else:
+    print("錯誤:", response.text)
 ```
 
 #### JavaScript 範例
@@ -229,7 +348,7 @@ fetch('http://localhost:5000/api/export-stock-data', {
 # 健康檢查
 curl -X GET http://localhost:5000/api/health
 
-# 匯出股票資料
+# 匯出股票資料（標準版）
 curl -X POST http://localhost:5000/api/export-stock-data \
   -H "Content-Type: application/json" \
   -d '{
@@ -237,6 +356,16 @@ curl -X POST http://localhost:5000/api/export-stock-data \
     "start_date": "2024-01-01",
     "end_date_start": "2024-12-01",
     "end_date_end": "2024-12-31"
+  }'
+
+# 匯出股票資料（SQL版）⭐ 推薦
+curl -X POST http://localhost:5000/api/export-stock-data-use-sql \
+  -H "Content-Type: application/json" \
+  -d '{
+    "stock_id": "2467",
+    "start_date": "2020-01-01",
+    "end_date_start": "2025-10-15",
+    "end_date_end": "2025-10-17"
   }'
 ```
 
@@ -295,6 +424,53 @@ curl -X POST http://localhost:5000/api/export-stock-data \
 - 應用程式內建日誌功能
 - 在「API服務」分頁可查看詳細執行日誌
 - 錯誤訊息會標示為 ERROR 級別
+
+## API 選擇建議
+
+### 何時使用 SQL 版 API (`/api/export-stock-data-use-sql`) ⭐ 推薦
+
+**建議使用情境**:
+- ✅ 需要快速查詢總波段資料
+- ✅ 處理大量日期範圍的資料
+- ✅ 僅需要總波段的最高價和最低價
+- ✅ 追求更好的效能表現
+- ✅ 獨立系統整合，不依賴波段分析邏輯
+
+**優點**:
+- 🚀 效能優異：直接 SQL 查詢，無需完整波段計算
+- 🔒 程式碼獨立：不影響原有波段分析邏輯
+- 💡 簡單高效：計算流程更直接清晰
+- ⚡ 快速回應：適合大量資料處理
+
+### 何時使用標準版 API (`/api/export-stock-data`)
+
+**建議使用情境**:
+- 需要完整的波段分析資訊
+- 依賴現有的波段計算邏輯
+- 需要與現有系統保持一致性
+
+**優點**:
+- 📊 完整波段分析：提供詳細的波段計算結果
+- 🔄 邏輯一致：與現有系統計算方式相同
+- 📈 波段資訊豐富：包含所有波段的詳細資料
+
+### 效能比較
+
+| 比較項目 | 標準版 | SQL版 ⭐ |
+|---------|--------|----------|
+| 查詢速度 | 較慢 | 快速 |
+| 記憶體使用 | 較高 | 較低 |
+| 適用場景 | 完整分析 | 快速查詢 |
+| 資料量限制 | 中小型 | 大型可 |
+| 維護性 | 與主系統耦合 | 獨立維護 |
+
+### 推薦方案
+
+對於大多數使用場景，我們**強烈推薦使用 SQL 版 API** (`/api/export-stock-data-use-sql`)，因為它提供：
+- ⚡ 更快的回應速度
+- 🎯 更精確的總波段查詢
+- 🔧 更簡單的維護方式
+- 🛡️ 更好的程式碼獨立性
 
 ## 技術支援
 
