@@ -773,6 +773,258 @@ class DataAnalysisModel(SelectStockModel):
         
         return recent_segment, highest_segment
 
+    def get_stock_data_from_all_wave_extremes_use_sql(self, stock_id, start_date, end_date, recent_start_date, recent_end_date):
+        """使用SQL查詢來查找總波段的方法"""
+        stock_data_df = self.get_stock_data(stock_id, start_date, end_date)
+        if stock_data_df is not None and not stock_data_df.empty:
+            latest_close_price = stock_data_df['close_price'].iloc[-1]
+            latest_close_price_by_date = latest_close_price
+            
+            # 使用SQL查詢來找總波段
+            conn = self.connect_db()
+            try:
+                sql_query = """
+                WITH PeriodData AS (
+                    SELECT *
+                    FROM stock_data
+                    WHERE stock_id = %s
+                    AND date BETWEEN %s AND %s
+                ),
+                MaxHigh AS (
+                    SELECT TOP 1 date AS max_high_date, high_price AS max_high
+                    FROM PeriodData
+                    ORDER BY high_price DESC, date ASC
+                )
+                SELECT
+                    P1.max_high,
+                    P1.max_high_date,
+                    P2.date AS min_low_date_after_high,
+                    P2.low_price AS min_low_after_high
+                FROM MaxHigh P1
+                CROSS APPLY (
+                    SELECT TOP 1 low_price, date
+                    FROM PeriodData
+                    WHERE date > P1.max_high_date
+                    ORDER BY low_price ASC, date ASC
+                ) P2
+                """
+                
+                result_df = pd.read_sql(sql_query, conn, params=(stock_id, start_date, end_date))
+                conn.close()
+                
+                if result_df.empty:
+                    print(f"SQL查詢沒有返回結果: {stock_id}")
+                    return None
+                
+                # 從SQL結果中取得最高價和最低價
+                max_value_of_all_waves = float(result_df.iloc[0]['max_high'])
+                max_value_date = pd.to_datetime(result_df.iloc[0]['max_high_date']).date()
+                min_value_after_max = float(result_df.iloc[0]['min_low_after_high'])
+                min_value_date = pd.to_datetime(result_df.iloc[0]['min_low_date_after_high']).date()
+                
+            except Exception as e:
+                print(f"SQL查詢失敗: {e}")
+                if conn:
+                    conn.close()
+                return None
+            
+            # 直接計算CDP（使用最後一天的數據）
+            try:
+                CDP = Math.calculate_CDP(
+                    stock_data_df['high_price'].iloc[-1], 
+                    stock_data_df['low_price'].iloc[-1], 
+                    stock_data_df['close_price'].iloc[-1]
+                )
+                CDP, NL, NH, AL, AH = Math.calculate_CDP_5_values(
+                    CDP, 
+                    stock_data_df['high_price'].iloc[-1], 
+                    stock_data_df['low_price'].iloc[-1]
+                )
+            except Exception as e:
+                print(f"計算CDP時發生錯誤: {e}")
+                CDP = NL = NH = AL = AH = 'N/A'
+            
+            # 計算均線數據
+            try:
+                sma_values, weekly_sma_values, monthly_sma_values, latest_close_prices, latest_dates = self.calculate_sma(stock_id, recent_end_date)
+            except Exception as e:
+                print(f"計算SMA時發生錯誤: {e}")
+                sma_values = ['N/A'] * 10
+                weekly_sma_values = ['N/A'] * 10
+                monthly_sma_values = ['N/A'] * 10
+                latest_close_prices = []
+                latest_dates = []
+            
+            # 計算15K均線數據
+            try:
+                k15_sma_values = self.calculate_k15_sma(stock_id, recent_end_date)
+            except Exception as e:
+                print(f"計算15K SMA時發生錯誤: {e}")
+                k15_sma_values = ['N/A'] * 8
+
+            # 計算各種比例（使用SQL查詢得到的最高價和最低價）
+            ratio_0 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0)
+            ratio_0191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0.191)
+            ratio_0382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0.382)
+            ratio_0500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0.5)
+            ratio_0809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0.809)
+            ratio_1191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 1.191)
+            ratio_1382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 1.382)
+            ratio_1500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 1.5)
+            ratio_1618 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 1.618)
+            ratio_1809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 1.809)
+            ratio_2 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 2)
+            ratio_2191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 2.191)
+            ratio_2382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 2.382)
+            ratio_2500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 2.5)
+            ratio_2618 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 2.618)
+            ratio_2809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 2.809)
+            ratio_3 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 3)
+            ratio_3191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 3.191)
+            ratio_3382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 3.382)
+            ratio_3500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 3.5)
+            ratio_3618 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 3.618)
+            ratio_3809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 3.809)
+            ratio_4 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 4)
+            ratio_4191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 4.191)
+            ratio_4382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 4.382)
+            ratio_4500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 4.5)
+            ratio_4618 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 4.618)
+            ratio_4809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 4.809)
+            ratio_5 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 5)
+            ratio_5191 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 5.191)
+            ratio_5382 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 5.382)
+            ratio_5500 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 5.5)
+            ratio_5618 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 5.618)
+            ratio_5809 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 5.809)
+            ratio_6 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 6)
+
+            ratio_0618 = Math.calculate_ratio_value(max_value_of_all_waves, min_value_after_max, 0.618)
+            ratio_1 = Math.calculate_ratio_1(max_value_of_all_waves, min_value_after_max)
+
+            head_0618_spread_ratio = round((max_value_of_all_waves - ratio_0618) / ratio_0618, 3)
+            current_0191_spread_ratio = round((latest_close_price - ratio_0191) / latest_close_price, 3)
+
+            # 構建segment字典
+            segment = {
+                'stock_id': stock_id,
+                'name': '',
+                'latest_close_price': latest_close_price,
+                'wave_type': [None],
+                'Max_Date': max_value_date,
+                'Min_Date': min_value_date,
+                'Max_Value': max_value_of_all_waves,
+                'Min_Value': min_value_after_max,
+                'Ratio_0': ratio_0,
+                'Ratio_0.191': ratio_0191,
+                'Ratio_0.382': ratio_0382,
+                'Ratio_0.5': ratio_0500,
+                'Ratio_0.618': ratio_0618,
+                'Ratio_0.809': ratio_0809,
+                'Ratio_1': ratio_1,
+                'Ratio_1.191': ratio_1191,
+                'Ratio_1.382': ratio_1382,
+                'Ratio_1.5': ratio_1500,
+                'Ratio_1.618': ratio_1618,
+                'Ratio_1.809': ratio_1809,
+                'Ratio_2': ratio_2,
+                'Ratio_2.191': ratio_2191,
+                'Ratio_2.382': ratio_2382,
+                'Ratio_2.5': ratio_2500,
+                'Ratio_2.618': ratio_2618,
+                'Ratio_2.809': ratio_2809,
+                'Ratio_3': ratio_3,
+                'Ratio_3.191': ratio_3191,
+                'Ratio_3.382': ratio_3382,
+                'Ratio_3.5': ratio_3500,
+                'Ratio_3.618': ratio_3618,
+                'Ratio_3.809': ratio_3809,
+                'Ratio_4': ratio_4,
+                'Ratio_4.191': ratio_4191,
+                'Ratio_4.382': ratio_4382,
+                'Ratio_4.5': ratio_4500,
+                'Ratio_4.618': ratio_4618,
+                'Ratio_4.809': ratio_4809,
+                'Ratio_5': ratio_5,
+                'Ratio_5.191': ratio_5191,
+                'Ratio_5.382': ratio_5382,
+                'Ratio_5.5': ratio_5500,
+                'Ratio_5.618': ratio_5618,
+                'Ratio_5.809': ratio_5809,
+                'Ratio_6': ratio_6,
+                'spread_ratio': head_0618_spread_ratio,
+                'latest_close_price-0.191_ratio': current_0191_spread_ratio,
+                'max_value_of_all_waves': max_value_of_all_waves,
+                'min_value_after_max': min_value_after_max,
+                'wave_type': '',
+                'CDP': CDP,
+                'NH': NH,
+                'NL': NL,
+                'AH': AH,
+                'AL': AL,
+                'latest_close_prices': latest_close_prices,
+                'latest_dates': latest_dates,
+            }
+            
+            # 構建recent_segment字典（包含均線數據）
+            recent_segment = {
+                'latest_close_prices': latest_close_prices,
+                'latest_dates': latest_dates,
+                # 日線SMA
+                'sma_5': sma_values[0] if len(sma_values) > 0 else 'N/A',
+                'sma_10': sma_values[1] if len(sma_values) > 1 else 'N/A',
+                'sma_20': sma_values[2] if len(sma_values) > 2 else 'N/A',
+                'sma_60': sma_values[3] if len(sma_values) > 3 else 'N/A',
+                'sma_120': sma_values[4] if len(sma_values) > 4 else 'N/A',
+                'sma_5_diff': sma_values[5] if len(sma_values) > 5 else 'N/A',
+                'sma_10_diff': sma_values[6] if len(sma_values) > 6 else 'N/A',
+                'sma_20_diff': sma_values[7] if len(sma_values) > 7 else 'N/A',
+                'sma_60_diff': sma_values[8] if len(sma_values) > 8 else 'N/A',
+                'sma_120_diff': sma_values[9] if len(sma_values) > 9 else 'N/A',
+                # 週線SMA
+                'weekly_sma_5': weekly_sma_values[0] if len(weekly_sma_values) > 0 else 'N/A',
+                'weekly_sma_10': weekly_sma_values[1] if len(weekly_sma_values) > 1 else 'N/A',
+                'weekly_sma_20': weekly_sma_values[2] if len(weekly_sma_values) > 2 else 'N/A',
+                'weekly_sma_60': weekly_sma_values[3] if len(weekly_sma_values) > 3 else 'N/A',
+                'weekly_sma_120': weekly_sma_values[4] if len(weekly_sma_values) > 4 else 'N/A',
+                'weekly_sma_5_diff': weekly_sma_values[5] if len(weekly_sma_values) > 5 else 'N/A',
+                'weekly_sma_10_diff': weekly_sma_values[6] if len(weekly_sma_values) > 6 else 'N/A',
+                'weekly_sma_20_diff': weekly_sma_values[7] if len(weekly_sma_values) > 7 else 'N/A',
+                'weekly_sma_60_diff': weekly_sma_values[8] if len(weekly_sma_values) > 8 else 'N/A',
+                'weekly_sma_120_diff': weekly_sma_values[9] if len(weekly_sma_values) > 9 else 'N/A',
+                # 月線SMA
+                'monthly_sma_5': monthly_sma_values[0] if len(monthly_sma_values) > 0 else 'N/A',
+                'monthly_sma_10': monthly_sma_values[1] if len(monthly_sma_values) > 1 else 'N/A',
+                'monthly_sma_20': monthly_sma_values[2] if len(monthly_sma_values) > 2 else 'N/A',
+                'monthly_sma_60': monthly_sma_values[3] if len(monthly_sma_values) > 3 else 'N/A',
+                'monthly_sma_120': monthly_sma_values[4] if len(monthly_sma_values) > 4 else 'N/A',
+                'monthly_sma_5_diff': monthly_sma_values[5] if len(monthly_sma_values) > 5 else 'N/A',
+                'monthly_sma_10_diff': monthly_sma_values[6] if len(monthly_sma_values) > 6 else 'N/A',
+                'monthly_sma_20_diff': monthly_sma_values[7] if len(monthly_sma_values) > 7 else 'N/A',
+                'monthly_sma_60_diff': monthly_sma_values[8] if len(monthly_sma_values) > 8 else 'N/A',
+                'monthly_sma_120_diff': monthly_sma_values[9] if len(monthly_sma_values) > 9 else 'N/A',
+                # 15K均線
+                '15min_sma_10': k15_sma_values[0] if len(k15_sma_values) > 0 else 'N/A',
+                '15min_sma_20': k15_sma_values[1] if len(k15_sma_values) > 1 else 'N/A',
+                '15min_sma_60': k15_sma_values[2] if len(k15_sma_values) > 2 else 'N/A',
+                '15min_sma_10_diff': k15_sma_values[5] if len(k15_sma_values) > 5 else 'N/A',
+                '15min_sma_20_diff': k15_sma_values[6] if len(k15_sma_values) > 6 else 'N/A',
+                '15min_sma_60_diff': k15_sma_values[7] if len(k15_sma_values) > 7 else 'N/A',
+            }
+            
+            gap_df = self.get_gap_stocks(stock_data_df)
+
+            try:
+                now_price = latest_close_price # self.get_latest_close_price(stock_id)
+            except Exception as e:
+                now_price = latest_close_price
+                print(f"取得現價時發生錯誤: {e}；以最新收盤價: {latest_close_price} 代替")
+
+            # 取得總波段結束日期的下一個交易日開盤價格
+            next_open_price = self.get_next_open_price_date(stock_id, end_date)
+
+            return segment, recent_segment, gap_df, now_price, latest_close_price_by_date, next_open_price
+
     # # 從資料庫取得分K資料
     # def get_1min_data(self, stock_id, stock_name):
     #     # 從資料庫取得分K資料

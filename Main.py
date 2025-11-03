@@ -596,6 +596,321 @@ class StockAPIGUIView(ttk.Frame):
                         'error': f'伺服器內部錯誤: {str(e)}'
                     }), 500
 
+            # 使用SQL查詢的股票資料匯出
+            @app.route('/api/export-stock-data-use-sql', methods=['POST'])
+            def export_stock_data_use_sql():
+                try:
+                    log_callback("收到股票資料匯出請求（使用SQL查詢）")
+                    
+                    # 獲取請求資料
+                    data = request.get_json()
+                    log_callback(f"請求資料: {json.dumps(data, ensure_ascii=False)}")
+                    
+                    # 驗證必要參數
+                    if not data:
+                        log_callback("錯誤: 請提供JSON格式的請求資料", "ERROR")
+                        return jsonify({
+                            'success': False,
+                            'error': '請提供JSON格式的請求資料'
+                        }), 400
+                    
+                    required_fields = ['stock_id', 'start_date', 'end_date_start', 'end_date_end']
+                    for field in required_fields:
+                        if field not in data:
+                            log_callback(f"錯誤: 缺少必要參數: {field}", "ERROR")
+                            return jsonify({
+                                'success': False,
+                                'error': f'缺少必要參數: {field}'
+                            }), 400
+                    
+                    # 解析參數
+                    stock_id = data['stock_id']
+                    start_date_str = data['start_date']
+                    end_date_start_str = data['end_date_start']
+                    end_date_end_str = data['end_date_end']
+                    
+                    log_callback(f"處理股票代碼: {stock_id}, 日期區間: {start_date_str} 到 {end_date_start_str}-{end_date_end_str}")
+                    
+                    # 解析日期
+                    try:
+                        from datetime import datetime, timedelta
+                        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                        end_date_start = datetime.strptime(end_date_start_str, '%Y-%m-%d').date()
+                        end_date_end = datetime.strptime(end_date_end_str, '%Y-%m-%d').date()
+                    except ValueError as e:
+                        log_callback(f"錯誤: 日期格式錯誤: {e}", "ERROR")
+                        return jsonify({
+                            'success': False,
+                            'error': f'日期格式錯誤: {e}。請使用 YYYY-MM-DD 格式'
+                        }), 400
+                    
+                    # 驗證日期範圍
+                    if start_date >= end_date_start:
+                        log_callback("錯誤: 起始日期必須早於結束日期開始", "ERROR")
+                        return jsonify({
+                            'success': False,
+                            'error': '起始日期必須早於結束日期開始'
+                        }), 400
+                    
+                    if end_date_start > end_date_end:
+                        log_callback("錯誤: 結束日期開始必須早於或等於結束日期結束", "ERROR")
+                        return jsonify({
+                            'success': False,
+                            'error': '結束日期開始必須早於或等於結束日期結束'
+                        }), 400
+                    
+                    # 生成日期區間內的所有日期
+                    current_date = end_date_start
+                    date_list = []
+                    while current_date <= end_date_end:
+                        date_list.append(current_date)
+                        current_date += timedelta(days=1)
+                    
+                    log_callback(f"將計算 {len(date_list)} 個日期的指標資料（使用SQL查詢）")
+                    
+                    # 為每個日期計算指標資料
+                    results = []
+                    for i, end_date in enumerate(date_list):
+                        try:
+                            log_callback(f"計算日期 {end_date.strftime('%Y-%m-%d')} ({i+1}/{len(date_list)})")
+                            
+                            # 使用 DataAnalysisModel 的 get_stock_data_from_all_wave_extremes_use_sql 方法
+                            # 計算最近波段日期（使用後半段時間）
+                            date_diff = (end_date - start_date).days
+                            mid_days = date_diff // 2
+                            mid_date = start_date + timedelta(days=mid_days)
+                            recent_start_date = mid_date
+                            recent_end_date = end_date
+                            
+                            start_date_str = start_date.strftime('%Y-%m-%d')
+                            end_date_str = end_date.strftime('%Y-%m-%d')
+                            recent_start_date_str = recent_start_date.strftime('%Y-%m-%d')
+                            recent_end_date_str = recent_end_date.strftime('%Y-%m-%d')
+
+                            result = self.data_analysis_model.get_stock_data_from_all_wave_extremes_use_sql(
+                                stock_id, start_date_str, end_date_str, recent_start_date_str, recent_end_date_str
+                            )
+                            next_open_price = None
+                            if result is not None:
+                                segment, recent_segment, gap_df, now_price, latest_close_price_by_date, next_open_price = result
+                                
+                                # 整理比例價格資料
+                                ratio_data = {}
+                                ratio_columns = ['Ratio_0', 'Ratio_0.191', 'Ratio_0.382', 'Ratio_0.5', 'Ratio_0.618', 'Ratio_0.809', 
+                                               'Ratio_1', 'Ratio_1.191', 'Ratio_1.382', 'Ratio_1.5', 'Ratio_1.618', 'Ratio_1.809',
+                                               'Ratio_2', 'Ratio_2.191', 'Ratio_2.382', 'Ratio_2.5', 'Ratio_2.618', 'Ratio_2.809',
+                                               'Ratio_3', 'Ratio_3.191', 'Ratio_3.382', 'Ratio_3.5', 'Ratio_3.618', 'Ratio_3.809',
+                                               'Ratio_4', 'Ratio_4.191', 'Ratio_4.382', 'Ratio_4.5', 'Ratio_4.618', 'Ratio_4.809',
+                                               'Ratio_5', 'Ratio_5.191', 'Ratio_5.382', 'Ratio_5.5', 'Ratio_5.618', 'Ratio_5.809', 'Ratio_6']
+                                
+                                for col in ratio_columns:
+                                    if col in segment:
+                                        value = segment[col]
+                                        if value is not None and str(value) != 'nan':
+                                            # 提取比例數字
+                                            ratio_num = col.replace('Ratio_', '')
+                                            ratio_data[f'[{ratio_num}]'] = f"{float(value):.2f}"
+                                        else:
+                                            ratio_num = col.replace('Ratio_', '')
+                                            ratio_data[f'[{ratio_num}]'] = "nan"
+                                
+                                sma_data = {}
+                                # 整理15K資料
+                                for period in [10, 20, 60]:
+                                    col_name = f'15min_sma_{period}_diff'
+                                    if col_name in recent_segment:
+                                        value = recent_segment[col_name]
+                                        if value is not None and str(value) != 'N/A' and str(value) != 'nan':
+                                            sma_data[f'15K({period})_DIFF'] = f"{float(value):.2f}"
+                                        else:
+                                            sma_data[f'15K({period})_DIFF'] = "nan"
+
+                                # 整理SMA資料
+                                
+                                # 日線SMA
+                                for period in [5, 10, 20, 60, 120]:
+                                    col_name = f'sma_{period}_diff'
+                                    if col_name in recent_segment:
+                                        value = recent_segment[col_name]
+                                        if value is not None and str(value) != 'N/A' and str(value) != 'nan':
+                                            sma_data[f'日({period})_DIFF'] = f"{float(value):.2f}"
+                                        else:
+                                            sma_data[f'日({period})_DIFF'] = "nan"
+                                
+                                # 週線SMA
+                                for period in [5, 10, 20, 60, 120]:
+                                    col_name = f'weekly_sma_{period}_diff'
+                                    if col_name in recent_segment:
+                                        value = recent_segment[col_name]
+                                        if value is not None and str(value) != 'N/A' and str(value) != 'nan':
+                                            sma_data[f'週({period})_DIFF'] = f"{float(value):.2f}"
+                                        else:
+                                            sma_data[f'週({period})_DIFF'] = "nan"
+                                
+                                # 月線SMA
+                                for period in [5, 10, 20, 60, 120]:
+                                    col_name = f'monthly_sma_{period}_diff'
+                                    if col_name in recent_segment:
+                                        value = recent_segment[col_name]
+                                        if value is not None and str(value) != 'N/A' and str(value) != 'nan':
+                                            sma_data[f'月({period})_DIFF'] = f"{float(value):.2f}"
+                                        else:
+                                            sma_data[f'月({period})_DIFF'] = "nan"
+                                
+                                # 整理CDP資料
+                                cdp_data = {}
+                                cdp_columns = ['AL', 'NL', 'CDP', 'NH', 'AH']
+                                for col in cdp_columns:
+                                    if col in segment:
+                                        value = segment[col]
+                                        if value is not None and str(value) != 'nan':
+                                            cdp_data[col] = f"{float(value):.2f}"
+                                        else:
+                                            cdp_data[col] = "nan"
+                                
+                                # 按照指定順序合併所有資料
+                                all_data = {}
+                                
+                                # 1. 現價資料
+                                all_data['NOW PRICE'] = f"{segment.get('latest_close_price', 0):.2f}"
+                                
+                                # 2. 比例價格資料（按照指定順序）
+                                for col in ratio_columns:
+                                    if col in segment:
+                                        value = segment[col]
+                                        if value is not None and str(value) != 'nan':
+                                            ratio_num = col.replace('Ratio_', '')
+                                            all_data[f'[{ratio_num}]'] = f"{float(value):.2f}"
+                                        else:
+                                            ratio_num = col.replace('Ratio_', '')
+                                            all_data[f'[{ratio_num}]'] = "nan"
+                                
+                                # 3. CDP資料
+                                for col in cdp_columns:
+                                    if col in segment:
+                                        value = segment[col]
+                                        if value is not None and str(value) != 'nan':
+                                            all_data[col] = f"{float(value):.2f}"
+                                        else:
+                                            all_data[col] = "nan"
+                                
+                                # 4. 15K扣抵值資料
+                                for period in [10, 20, 60]:
+                                    col_name = f'15min_sma_{period}_diff'
+                                    if col_name in recent_segment:
+                                        value = recent_segment[col_name]
+                                        if value is not None and str(value) != 'N/A' and str(value) != 'nan':
+                                            all_data[f'15K({period})_DIFF'] = f"{float(value):.2f}"
+                                        else:
+                                            all_data[f'15K({period})_DIFF'] = "nan"
+                                
+                                # 5. 日線扣抵值資料
+                                for period in [5, 10, 20, 60, 120]:
+                                    col_name = f'sma_{period}_diff'
+                                    if col_name in recent_segment:
+                                        value = recent_segment[col_name]
+                                        if value is not None and str(value) != 'N/A' and str(value) != 'nan':
+                                            all_data[f'日({period})_DIFF'] = f"{float(value):.2f}"
+                                        else:
+                                            all_data[f'日({period})_DIFF'] = "nan"
+                                
+                                # 6. 週線扣抵值資料
+                                for period in [5, 10, 20, 60, 120]:
+                                    col_name = f'weekly_sma_{period}_diff'
+                                    if col_name in recent_segment:
+                                        value = recent_segment[col_name]
+                                        if value is not None and str(value) != 'N/A' and str(value) != 'nan':
+                                            all_data[f'週({period})_DIFF'] = f"{float(value):.2f}"
+                                        else:
+                                            all_data[f'週({period})_DIFF'] = "nan"
+                                
+                                # 7. 月線扣抵值資料
+                                for period in [5, 10, 20, 60, 120]:
+                                    col_name = f'monthly_sma_{period}_diff'
+                                    if col_name in recent_segment:
+                                        value = recent_segment[col_name]
+                                        if value is not None and str(value) != 'N/A' and str(value) != 'nan':
+                                            all_data[f'月({period})_DIFF'] = f"{float(value):.2f}"
+                                        else:
+                                            all_data[f'月({period})_DIFF'] = "nan"
+                                
+                                # 讀取JSON模板
+                                with open('resource/export_json_templete.json', 'r', encoding='utf-8') as f:
+                                    json_template = json.load(f)
+                                json_template['stock_code'] = stock_id
+                                next_open_price_open_price = next_open_price['open_price'] if next_open_price else "nan"
+                                if isinstance(next_open_price_open_price, float):
+                                    next_open_price_open_price = f"{next_open_price_open_price:.2f}"
+                                else:
+                                    next_open_price_open_price = "nan"
+                                json_template['base'] = next_open_price_open_price
+                                next_open_price_date = "nan"
+                                if next_open_price:
+                                    next_open_price_date = next_open_price['date'].strftime('%Y-%m-%d')
+                                json_template['date'] = next_open_price_date
+                                json_template['data'] = all_data
+
+                                results.append(json_template)
+                                log_callback(f"✓ 日期 {end_date.strftime('%Y-%m-%d')} 計算成功（使用SQL查詢）")
+                            else:
+                                # 如果某個日期計算失敗，添加錯誤資訊
+                                results.append({
+                                    'stock_code': stock_id,
+                                    'calculation_date': end_date.strftime('%Y-%m-%d'),
+                                    'date_index': i + 1,
+                                    'day_of_week': end_date.strftime('%A'),
+                                    'error': '資料處理失敗',
+                                    'success': False
+                                })
+                                log_callback(f"✗ 日期 {end_date.strftime('%Y-%m-%d')} 計算失敗", "ERROR")
+                                
+                        except Exception as e:
+                            # 如果某個日期計算出現異常，添加錯誤資訊
+                            results.append({
+                                'stock_code': stock_id,
+                                'calculation_date': end_date.strftime('%Y-%m-%d'),
+                                'date_index': i + 1,
+                                'day_of_week': end_date.strftime('%A'),
+                                'error': f'計算錯誤: {str(e)}',
+                                'success': False
+                            })
+                            log_callback(f"✗ 日期 {end_date.strftime('%Y-%m-%d')} 計算異常: {str(e)}", "ERROR")
+                    
+                    # 檢查是否有任何成功的結果
+                    successful_results = [r for r in results if 'error' not in r]
+                    
+                    if successful_results:
+                        log_callback(f"計算完成（使用SQL查詢）: 共 {len(results)} 個日期，成功 {len(successful_results)} 個")
+                        result_json = {
+                            'success': True,
+                            'data': results,
+                            'count': len(results),
+                            'successful_count': len(successful_results),
+                            'date_range': {
+                                'start_date': start_date.strftime('%Y-%m-%d'),
+                                'end_date_start': end_date_start.strftime('%Y-%m-%d'),
+                                'end_date_end': end_date_end.strftime('%Y-%m-%d'),
+                                'total_days': len(date_list)
+                            },
+                            'message': f'成功取得股票 {stock_id} 的資料（使用SQL查詢），日期區間 {end_date_start.strftime("%Y-%m-%d")} 至 {end_date_end.strftime("%Y-%m-%d")}，共 {len(results)} 個日期，成功 {len(successful_results)} 個'
+                        }
+
+                        return Response(json.dumps(result_json, ensure_ascii=False), mimetype='application/json')
+                    else:
+                        log_callback("錯誤: 所有日期的資料處理都失敗", "ERROR")
+                        return jsonify({
+                            'success': False,
+                            'error': '所有日期的資料處理都失敗',
+                            'data': results
+                        }), 500
+                        
+                except Exception as e:
+                    log_callback(f"錯誤: 伺服器內部錯誤: {str(e)}", "ERROR")
+                    return jsonify({
+                        'success': False,
+                        'error': f'伺服器內部錯誤: {str(e)}'
+                    }), 500
+
             # 5分K資料匯出
             @app.route('/api/export-5min-kbar', methods=['POST'])
             def export_5min_kbar():
@@ -718,6 +1033,15 @@ class StockAPIGUIView(ttk.Frame):
                     'endpoints': {
                         'POST /api/export-stock-data': {
                             'description': '匯出股票資料',
+                            'parameters': {
+                                'stock_id': '股票代碼 (字串)',
+                                'start_date': '起始日期 (YYYY-MM-DD)',
+                                'end_date_start': '結束日期開始 (YYYY-MM-DD)',
+                                'end_date_end': '結束日期結束 (YYYY-MM-DD)'
+                            }
+                        },
+                        'POST /api/export-stock-data-use-sql': {
+                            'description': '匯出股票資料（使用SQL查詢總波段）',
                             'parameters': {
                                 'stock_id': '股票代碼 (字串)',
                                 'start_date': '起始日期 (YYYY-MM-DD)',
