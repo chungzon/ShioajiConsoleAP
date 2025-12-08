@@ -190,6 +190,9 @@ class StockAPIGUIView(ttk.Frame):
                 self.log_message("已載入上次的設定")
             else:
                 self.log_message("使用預設設定")
+        
+        # 自動啟動API服務
+        self.after(100, self.start_api)
     
     def log_message(self, message, level="INFO"):
         """添加日誌訊息"""
