@@ -349,6 +349,7 @@ class SelectStockModel(BaseModel):
                         latest_dates = recent_segment['latest_dates']
 
                         gap_df = self.get_gap_stocks(stock_data_df)
+                        short_wave_peak = self.get_short_wave_peak(stock_id, start_date, end_date)
                         try:
                             now_price = self.get_latest_close_price(stock_id)
                         except Exception as e:
@@ -446,6 +447,7 @@ class SelectStockModel(BaseModel):
                             'buy_1809': buy_1809_spread_ratio,
                             'buy_2': buy_2_spread_ratio,
                             'gap_df': gap_df,
+                            'short_wave_peak': short_wave_peak,
                             'now_price': now_price,
                             'next_open_price': next_open_price,
                             'latest_close_price_by_date': latest_close_price_by_date,

@@ -379,7 +379,7 @@ class StockAPIGUIView(ttk.Frame):
                             )
                             next_open_price = None
                             if result is not None:
-                                segment, recent_segment, gap_df, now_price, latest_close_price_by_date, next_open_price = result
+                                segment, recent_segment, gap_df, now_price, latest_close_price_by_date, next_open_price, short_wave_peak = result
                                 
                                 # 整理比例價格資料
                                 ratio_data = {}
@@ -520,6 +520,49 @@ class StockAPIGUIView(ttk.Frame):
                                             all_data[f'月({period})_DIFF'] = f"{float(value):.2f}"
                                         else:
                                             all_data[f'月({period})_DIFF'] = "nan"
+                                
+                                # 8. 短波段峰值指標資料
+                                if short_wave_peak is not None and not short_wave_peak.empty:
+                                    import pandas as pd
+                                    from datetime import datetime
+                                    for index, row in short_wave_peak.iterrows():
+                                        peak_date = row['peak_date']
+                                        high_price = row['high_price']
+                                        # 取得序號（如果存在）
+                                        if 'sequence_str' in row:
+                                            sequence_str = row['sequence_str']
+                                        elif 'sequence' in row:
+                                            sequence_str = f"{int(row['sequence']):03d}"
+                                        else:
+                                            # 如果沒有序號，使用索引+1
+                                            sequence_str = f"{index + 1:03d}"
+                                        
+                                        # 格式化日期為 yyyy-MM-dd
+                                        if isinstance(peak_date, pd.Timestamp):
+                                            date_str = peak_date.strftime('%Y-%m-%d')
+                                        elif isinstance(peak_date, datetime):
+                                            date_str = peak_date.strftime('%Y-%m-%d')
+                                        elif isinstance(peak_date, str):
+                                            # 如果是字符串，尝试解析
+                                            try:
+                                                if len(peak_date) == 10:  # yyyy-MM-dd格式
+                                                    date_str = peak_date
+                                                else:
+                                                    dt = pd.to_datetime(peak_date)
+                                                    date_str = dt.strftime('%Y-%m-%d')
+                                            except:
+                                                date_str = peak_date[:10] if len(peak_date) >= 10 else str(peak_date)
+                                        else:
+                                            # 尝试转换为日期字符串
+                                            try:
+                                                dt = pd.to_datetime(peak_date)
+                                                date_str = dt.strftime('%Y-%m-%d')
+                                            except:
+                                                date_str = str(peak_date)
+                                        
+                                        # 指標格式為 N_band_H_日001[2025-08-23]:99
+                                        indicator_name = f"N_band_H_日{sequence_str}[{date_str}]:{high_price:.2f}"
+                                        all_data[indicator_name] = f"{high_price:.2f}"
                                 
                                 # 讀取JSON模板
                                 with open('resource/export_json_templete.json', 'r', encoding='utf-8') as f:

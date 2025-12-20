@@ -1,4 +1,4 @@
-﻿from datetime import datetime, timedelta
+from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 import pandas as pd
@@ -190,8 +190,8 @@ class SelectStockController:
         now_price = total_segment.get('now_price', 'N/A')
         next_open_price = total_segment.get('next_open_price', 'N/A')
         latest_close_price_by_date = total_segment.get('latest_close_price_by_date', 'N/A')
-
-        self.view.show_sma_data(stock_id, stock_name, organized_ma_data, recent_ratio_prices, additional_data, indicator_prices, ratio_prices, gap_df, now_price, latest_close_price_by_date, next_open_price)
+        short_wave_peak = total_segment.get('short_wave_peak', 'N/A')
+        self.view.show_sma_data(stock_id, stock_name, organized_ma_data, recent_ratio_prices, additional_data, indicator_prices, ratio_prices, gap_df, now_price, latest_close_price_by_date, next_open_price, short_wave_peak)
         
     def export_1min_data(self, stock_id, stock_name, end_date):
         # 獲取1分K資料
