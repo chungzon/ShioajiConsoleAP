@@ -421,6 +421,15 @@ class DataAnalysisView(tk.Frame):
                 for index, row in short_wave_peak.iterrows():
                     peak_date = row['peak_date']
                     high_price = row['high_price']
+                    # 取得序號（如果存在）
+                    if 'sequence_str' in row:
+                        sequence_str = row['sequence_str']
+                    elif 'sequence' in row:
+                        sequence_str = f"{int(row['sequence']):03d}"
+                    else:
+                        # 如果沒有序號，使用索引+1
+                        sequence_str = f"{index + 1:03d}"
+                    
                     # 格式化日期為 yyyy-MM-dd
                     if isinstance(peak_date, pd.Timestamp):
                         date_str = peak_date.strftime('%Y-%m-%d')
@@ -443,8 +452,8 @@ class DataAnalysisView(tk.Frame):
                             date_str = dt.strftime('%Y-%m-%d')
                         except:
                             date_str = str(peak_date)
-                    # 指標格式為 N_band_H[yyyy-MM-dd]:high_price
-                    indicator_name = f"N_band_H[{date_str}]:{high_price:.2f}"
+                    # 指標格式為 N_band_H_日001[2025-08-23]:99
+                    indicator_name = f"N_band_H_日{sequence_str}[{date_str}]:{high_price:.2f}"
                     all_prices.append((indicator_name, high_price, False))
             
             return all_prices

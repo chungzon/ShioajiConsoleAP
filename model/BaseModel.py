@@ -1265,6 +1265,14 @@ class BaseModel:
         try:
             df = pd.read_sql(sql, conn)
             conn.close()
+            
+            # 添加序號列（基於 high_price 排序後的順序，從 001 開始）
+            if not df.empty:
+                df = df.reset_index(drop=True)
+                df['sequence'] = df.index + 1
+                # 將序號格式化為三位數，例如 001, 002, 003
+                df['sequence_str'] = df['sequence'].apply(lambda x: f"{x:03d}")
+            
             return df
         except Exception as e:
             print(f"SQL 執行錯誤: {e}")
