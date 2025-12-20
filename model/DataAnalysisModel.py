@@ -732,7 +732,10 @@ class DataAnalysisModel(SelectStockModel):
                 # 取得總波段結束日期的下一個交易日開盤價格
                 next_open_price = self.get_next_open_price_date(stock_id, end_date)
 
-                return segment, recent_segment, gap_df, now_price, latest_close_price_by_date, next_open_price # 返回總波段和最近波段
+                # 取得短波段峰值
+                short_wave_peak = self.get_short_wave_peak(stock_id, start_date, end_date)
+
+                return segment, recent_segment, gap_df, now_price, latest_close_price_by_date, next_open_price, short_wave_peak # 返回總波段和最近波段
 
     def get_recent_segment(self, segments_df, recent_start_date, recent_end_date):
         """獲取日期區間內的最近波段"""

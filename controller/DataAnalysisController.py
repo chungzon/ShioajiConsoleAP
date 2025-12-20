@@ -1,4 +1,4 @@
-﻿from asyncio.windows_events import NULL
+from asyncio.windows_events import NULL
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
@@ -168,7 +168,7 @@ class DataAnalysisController:
             print(f"取得股票名稱時發生錯誤: {e}")
             stock_name = stock_id
 
-        total_segment, recent_segment, gap_df, now_price, latest_close_price_by_date, next_open_price = self.model.get_stock_data_from_all_wave_extremes(stock_id, start_date, end_date, recent_start_date, recent_end_date)
+        total_segment, recent_segment, gap_df, now_price, latest_close_price_by_date, next_open_price, short_wave_peak = self.model.get_stock_data_from_all_wave_extremes(stock_id, start_date, end_date, recent_start_date, recent_end_date)
         if total_segment is None:
             print(f"沒有找到股票 {stock_id} 的數據")
             return
@@ -330,7 +330,7 @@ class DataAnalysisController:
             'AL': total_segment.get('AL', 'N/A')
         }
 
-        self.view.show_sma_data(stock_id, stock_name, organized_ma_data, recent_ratio_prices, additional_data, indicator_prices, total_ratio_prices, gap_df, now_price, latest_close_price_by_date, next_open_price)
+        self.view.show_sma_data(stock_id, stock_name, organized_ma_data, recent_ratio_prices, additional_data, indicator_prices, total_ratio_prices, gap_df, now_price, latest_close_price_by_date, next_open_price, short_wave_peak)
         
     def export_1min_data(self, stock_id, stock_name, end_date):
         # 獲取1分K資料

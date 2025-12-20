@@ -1,4 +1,4 @@
-﻿import numpy as np
+import numpy as np
 import pymssql
 import pandas as pd
 import shioaji as sj
@@ -1119,6 +1119,159 @@ class BaseModel:
             gaps.append(gap_info)
         
         return pd.DataFrame(gaps)
+
+    # 個股某起始日期開始的最高價往後的短波段峰值
+    def get_short_wave_peak(self, stock_id, start_date, end_date):
+        conn = self.connect_db()
+        # 確保日期格式為字符串格式 YYYY-MM-DD
+        from datetime import datetime
+        if isinstance(start_date, str):
+            start_date_str = start_date
+        else:
+            if hasattr(start_date, 'strftime'):
+                start_date_str = start_date.strftime('%Y-%m-%d')
+            elif isinstance(start_date, datetime):
+                start_date_str = start_date.strftime('%Y-%m-%d')
+            else:
+                start_date_str = str(start_date)
+        
+        if isinstance(end_date, str):
+            end_date_str = end_date
+        else:
+            if hasattr(end_date, 'strftime'):
+                end_date_str = end_date.strftime('%Y-%m-%d')
+            elif isinstance(end_date, datetime):
+                end_date_str = end_date.strftime('%Y-%m-%d')
+            else:
+                end_date_str = str(end_date)
+        
+        # 確保 stock_id 是字符串
+        stock_id_str = str(stock_id)
+        
+        sql = f"""WITH BaseData AS (
+        SELECT
+        stock_id,
+        [date],
+        high_price,
+        low_price
+        FROM stock_data
+        WHERE stock_id = '{stock_id_str}'
+        AND [date] BETWEEN '{start_date_str}' AND '{end_date_str}'
+        ),
+        MaxHigh AS (
+        SELECT TOP 1
+        [date] AS max_high_date,
+        high_price AS max_high
+        FROM BaseData
+        ORDER BY high_price DESC, [date] ASC
+        ),
+        PeriodData AS (
+        SELECT
+        b.stock_id,
+        b.[date],
+        b.high_price,
+        b.low_price
+        FROM BaseData b
+        CROSS JOIN MaxHigh mh
+        WHERE b.[date] >= mh.max_high_date
+        ),
+        Step1 AS (
+        SELECT
+        stock_id,
+        [date],
+        high_price,
+        low_price,
+        CASE
+        WHEN LAG(high_price) OVER (PARTITION BY stock_id ORDER BY [date]) = high_price
+        THEN 0 ELSE 1
+        END AS new_flag
+        FROM PeriodData
+        ),
+        Step2 AS (
+        SELECT
+        stock_id,
+        [date],
+        high_price,
+        low_price,
+        SUM(new_flag) OVER (
+        PARTITION BY stock_id
+        ORDER BY [date]
+        ROWS UNBOUNDED PRECEDING
+        ) AS block_id
+        FROM Step1
+        ),
+        BlockAgg AS (
+        SELECT
+        stock_id,
+        block_id,
+        high_price,
+        MIN([date]) AS start_date,
+        MAX([date]) AS end_date
+        FROM Step2
+        GROUP BY stock_id, block_id, high_price
+        ),
+        BlockWithNeighbors AS (
+        SELECT
+        b.*,
+        LAG(b.high_price) OVER (PARTITION BY stock_id ORDER BY block_id) AS prev_block_price,
+        LEAD(b.high_price) OVER (PARTITION BY stock_id ORDER BY block_id) AS next_block_price
+        FROM BlockAgg b
+        ),
+        Peaks AS (
+        SELECT
+        stock_id,
+        end_date AS peak_date,
+        high_price AS peak_high,
+        LEAD(end_date) OVER (PARTITION BY stock_id ORDER BY end_date) AS next_peak_date
+        FROM BlockWithNeighbors
+        WHERE
+        (
+        (prev_block_price IS NOT NULL AND next_block_price IS NOT NULL
+        AND high_price >= prev_block_price AND high_price > next_block_price)
+        OR (prev_block_price IS NULL AND high_price > next_block_price)
+        OR (next_block_price IS NULL AND high_price >= prev_block_price)
+        )
+        ),
+        Valleys AS (
+        SELECT
+        P.stock_id,
+        L.[date] AS valley_date,
+        L.low_price,
+        P.peak_date,
+        P.peak_high AS high_price
+        FROM Peaks P
+        CROSS APPLY (
+        SELECT TOP 1 s.[date], s.low_price
+        FROM PeriodData s
+        WHERE s.[date] >= P.peak_date
+        AND (
+        (P.next_peak_date IS NOT NULL AND s.[date] < P.next_peak_date)
+        OR (P.next_peak_date IS NULL)
+        )
+        ORDER BY s.low_price ASC, s.[date] ASC
+        ) L
+        )
+        SELECT
+        v.stock_id,
+        v.peak_date,
+        v.high_price,
+        v.valley_date,
+        v.low_price
+        FROM Valleys v
+        CROSS JOIN MaxHigh mh
+        ORDER BY
+        v.high_price DESC,
+        v.peak_date DESC;"""
+        try:
+            df = pd.read_sql(sql, conn)
+            conn.close()
+            return df
+        except Exception as e:
+            print(f"SQL 執行錯誤: {e}")
+            print(f"stock_id: {stock_id_str}, start_date: {start_date_str}, end_date: {end_date_str}")
+            print(f"SQL 前100字符: {sql[:100]}")
+            conn.close()
+            raise
     
     # 取得日期的收盤價
     def get_close_price_by_date(self, stock_id, date):

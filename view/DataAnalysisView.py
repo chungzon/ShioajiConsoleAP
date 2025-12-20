@@ -1,4 +1,4 @@
-﻿from datetime import datetime, timedelta
+from datetime import datetime, timedelta
 import tkinter as tk
 from tkinter import ttk
 import pandas as pd
@@ -140,7 +140,7 @@ class DataAnalysisView(tk.Frame):
         table.resizeColumnsToContents()
         return table
 
-    def create_ratio_table(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, ma_checkbox_state=True):
+    def create_ratio_table(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, ma_checkbox_state=True, short_wave_peak=None):
         # self.ratio_table = QTableWidget()
         # self.ratio_table.setColumnCount(5)  # 比例、最近波段、總波段、指標, 獲利
         
@@ -414,6 +414,39 @@ class DataAnalysisView(tk.Frame):
                     if (float(gap_price) <= Math.calculate_up_limit_price_1_15(now_price) and float(gap_price) >= Math.calculate_down_limit_price_1_15(now_price)):
                         all_prices.append((f"({row['previous_close']}~{row['current_open']})  [{row['date'].strftime('%Y-%m-%d')}] {gap_type}", gap_price, False))
             
+            # 添加短波段峰值指標
+            if short_wave_peak is not None and not short_wave_peak.empty:
+                import pandas as pd
+                from datetime import datetime
+                for index, row in short_wave_peak.iterrows():
+                    peak_date = row['peak_date']
+                    high_price = row['high_price']
+                    # 格式化日期為 yyyy-MM-dd
+                    if isinstance(peak_date, pd.Timestamp):
+                        date_str = peak_date.strftime('%Y-%m-%d')
+                    elif isinstance(peak_date, datetime):
+                        date_str = peak_date.strftime('%Y-%m-%d')
+                    elif isinstance(peak_date, str):
+                        # 如果是字符串，尝试解析
+                        try:
+                            if len(peak_date) == 10:  # yyyy-MM-dd格式
+                                date_str = peak_date
+                            else:
+                                dt = pd.to_datetime(peak_date)
+                                date_str = dt.strftime('%Y-%m-%d')
+                        except:
+                            date_str = peak_date[:10] if len(peak_date) >= 10 else str(peak_date)
+                    else:
+                        # 尝试转换为日期字符串
+                        try:
+                            dt = pd.to_datetime(peak_date)
+                            date_str = dt.strftime('%Y-%m-%d')
+                        except:
+                            date_str = str(peak_date)
+                    # 指標格式為 N_band_H[yyyy-MM-dd]:high_price
+                    indicator_name = f"N_band_H[{date_str}]:{high_price:.2f}"
+                    all_prices.append((indicator_name, high_price, False))
+            
             return all_prices
 
         # 按價格分組到對應的行
@@ -442,7 +475,7 @@ class DataAnalysisView(tk.Frame):
 
         # return self.ratio_table
 
-    def show_sma_data(self, stock_id, stock_name, organized_ma_data, ratio_prices, additional_data, indicator_prices, recent_ratio_prices, gap_df, now_price, latest_close_price_by_date, next_open_price):
+    def show_sma_data(self, stock_id, stock_name, organized_ma_data, ratio_prices, additional_data, indicator_prices, recent_ratio_prices, gap_df, now_price, latest_close_price_by_date, next_open_price, short_wave_peak=None):
         self.detail_window = QWidget()
         self.detail_window.setWindowTitle(f"詳細資料 - {stock_id} ({stock_name})")
         self.detail_window.setGeometry(100, 100, 1000, 750)
@@ -607,14 +640,14 @@ class DataAnalysisView(tk.Frame):
         gap_checkbox.setChecked(True)
         gap_checkbox.setFont(font)
         export_layout.addWidget(gap_checkbox)
-        gap_checkbox.stateChanged.connect(lambda: self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked(), ma_checkbox.isChecked()))
+        gap_checkbox.stateChanged.connect(lambda: self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked(), ma_checkbox.isChecked(), short_wave_peak))
 
         # 顯示均價指標checkbox
         ma_checkbox = QCheckBox("顯示均價指標")
         ma_checkbox.setChecked(True)
         ma_checkbox.setFont(font)
         export_layout.addWidget(ma_checkbox)
-        ma_checkbox.stateChanged.connect(lambda: self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked(), ma_checkbox.isChecked()))
+        ma_checkbox.stateChanged.connect(lambda: self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked(), ma_checkbox.isChecked(), short_wave_peak))
 
         # 匯出json檔案按鈕
         export_json_button = QPushButton("匯出json檔案")
@@ -638,7 +671,7 @@ class DataAnalysisView(tk.Frame):
         self.ratio_table.setColumnCount(5)  # 比例、最近波段、總波段、指標, 獲利
         self.ratio_layout.addWidget(self.ratio_table)
         self.ratio_tab.setLayout(self.ratio_layout)
-        self.update_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked(), ma_checkbox.isChecked())
+        self.update_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox.isChecked(), ma_checkbox.isChecked(), short_wave_peak)
         
 
 
@@ -676,13 +709,13 @@ class DataAnalysisView(tk.Frame):
         
         self.detail_window.show()
 
-    def update_table(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, ma_checkbox_state=True):
+    def update_table(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, ma_checkbox_state=True, short_wave_peak=None):
         # 創建比例表格
-        self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, ma_checkbox_state)
+        self.create_ratio_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, ma_checkbox_state, short_wave_peak)
         # self.ratio_layout.addWidget(self.ratio_table)
         # self.ratio_tab.setLayout(self.ratio_layout)
 
-    def recalculate(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, ma_checkbox_state=True):
+    def recalculate(self, ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, ma_checkbox_state=True, short_wave_peak=None):
         # 分別取得ratio比例為0和2的價格，並轉為float
         # 取得table中ratio比例為0和2的價格
         ratio_0_price = float(self.ratio_table.item(1, 1).text())
@@ -709,7 +742,7 @@ class DataAnalysisView(tk.Frame):
             self.ratio_table.setItem(r, 3, QTableWidgetItem(""))
             self.ratio_table.setItem(r, 4, QTableWidgetItem(""))
 
-        self.update_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, ma_checkbox_state)
+        self.update_table(ratio_prices, indicator_prices, organized_ma_data, recent_ratio_prices, day_trading_checkbox, fee_discount_input, gap_df, gap_checkbox_state, ma_checkbox_state, short_wave_peak)
 
     def save_screenshot(self, stock_id, stock_name):
         # 獲取當前視窗的幾何信息
