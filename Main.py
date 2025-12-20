@@ -561,7 +561,7 @@ class StockAPIGUIView(ttk.Frame):
                                                 date_str = str(peak_date)
                                         
                                         # 指標格式為 N_band_H_日001[2025-08-23]:99
-                                        indicator_name = f"N_band_H_日{sequence_str}[{date_str}]:{high_price:.2f}"
+                                        indicator_name = f"N_band_H_日{sequence_str}[{date_str}]"
                                         all_data[indicator_name] = f"{high_price:.2f}"
                                 
                                 # 讀取JSON模板
