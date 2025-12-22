@@ -69,11 +69,11 @@ class DataDownloadModel(BaseModel):
         conn.close()
 
     def get_kbars_data_by_start_end_date(self, stock_id, start_date, end_date):
-        self.api.logout()
-        self.api.login(
-            api_key="CV7uuCJ7pB7x2i4T7783dBwiP7NwqhgwNj96J9uPd7PK",
-            secret_key="HvDpMQ84VfgsGqBPN4nqfPV1iY9XsoWHst4rd4UimHaf"
-        )
+        # self.api.logout()
+        # self.api.login(
+        #     api_key="CV7uuCJ7pB7x2i4T7783dBwiP7NwqhgwNj96J9uPd7PK",
+        #     secret_key="HvDpMQ84VfgsGqBPN4nqfPV1iY9XsoWHst4rd4UimHaf"
+        # )
 
         contract = self.api.Contracts.Stocks[str(stock_id)]
         kbars = self.api.kbars(
