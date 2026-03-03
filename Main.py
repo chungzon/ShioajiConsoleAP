@@ -231,7 +231,13 @@ class StockAPIGUIView(ttk.Frame):
         
         # 初始化 ExportJson 和 DataAnalysisModel
         if self.export_json is None:
-            from api.ExportJson import ExportJson
+            import os
+            import importlib.util
+            _export_json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "api", "ExportJson.py")
+            _spec = importlib.util.spec_from_file_location("ExportJson", _export_json_path)
+            _export_json_module = importlib.util.module_from_spec(_spec)
+            _spec.loader.exec_module(_export_json_module)
+            ExportJson = _export_json_module.ExportJson
             from model.DataAnalysisModel import DataAnalysisModel
             self.export_json = ExportJson()
             self.data_analysis_model = DataAnalysisModel(self.api)

@@ -161,7 +161,7 @@ class Math:
         ]
 
         # 計算月均線的扣抵值和移動平均
-        monthly_prices = close_prices.resample('M').last()
+        monthly_prices = close_prices.resample('ME').last()
         monthly_prices = monthly_prices.dropna()
         monthly_5_sma = Math.calculate_moving_average(monthly_prices, 5)
         monthly_10_sma = Math.calculate_moving_average(monthly_prices, 10)
@@ -220,7 +220,7 @@ class Math:
     # 計算月均線
     @staticmethod
     def calculate_monthly_average(prices, window):
-        monthly_prices = prices.resample('M').last()
+        monthly_prices = prices.resample('ME').last()
         return Math.calculate_moving_average(monthly_prices, window)
     
     # 計算15分鐘均線

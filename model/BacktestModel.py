@@ -1,4 +1,4 @@
-﻿import pymssql
+import pymssql
 import pandas as pd
 import shioaji as sj
 import time
@@ -154,7 +154,7 @@ class BacktestModel:
 
     # 計算月均線
     def calculate_monthly_average(self, prices, window):
-        monthly_prices = prices.resample('M').last()
+        monthly_prices = prices.resample('ME').last()
         return self.calculate_moving_average(monthly_prices, window)
     
     # 漲停價、跌停價

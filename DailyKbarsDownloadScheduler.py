@@ -2,7 +2,7 @@ import time
 from threading import Thread
 from datetime import datetime, date
 from model.DataDownloadModel import DataDownloadModel
-from utils.unified_scheduler_manager import get_unified_scheduler_manager
+from app_utils.unified_scheduler_manager import get_unified_scheduler_manager
 
 class DailyKbarsDownloadScheduler:
     def __init__(self, api):
