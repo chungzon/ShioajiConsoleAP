@@ -1,11 +1,17 @@
-/__pycache__
-/output
-/.vs/ShioajiConsoleAP/FileContentIndex
-/shioaji.log
-/.vs/ShioajiConsoleAP/v17/DocumentLayout.json
-/.vs/ShioajiConsoleAP/v17/.suo
-/view/__pycache__
-/model/__pycache__
-/controller/__pycache__
-/common/__pycache__
-/logs
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+
+# Logs
+logs/
+shioaji.log
+nul
+
+# IDE / Editor
+.vs/
+.claude/
+
+# Output
+output/
