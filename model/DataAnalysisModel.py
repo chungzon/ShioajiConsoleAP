@@ -1,4 +1,4 @@
-﻿import pymssql
+import pymssql
 import pandas as pd
 from tkinter import messagebox
 from model.SelectStockModel import SelectStockModel
@@ -167,7 +167,7 @@ class DataAnalysisModel(SelectStockModel):
 
     # 計算月均線
     def calculate_monthly_average(self, prices, window):
-        monthly_prices = prices.resample('M').last()
+        monthly_prices = prices.resample('ME').last()
         return self.calculate_moving_average(monthly_prices, window)
 
     # 儲存資料到Excel

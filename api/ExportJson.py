@@ -12,8 +12,12 @@ import json
 import os
 import sys
 import math
+import logging
+import traceback
 from datetime import datetime, timedelta
 import argparse
+
+logger = logging.getLogger(__name__)
 
 class Math:
     """數學運算類別"""
@@ -158,7 +162,7 @@ class Math:
         ]
 
         # 計算月均線
-        monthly_prices = close_prices.resample('M').last()
+        monthly_prices = close_prices.resample('ME').last()
         monthly_prices = monthly_prices.dropna()
         monthly_5_sma = monthly_prices.rolling(window=5, min_periods=5).mean()
         monthly_10_sma = monthly_prices.rolling(window=10, min_periods=10).mean()
@@ -212,7 +216,7 @@ class Math:
 
     @staticmethod
     def calculate_monthly_average(prices, window):
-        monthly_prices = prices.resample('M').last()
+        monthly_prices = prices.resample('ME').last()
         return monthly_prices.rolling(window=window, min_periods=window).mean()
     
     @staticmethod
@@ -316,14 +320,14 @@ class ExportJson:
             conn = pymssql.connect(**self.db_config)
             return conn
         except Exception as e:
-            print(f"資料庫連接失敗: {e}")
+            logger.error(f"資料庫連接失敗: {e}\n{traceback.format_exc()}")
             return None
 
     def get_stock_data(self, stock_id, start_date, end_date):
         conn = self.connect_db()
         if not conn:
             return None
-        
+
         try:
             query = """
             SELECT DISTINCT stock_id, date, close_price, open_price, high_price, low_price
@@ -335,14 +339,14 @@ class ExportJson:
             """
             df = pd.read_sql(query, conn, params=(stock_id, start_date, end_date))
             conn.close()
-            
+
             if not df.empty:
                 df['date'] = pd.to_datetime(df['date'])
                 df.set_index('date', inplace=True)
-            
+
             return df
         except Exception as e:
-            print(f"查詢股票資料失敗: {e}")
+            logger.error(f"查詢股票資料失敗 (stock_id={stock_id}): {e}\n{traceback.format_exc()}")
             if conn:
                 conn.close()
             return None
@@ -352,32 +356,32 @@ class ExportJson:
         conn = self.connect_db()
         if not conn:
             return None
-        
+
         try:
             query = """
             SELECT DISTINCT TOP 900 stock_id, ts, open_price, high, low, close_price, volume
-            FROM Kbars 
+            FROM Kbars
             WHERE stock_id = %s
             AND ts <= %s
             ORDER BY ts DESC
             """
             df = pd.read_sql(query, conn, params=(stock_id, end_date + timedelta(days=1)))
             conn.close()
-            
+
             if not df.empty:
                 df['ts'] = pd.to_datetime(df['ts'])
                 df.set_index('ts', inplace=True)
-            
+
             return df
         except Exception as e:
-            print(f"查詢股票資料失敗: {e}")
+            logger.error(f"查詢KBar資料失敗 (stock_id={stock_id}): {e}\n{traceback.format_exc()}")
             if conn:
                 conn.close()
             return None
     
     def find_peaks_troughs_v34_small(self, df, kbars_df=None, daily_df=None):
         segments = []
-        ratios = [0, 0.191, 0.382, 0.5, 0.618, 0.809, 1, 1.191, 1.382, 1.5, 1.618, 1.809, 2, 2.191, 2.382, 2.5, 2.618, 2.809, 3, 
+        ratios = [0, 0.191, 0.382, 0.5, 0.618, 0.809, 1, 1.191, 1.382, 1.5, 1.618, 1.809, 2, 2.191, 2.382, 2.5, 2.618, 2.809, 3,
                   3.191, 3.382, 3.5, 3.618, 3.809, 4, 4.191, 4.382, 4.5, 4.618, 4.809, 5, 5.191, 5.382, 5.5, 5.618, 5.809, 6]
         ratio_columns = [f'Ratio_{ratio}' for ratio in ratios]
         append_columns = [f'spread_ratio', f'latest_close_price', f'latest_close_price-0.191_ratio', f'latest_close_price-0.618_ratio']
@@ -385,13 +389,23 @@ class ExportJson:
 
         latest_close_price = df['close_price'].iloc[-1]
         # 取得SMA值 - 如果有kbars_df则使用，否则使用df
-        if kbars_df is not None and not kbars_df.empty:
-            k15_sma_values = self.calculate_k15_sma(kbars_df)
-        else:
+        try:
+            if kbars_df is not None and not kbars_df.empty:
+                k15_sma_values = self.calculate_k15_sma(kbars_df)
+            else:
+                k15_sma_values = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+        except Exception as e:
+            logger.error(f"計算15分K均線失敗: {e}\n{traceback.format_exc()}")
             k15_sma_values = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
-        if daily_df is not None and not daily_df.empty:
-            sma_values, weekly_sma_values, monthly_sma_values = Math.calculate_sma(daily_df['close_price'])
-        else:
+        try:
+            if daily_df is not None and not daily_df.empty:
+                sma_values, weekly_sma_values, monthly_sma_values = Math.calculate_sma(daily_df['close_price'])
+            else:
+                sma_values = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+                weekly_sma_values = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+                monthly_sma_values = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+        except Exception as e:
+            logger.error(f"計算SMA均線失敗: {e}\n{traceback.format_exc()}")
             sma_values = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
             weekly_sma_values = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
             monthly_sma_values = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
@@ -408,12 +422,13 @@ class ExportJson:
         # 計算CDP
         try:
             CDP = Math.calculate_CDP(
-                df['high_price'].iloc[-1], 
-                df['low_price'].iloc[-1], 
+                df['high_price'].iloc[-1],
+                df['low_price'].iloc[-1],
                 df['close_price'].iloc[-1]
             )
             CDP, NL, NH, AL, AH = Math.calculate_CDP_5_values(CDP, df['high_price'].iloc[-1], df['low_price'].iloc[-1])
-        except:
+        except Exception as e:
+            logger.error(f"計算CDP失敗: {e}\n{traceback.format_exc()}")
             CDP = NL = NH = AL = AH = np.nan
 
         # 第一階段：找出所有波段
@@ -570,201 +585,218 @@ class ExportJson:
     
     def calculate_ratios(self, extremes_df):
         """計算比例價格 - 使用原本的邏輯"""
-        if extremes_df.empty or len(extremes_df) < 2:
+        try:
+            if extremes_df.empty or len(extremes_df) < 2:
+                return {}
+
+            # 找到最高價和最低價
+            max_price = extremes_df['Max_Value'].max()
+            min_price = extremes_df['Min_Value'].min()
+
+            # 計算各種比例
+            ratios = ['0', '0.191', '0.382', '0.5', '0.618', '0.809', '1',
+                     '1.191', '1.382', '1.5', '1.618', '1.809', '2',
+                     '2.191', '2.382', '2.5', '2.618', '2.809', '3',
+                     '3.191', '3.382', '3.5', '3.618', '3.809', '4',
+                     '4.191', '4.382', '4.5', '4.618', '4.809', '5']
+
+            ratio_prices = {}
+            for ratio in ratios:
+                ratio_value = float(ratio)
+                price = Math.calculate_ratio_value(max_price, min_price, ratio_value)
+                ratio_prices[ratio] = price
+
+            return ratio_prices
+        except Exception as e:
+            logger.error(f"計算比例價格失敗: {e}\n{traceback.format_exc()}")
             return {}
-        
-        # 找到最高價和最低價
-        max_price = extremes_df['Max_Value'].max()
-        min_price = extremes_df['Min_Value'].min()
-        
-        # 計算各種比例
-        ratios = ['0', '0.191', '0.382', '0.5', '0.618', '0.809', '1', 
-                 '1.191', '1.382', '1.5', '1.618', '1.809', '2',
-                 '2.191', '2.382', '2.5', '2.618', '2.809', '3',
-                 '3.191', '3.382', '3.5', '3.618', '3.809', '4',
-                 '4.191', '4.382', '4.5', '4.618', '4.809', '5']
-        
-        ratio_prices = {}
-        for ratio in ratios:
-            ratio_value = float(ratio)
-            price = Math.calculate_ratio_value(max_price, min_price, ratio_value)
-            ratio_prices[ratio] = price
-        
-        return ratio_prices
     
     def calculate_moving_averages(self, df, kbars_df, daily_df):
         """計算各種移動平均線 - 使用原本的邏輯"""
         if df.empty:
             return {}
-        
-        close_prices = daily_df['close_price']
-        latest_price = close_prices.iloc[-1]
-        
-        # 使用原本的 Math.calculate_sma 方法
-        sma_values, weekly_sma_values, monthly_sma_values = Math.calculate_sma(close_prices)
-        
-        # 計算15分鐘均線
-        k15_sma_values = self.calculate_k15_sma(kbars_df)
-        
-        # 組織均線資料 - 根據原本的返回值結構
-        organized_ma_data = {
-            '日均線': {
-                '5MA': sma_values[0] if not pd.isna(sma_values[0]) else 'N/A',
-                '10MA': sma_values[1] if not pd.isna(sma_values[1]) else 'N/A',
-                '20MA': sma_values[2] if not pd.isna(sma_values[2]) else 'N/A',
-                '60MA': sma_values[3] if not pd.isna(sma_values[3]) else 'N/A',
-                '120MA': sma_values[4] if not pd.isna(sma_values[4]) else 'N/A',
-                '5MA_DIFF': sma_values[5] if not pd.isna(sma_values[5]) else 'N/A',
-                '10MA_DIFF': sma_values[6] if not pd.isna(sma_values[6]) else 'N/A',
-                '20MA_DIFF': sma_values[7] if not pd.isna(sma_values[7]) else 'N/A',
-                '60MA_DIFF': sma_values[8] if not pd.isna(sma_values[8]) else 'N/A',
-                '120MA_DIFF': sma_values[9] if not pd.isna(sma_values[9]) else 'N/A',
-            },
-            '週均線': {
-                '5MA': weekly_sma_values[0] if not pd.isna(weekly_sma_values[0]) else 'N/A',
-                '10MA': weekly_sma_values[1] if not pd.isna(weekly_sma_values[1]) else 'N/A',
-                '20MA': weekly_sma_values[2] if not pd.isna(weekly_sma_values[2]) else 'N/A',
-                '60MA': weekly_sma_values[3] if not pd.isna(weekly_sma_values[3]) else 'N/A',
-                '120MA': weekly_sma_values[4] if not pd.isna(weekly_sma_values[4]) else 'N/A',
-                '5MA_DIFF': weekly_sma_values[5] if not pd.isna(weekly_sma_values[5]) else 'N/A',
-                '10MA_DIFF': weekly_sma_values[6] if not pd.isna(weekly_sma_values[6]) else 'N/A',
-                '20MA_DIFF': weekly_sma_values[7] if not pd.isna(weekly_sma_values[7]) else 'N/A',
-                '60MA_DIFF': weekly_sma_values[8] if not pd.isna(weekly_sma_values[8]) else 'N/A',
-                '120MA_DIFF': weekly_sma_values[9] if not pd.isna(weekly_sma_values[9]) else 'N/A',
-            },
-            '月均線': {
-                '5MA': monthly_sma_values[0] if not pd.isna(monthly_sma_values[0]) else 'N/A',
-                '10MA': monthly_sma_values[1] if not pd.isna(monthly_sma_values[1]) else 'N/A',
-                '20MA': monthly_sma_values[2] if not pd.isna(monthly_sma_values[2]) else 'N/A',
-                '60MA': monthly_sma_values[3] if not pd.isna(monthly_sma_values[3]) else 'N/A',
-                '120MA': monthly_sma_values[4] if not pd.isna(monthly_sma_values[4]) else 'N/A',
-                '5MA_DIFF': monthly_sma_values[5] if not pd.isna(monthly_sma_values[5]) else 'N/A',
-                '10MA_DIFF': monthly_sma_values[6] if not pd.isna(monthly_sma_values[6]) else 'N/A',
-                '20MA_DIFF': monthly_sma_values[7] if not pd.isna(monthly_sma_values[7]) else 'N/A',
-                '60MA_DIFF': monthly_sma_values[8] if not pd.isna(monthly_sma_values[8]) else 'N/A',
-                '120MA_DIFF': monthly_sma_values[9] if not pd.isna(monthly_sma_values[9]) else 'N/A',
-            },
-            '15分鐘均線': {
-                '5MA': k15_sma_values[0] if not pd.isna(k15_sma_values[0]) else 'N/A',
-                '10MA': k15_sma_values[1] if not pd.isna(k15_sma_values[1]) else 'N/A',
-                '20MA': k15_sma_values[2] if not pd.isna(k15_sma_values[2]) else 'N/A',
-                '60MA': k15_sma_values[3] if not pd.isna(k15_sma_values[3]) else 'N/A',
-                '120MA': k15_sma_values[4] if not pd.isna(k15_sma_values[4]) else 'N/A',
-                'strong': k15_sma_values[5] if not pd.isna(k15_sma_values[5]) else 'N/A',
-                'weak': k15_sma_values[6] if not pd.isna(k15_sma_values[6]) else 'N/A',
-                '60MA_DIFF': k15_sma_values[7] if not pd.isna(k15_sma_values[7]) else 'N/A',
-                '5MA_DIFF': 'N/A',  # 15分鐘均線沒有5MA扣抵值
-                '10MA_DIFF': 'N/A',  # 15分鐘均線沒有10MA扣抵值
-                '20MA_DIFF': 'N/A',  # 15分鐘均線沒有20MA扣抵值
-                '120MA_DIFF': 'N/A',  # 15分鐘均線沒有120MA扣抵值
-            },
-            'latest_close_price': latest_price
-        }
-        
-        return organized_ma_data
+
+        try:
+            close_prices = daily_df['close_price']
+            latest_price = close_prices.iloc[-1]
+
+            # 使用原本的 Math.calculate_sma 方法
+            sma_values, weekly_sma_values, monthly_sma_values = Math.calculate_sma(close_prices)
+
+            # 計算15分鐘均線
+            k15_sma_values = self.calculate_k15_sma(kbars_df)
+
+            # 組織均線資料 - 根據原本的返回值結構
+            organized_ma_data = {
+                '日均線': {
+                    '5MA': sma_values[0] if not pd.isna(sma_values[0]) else 'N/A',
+                    '10MA': sma_values[1] if not pd.isna(sma_values[1]) else 'N/A',
+                    '20MA': sma_values[2] if not pd.isna(sma_values[2]) else 'N/A',
+                    '60MA': sma_values[3] if not pd.isna(sma_values[3]) else 'N/A',
+                    '120MA': sma_values[4] if not pd.isna(sma_values[4]) else 'N/A',
+                    '5MA_DIFF': sma_values[5] if not pd.isna(sma_values[5]) else 'N/A',
+                    '10MA_DIFF': sma_values[6] if not pd.isna(sma_values[6]) else 'N/A',
+                    '20MA_DIFF': sma_values[7] if not pd.isna(sma_values[7]) else 'N/A',
+                    '60MA_DIFF': sma_values[8] if not pd.isna(sma_values[8]) else 'N/A',
+                    '120MA_DIFF': sma_values[9] if not pd.isna(sma_values[9]) else 'N/A',
+                },
+                '週均線': {
+                    '5MA': weekly_sma_values[0] if not pd.isna(weekly_sma_values[0]) else 'N/A',
+                    '10MA': weekly_sma_values[1] if not pd.isna(weekly_sma_values[1]) else 'N/A',
+                    '20MA': weekly_sma_values[2] if not pd.isna(weekly_sma_values[2]) else 'N/A',
+                    '60MA': weekly_sma_values[3] if not pd.isna(weekly_sma_values[3]) else 'N/A',
+                    '120MA': weekly_sma_values[4] if not pd.isna(weekly_sma_values[4]) else 'N/A',
+                    '5MA_DIFF': weekly_sma_values[5] if not pd.isna(weekly_sma_values[5]) else 'N/A',
+                    '10MA_DIFF': weekly_sma_values[6] if not pd.isna(weekly_sma_values[6]) else 'N/A',
+                    '20MA_DIFF': weekly_sma_values[7] if not pd.isna(weekly_sma_values[7]) else 'N/A',
+                    '60MA_DIFF': weekly_sma_values[8] if not pd.isna(weekly_sma_values[8]) else 'N/A',
+                    '120MA_DIFF': weekly_sma_values[9] if not pd.isna(weekly_sma_values[9]) else 'N/A',
+                },
+                '月均線': {
+                    '5MA': monthly_sma_values[0] if not pd.isna(monthly_sma_values[0]) else 'N/A',
+                    '10MA': monthly_sma_values[1] if not pd.isna(monthly_sma_values[1]) else 'N/A',
+                    '20MA': monthly_sma_values[2] if not pd.isna(monthly_sma_values[2]) else 'N/A',
+                    '60MA': monthly_sma_values[3] if not pd.isna(monthly_sma_values[3]) else 'N/A',
+                    '120MA': monthly_sma_values[4] if not pd.isna(monthly_sma_values[4]) else 'N/A',
+                    '5MA_DIFF': monthly_sma_values[5] if not pd.isna(monthly_sma_values[5]) else 'N/A',
+                    '10MA_DIFF': monthly_sma_values[6] if not pd.isna(monthly_sma_values[6]) else 'N/A',
+                    '20MA_DIFF': monthly_sma_values[7] if not pd.isna(monthly_sma_values[7]) else 'N/A',
+                    '60MA_DIFF': monthly_sma_values[8] if not pd.isna(monthly_sma_values[8]) else 'N/A',
+                    '120MA_DIFF': monthly_sma_values[9] if not pd.isna(monthly_sma_values[9]) else 'N/A',
+                },
+                '15分鐘均線': {
+                    '5MA': k15_sma_values[0] if not pd.isna(k15_sma_values[0]) else 'N/A',
+                    '10MA': k15_sma_values[1] if not pd.isna(k15_sma_values[1]) else 'N/A',
+                    '20MA': k15_sma_values[2] if not pd.isna(k15_sma_values[2]) else 'N/A',
+                    '60MA': k15_sma_values[3] if not pd.isna(k15_sma_values[3]) else 'N/A',
+                    '120MA': k15_sma_values[4] if not pd.isna(k15_sma_values[4]) else 'N/A',
+                    'strong': k15_sma_values[5] if not pd.isna(k15_sma_values[5]) else 'N/A',
+                    'weak': k15_sma_values[6] if not pd.isna(k15_sma_values[6]) else 'N/A',
+                    '60MA_DIFF': k15_sma_values[7] if not pd.isna(k15_sma_values[7]) else 'N/A',
+                    '5MA_DIFF': 'N/A',
+                    '10MA_DIFF': 'N/A',
+                    '20MA_DIFF': 'N/A',
+                    '120MA_DIFF': 'N/A',
+                },
+                'latest_close_price': latest_price
+            }
+
+            return organized_ma_data
+        except Exception as e:
+            logger.error(f"計算移動平均線失敗: {e}\n{traceback.format_exc()}")
+            return {}
     
     def calculate_k15_sma(self, kbars_df):
         """計算15分鐘均線 - 使用原本的邏輯"""
-        if kbars_df.empty:
-            return [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
-        
-        # 轉換時間格式
-        df_copy = kbars_df.copy()
-        df_copy['date'] = df_copy.index
-        df_copy = df_copy.set_index('date')
-        
-        # 按日期分組
-        daily_groups = df_copy.groupby(df_copy.index.date)
-        
-        # 存儲所有15K數據
-        all_k15 = []
-        
-        for date, day_data in daily_groups:
-            # 設定當天的起始時間（0915）
-            start_time = pd.Timestamp(date).replace(hour=9, minute=15)
-            
-            # 重採樣，從0915開始每15分鐘
-            k15_day = day_data.resample('15T', origin=start_time, closed='right', label='right').agg({
-                'open_price': 'last',
-                'high': 'last',
-                'low': 'last',
-                'close_price': 'last',
-                'volume': 'sum'
-            })
-            
-            all_k15.append(k15_day)
-        
-        # 合併所有日期的數據
-        k15 = pd.concat(all_k15)
-        
-        if k15.empty:
-            return [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
-        
-        # 計算15分鐘K線的SMA，處理數據不足的情況
-        k15_5sma = Math.calculate_moving_average(k15['close_price'], 5)
-        k15_10sma = Math.calculate_moving_average(k15['close_price'], 10)
-        k15_20sma = Math.calculate_moving_average(k15['close_price'], 20)
-        k15_60sma = Math.calculate_moving_average(k15['close_price'], 60)
-        k15_120sma = Math.calculate_moving_average(k15['close_price'], 120)
-        
-        # 計算15分鐘K線的SMA
-        k15_sma = [
-            round(k15_5sma.iloc[-1] if not np.isnan(k15_5sma.iloc[-1]) else np.nan, 2),
-            round(k15_10sma.iloc[-1] if not np.isnan(k15_10sma.iloc[-1]) else np.nan, 2),
-            round(k15_20sma.iloc[-1] if not np.isnan(k15_20sma.iloc[-1]) else np.nan, 2),
-            round(k15_60sma.iloc[-1] if not np.isnan(k15_60sma.iloc[-1]) else np.nan, 2),
-            round(k15_120sma.iloc[-1] if not np.isnan(k15_120sma.iloc[-1]) else np.nan, 2)
-        ]
-        
-        # 計算續強和續弱
-        if not k15.empty and len(k15) >= 20:
-            k15_stock_strong = (k15_10sma.iloc[-1]*10 - k15['close_price'].iloc[-10])/(10-1) # 續強公式
-            k15_stock_weak = (k15_20sma.iloc[-1]*20 - k15['close_price'].iloc[-20])/(20-1) # 續弱公式
-            k15_sma.append(round(k15_stock_strong, 2))
-            k15_sma.append(round(k15_stock_weak, 2))
-        else:
-            k15_sma.extend([np.nan, np.nan])
-        
-        # 計算60MA扣抵值
-        k15_60sma_diff = np.nan
-        if len(k15_60sma) >= 60:
-            k15_60sma_diff = (k15_60sma.iloc[-1]*60 - k15['close_price'].iloc[-60])/(60-1)
-            k15_sma.append(round(k15_60sma_diff, 2))
-        else:
-            k15_sma.append(np.nan)
-        
-        return k15_sma
+        default_values = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+        try:
+            if kbars_df.empty:
+                return default_values
+
+            # 轉換時間格式
+            df_copy = kbars_df.copy()
+            df_copy['date'] = df_copy.index
+            df_copy = df_copy.set_index('date')
+
+            # 按日期分組
+            daily_groups = df_copy.groupby(df_copy.index.date)
+
+            # 存儲所有15K數據
+            all_k15 = []
+
+            for date, day_data in daily_groups:
+                # 設定當天的起始時間（0915）
+                start_time = pd.Timestamp(date).replace(hour=9, minute=15)
+
+                # 重採樣，從0915開始每15分鐘
+                k15_day = day_data.resample('15T', origin=start_time, closed='right', label='right').agg({
+                    'open_price': 'last',
+                    'high': 'last',
+                    'low': 'last',
+                    'close_price': 'last',
+                    'volume': 'sum'
+                })
+
+                all_k15.append(k15_day)
+
+            # 合併所有日期的數據
+            k15 = pd.concat(all_k15)
+
+            if k15.empty:
+                return default_values
+
+            # 計算15分鐘K線的SMA，處理數據不足的情況
+            k15_5sma = Math.calculate_moving_average(k15['close_price'], 5)
+            k15_10sma = Math.calculate_moving_average(k15['close_price'], 10)
+            k15_20sma = Math.calculate_moving_average(k15['close_price'], 20)
+            k15_60sma = Math.calculate_moving_average(k15['close_price'], 60)
+            k15_120sma = Math.calculate_moving_average(k15['close_price'], 120)
+
+            # 計算15分鐘K線的SMA
+            k15_sma = [
+                round(k15_5sma.iloc[-1] if not np.isnan(k15_5sma.iloc[-1]) else np.nan, 2),
+                round(k15_10sma.iloc[-1] if not np.isnan(k15_10sma.iloc[-1]) else np.nan, 2),
+                round(k15_20sma.iloc[-1] if not np.isnan(k15_20sma.iloc[-1]) else np.nan, 2),
+                round(k15_60sma.iloc[-1] if not np.isnan(k15_60sma.iloc[-1]) else np.nan, 2),
+                round(k15_120sma.iloc[-1] if not np.isnan(k15_120sma.iloc[-1]) else np.nan, 2)
+            ]
+
+            # 計算續強和續弱
+            if not k15.empty and len(k15) >= 20:
+                k15_stock_strong = (k15_10sma.iloc[-1]*10 - k15['close_price'].iloc[-10])/(10-1)
+                k15_stock_weak = (k15_20sma.iloc[-1]*20 - k15['close_price'].iloc[-20])/(20-1)
+                k15_sma.append(round(k15_stock_strong, 2))
+                k15_sma.append(round(k15_stock_weak, 2))
+            else:
+                k15_sma.extend([np.nan, np.nan])
+
+            # 計算60MA扣抵值
+            k15_60sma_diff = np.nan
+            if len(k15_60sma) >= 60:
+                k15_60sma_diff = (k15_60sma.iloc[-1]*60 - k15['close_price'].iloc[-60])/(60-1)
+                k15_sma.append(round(k15_60sma_diff, 2))
+            else:
+                k15_sma.append(np.nan)
+
+            return k15_sma
+        except Exception as e:
+            logger.error(f"計算15分鐘均線失敗: {e}\n{traceback.format_exc()}")
+            return default_values
     
     def calculate_indicators(self, df):
         """計算技術指標"""
         if df.empty:
             return {}
-        
-        close_prices = df['close_price']
-        high_prices = df['high_price']
-        low_prices = df['low_price']
-        
-        indicators = {}
-        
-        # 計算AL (最高價)
-        indicators['AL'] = high_prices.max()
-        
-        # 計算NL (最低價)
-        indicators['NL'] = low_prices.min()
-        
-        # 計算NH (最近最高價，最近10天)
-        indicators['NH'] = high_prices.tail(10).max()
-        
-        # 計算AH (最近最低價，最近10天)
-        indicators['AH'] = low_prices.tail(10).min()
-        
-        # 計算CDP (簡化版本)
-        recent_high = high_prices.tail(1).iloc[0]
-        recent_low = low_prices.tail(1).iloc[0]
-        recent_close = close_prices.tail(1).iloc[0]
-        indicators['CDP'] = (recent_high + recent_low + recent_close) / 3
-        
-        return indicators
+
+        try:
+            close_prices = df['close_price']
+            high_prices = df['high_price']
+            low_prices = df['low_price']
+
+            indicators = {}
+
+            # 計算AL (最高價)
+            indicators['AL'] = high_prices.max()
+
+            # 計算NL (最低價)
+            indicators['NL'] = low_prices.min()
+
+            # 計算NH (最近最高價，最近10天)
+            indicators['NH'] = high_prices.tail(10).max()
+
+            # 計算AH (最近最低價，最近10天)
+            indicators['AH'] = low_prices.tail(10).min()
+
+            # 計算CDP (簡化版本)
+            recent_high = high_prices.tail(1).iloc[0]
+            recent_low = low_prices.tail(1).iloc[0]
+            recent_close = close_prices.tail(1).iloc[0]
+            indicators['CDP'] = (recent_high + recent_low + recent_close) / 3
+
+            return indicators
+        except Exception as e:
+            logger.error(f"計算技術指標失敗: {e}\n{traceback.format_exc()}")
+            return {}
     
     def get_recent_ratio_prices(self, df, recent_start_date, recent_end_date):
         """計算最近波段的比例價格 - 使用原本的邏輯"""
@@ -855,182 +887,182 @@ class ExportJson:
             return all_5min_data
             
         except Exception as e:
-            print(f"生成5分K資料失敗: {e}")
+            logger.error(f"生成5分K資料失敗: {e}\n{traceback.format_exc()}")
             return []
     
     def export_to_json(self, stock_id, start_date, end_date, df=None, kbars_df=None, daily_df=None, output_path=None, return_data=False):
         """匯出資料為JSON格式"""
-        print(f"開始處理股票 {stock_id} 的資料...")
-        
-        # 如果沒有指定最近波段日期，使用總波段的後半段
-        # if not recent_start_date or not recent_end_date:
-        #     # 計算日期差的天數
-        #     date_diff = (end_date - start_date).days
-        #     mid_days = date_diff // 2
-        #     mid_date = start_date + timedelta(days=mid_days)
-        #     recent_start_date = start_date
-        #     recent_end_date = end_date
-        
+        logger.info(f"開始處理股票 {stock_id} 的資料...")
+
         # 取得股票資料
-        if df is None:
-            df = self.get_stock_data(stock_id, start_date, end_date)
-        if df is None or df.empty:
-            print(f"無法取得股票 {stock_id} 的資料")
+        try:
+            if df is None:
+                df = self.get_stock_data(stock_id, start_date, end_date)
+            if df is None or df.empty:
+                logger.warning(f"無法取得股票 {stock_id} 的資料")
+                return False
+        except Exception as e:
+            logger.error(f"取得股票資料時發生錯誤 (stock_id={stock_id}): {e}\n{traceback.format_exc()}")
             return False
-        
-        print(f"成功取得 {len(df)} 筆資料")
-        if kbars_df is None:
-            kbars_df = self.get_stock_KBars(stock_id, start_date, end_date)
-        if kbars_df is None or kbars_df.empty:
-            print(f"無法取得股票 {stock_id} 的KBar資料")
+
+        logger.info(f"成功取得 {len(df)} 筆資料")
+
+        try:
+            if kbars_df is None:
+                kbars_df = self.get_stock_KBars(stock_id, start_date, end_date)
+            if kbars_df is None or kbars_df.empty:
+                logger.warning(f"無法取得股票 {stock_id} 的KBar資料")
+                return False
+        except Exception as e:
+            logger.error(f"取得KBar資料時發生錯誤 (stock_id={stock_id}): {e}\n{traceback.format_exc()}")
             return False
-        
-        print(f"成功取得 {len(kbars_df)} 筆KBar資料")
-        
+
+        logger.info(f"成功取得 {len(kbars_df)} 筆KBar資料")
+
         # 計算各種資料
-        print("計算移動平均線...")
-        organized_ma_data = self.calculate_moving_averages(df, kbars_df, daily_df)
-        
-        print("計算技術指標...")
-        indicator_prices = self.calculate_indicators(df)
-        
-        print("計算總波段比例價格...")
-        ratio_prices = self.calculate_ratios(self.find_peaks_troughs_v34_small(df, kbars_df, daily_df))
-        
-        print("計算最近波段比例價格...")
-        # recent_ratio_prices = self.get_recent_ratio_prices(df, recent_start_date, recent_end_date)
-        
+        try:
+            logger.info("計算移動平均線...")
+            organized_ma_data = self.calculate_moving_averages(df, kbars_df, daily_df)
+            if not organized_ma_data:
+                logger.error(f"計算移動平均線回傳空結果 (stock_id={stock_id})")
+                return False
+        except Exception as e:
+            logger.error(f"計算移動平均線時發生錯誤 (stock_id={stock_id}): {e}\n{traceback.format_exc()}")
+            return False
+
+        try:
+            logger.info("計算技術指標...")
+            indicator_prices = self.calculate_indicators(df)
+        except Exception as e:
+            logger.error(f"計算技術指標時發生錯誤 (stock_id={stock_id}): {e}\n{traceback.format_exc()}")
+            indicator_prices = {}
+
+        try:
+            logger.info("計算總波段比例價格...")
+            ratio_prices = self.calculate_ratios(self.find_peaks_troughs_v34_small(df, kbars_df, daily_df))
+        except Exception as e:
+            logger.error(f"計算總波段比例價格時發生錯誤 (stock_id={stock_id}): {e}\n{traceback.format_exc()}")
+            ratio_prices = {}
+
         # 準備JSON資料
-        data = {}
-        
-        # 添加當前價格
-        latest_close_price = organized_ma_data['latest_close_price']
-        data['NOW PRICE'] = f"{latest_close_price:.2f}"
-        
-        # 定義固定的比例序列
-        ratio_sequence = ['0', '0.191', '0.382', '0.5', '0.618', '0.809', '1', 
-                         '1.191', '1.382', '1.5', '1.618', '1.809', '2',
-                         '2.191', '2.382', '2.5', '2.618', '2.809', '3',
-                         '3.191', '3.382', '3.5', '3.618', '3.809', '4',
-                         '4.191', '4.382', '4.5', '4.618', '4.809', '5']
-        
-        # 添加最近波段比例價格
-        # for ratio in ratio_sequence:
-        #     if recent_ratio_prices and ratio in recent_ratio_prices:
-        #         price = recent_ratio_prices[ratio]
-        #         data[f"N[{ratio}]"] = f"{price:.2f}"
-        #     else:
-        #         data[f"N[{ratio}]"] = "nan"
-        
-        # 添加總波段比例價格
-        for ratio in ratio_sequence:
-            if ratio in ratio_prices:
-                price = ratio_prices[ratio]
-                data[f"[{ratio}]"] = f"{price:.2f}"
-            else:
-                data[f"[{ratio}]"] = "nan"
-        
-        # 按照固定順序添加均線和指標數據
-        indicator_order = [
-            # ('日', '120'), ('周', '60'), ('周', '20'), ('日', '60'),
-            # ('周', '120'), ('月', '5'), ('周', '10'), ('日', '20'),
-            # 'AL', ('周', '5'), 'NL', ('15K', '20'), 'CDP', ('15K', '10'),
-            # ('15K', '5'), ('15K', 'strong'), ('15K', 'weak'), ('日', '10'), ('日', '5'), 'NH', 'AH',
-            # ('月', '10'), ('月', '20'), ('月', '60'), ('月', '120'),('日', 'strong'), ('日', 'weak'),
-            # ('周', 'strong'), ('周', 'weak'),
-            'CDP', 'NH', 'AH', 'NL', 'AL',
-            # 扣抵值集合
-            ('15K', '10MA_DIFF'), ('15K', '20MA_DIFF'), ('15K', '60MA_DIFF'),
-            ('日', '5MA_DIFF'), ('日', '10MA_DIFF'), ('日', '20MA_DIFF'), ('日', '60MA_DIFF'), ('日', '120MA_DIFF'),
-            ('周', '5MA_DIFF'), ('周', '10MA_DIFF'), ('周', '20MA_DIFF'), ('周', '60MA_DIFF'), ('周', '120MA_DIFF'),
-            ('月', '5MA_DIFF'), ('月', '10MA_DIFF'), ('月', '20MA_DIFF'), ('月', '60MA_DIFF'), ('月', '120MA_DIFF')
-        ]
-        
-        # 添加均線和指標數據
-        for item in indicator_order:
-            if isinstance(item, tuple):
-                prefix, period = item
+        try:
+            data = {}
 
+            # 添加當前價格
+            latest_close_price = organized_ma_data['latest_close_price']
+            data['NOW PRICE'] = f"{latest_close_price:.2f}"
 
-                if (period.endswith('MA_DIFF')):
-                    period = period.replace('MA_DIFF', '')
-                else:    
-                    period = f"{period}MA"
-                key = f"{prefix}({period})_DIFF"
-                if prefix in {'日': '日均線', '周': '週均線', '月': '月均線', '15K': '15分鐘均線'}:
-                    ma_type = {'日': '日均線', '周': '週均線', '月': '月均線', '15K': '15分鐘均線'}[prefix]
-                    # 處理扣抵值
-                    if period.endswith('MA_DIFF'):
-                        ma_period = period.replace('MA_DIFF', 'MA_DIFF')
-                    # 對於15分鐘均線，需要特殊處理strong和weak
-                    elif prefix != '月' and period in ['strong', 'weak']:
-                        ma_period = period
+            # 定義固定的比例序列
+            ratio_sequence = ['0', '0.191', '0.382', '0.5', '0.618', '0.809', '1',
+                             '1.191', '1.382', '1.5', '1.618', '1.809', '2',
+                             '2.191', '2.382', '2.5', '2.618', '2.809', '3',
+                             '3.191', '3.382', '3.5', '3.618', '3.809', '4',
+                             '4.191', '4.382', '4.5', '4.618', '4.809', '5']
+
+            # 添加總波段比例價格
+            for ratio in ratio_sequence:
+                if ratio in ratio_prices:
+                    price = ratio_prices[ratio]
+                    data[f"[{ratio}]"] = f"{price:.2f}"
+                else:
+                    data[f"[{ratio}]"] = "nan"
+
+            # 按照固定順序添加均線和指標數據
+            indicator_order = [
+                'CDP', 'NH', 'AH', 'NL', 'AL',
+                # 扣抵值集合
+                ('15K', '10MA_DIFF'), ('15K', '20MA_DIFF'), ('15K', '60MA_DIFF'),
+                ('日', '5MA_DIFF'), ('日', '10MA_DIFF'), ('日', '20MA_DIFF'), ('日', '60MA_DIFF'), ('日', '120MA_DIFF'),
+                ('周', '5MA_DIFF'), ('周', '10MA_DIFF'), ('周', '20MA_DIFF'), ('周', '60MA_DIFF'), ('周', '120MA_DIFF'),
+                ('月', '5MA_DIFF'), ('月', '10MA_DIFF'), ('月', '20MA_DIFF'), ('月', '60MA_DIFF'), ('月', '120MA_DIFF')
+            ]
+
+            # 添加均線和指標數據
+            for item in indicator_order:
+                if isinstance(item, tuple):
+                    prefix, period = item
+
+                    if (period.endswith('MA_DIFF')):
+                        period = period.replace('MA_DIFF', '')
                     else:
-                        ma_period = f"{period}MA"
-                    if (ma_type in organized_ma_data and 
-                        ma_period in organized_ma_data[ma_type] and 
-                        organized_ma_data[ma_type][ma_period] != 'N/A'):
-                        value = organized_ma_data[ma_type][ma_period]
+                        period = f"{period}MA"
+                    key = f"{prefix}({period})_DIFF"
+                    if prefix in {'日': '日均線', '周': '週均線', '月': '月均線', '15K': '15分鐘均線'}:
+                        ma_type = {'日': '日均線', '周': '週均線', '月': '月均線', '15K': '15分鐘均線'}[prefix]
+                        # 處理扣抵值
+                        if period.endswith('MA_DIFF'):
+                            ma_period = period.replace('MA_DIFF', 'MA_DIFF')
+                        # 對於15分鐘均線，需要特殊處理strong和weak
+                        elif prefix != '月' and period in ['strong', 'weak']:
+                            ma_period = period
+                        else:
+                            ma_period = f"{period}MA"
+                        if (ma_type in organized_ma_data and
+                            ma_period in organized_ma_data[ma_type] and
+                            organized_ma_data[ma_type][ma_period] != 'N/A'):
+                            value = organized_ma_data[ma_type][ma_period]
+                            data[key] = f"{value:.2f}"
+                        else:
+                            data[key] = "nan"
+                else:
+                    key = f"{item}"
+                    if item in indicator_prices:
+                        value = indicator_prices[item]
                         data[key] = f"{value:.2f}"
                     else:
                         data[key] = "nan"
-            else:
-                # 處理指標數據
-                # if (item.endswith('MA_DIFF')):
-                #     key = item.replace('MA_DIFF', '')
-                #     key = f"{key}_DIFF"
-                # else:    
-                key = f"{item}"
-                if item in indicator_prices:
-                    value = indicator_prices[item]
-                    data[key] = f"{value:.2f}"
-                else:
-                    data[key] = "nan"
-        
+        except Exception as e:
+            logger.error(f"準備JSON資料時發生錯誤 (stock_id={stock_id}): {e}\n{traceback.format_exc()}")
+            return False
+
         # 讀取JSON模板
-        template_path = self.get_resource_path('resource/export_json_templete.json')
-        if os.path.exists(template_path):
-            with open(template_path, 'r', encoding='utf-8') as f:
-                json_template = json.load(f)
-        else:
-            # 如果沒有模板，使用預設結構
-            json_template = {
-                "stock_code": stock_id,
-                "base": "0",
-                "date": end_date.strftime('%Y-%m-%d'),
-                "data": data,
-                "over_ratio_dont_buy": "0.03",
-                "extend_over_ratio_dont_buy": "0.03",
-                "no_buy_after": "10:00:00",
-                "final_buy": "12:00:00",
-                "extend_time": "00:30:00",
-                "enable_15k20ma": True,
-                "enable_15k10ma": True,
-                "before_n": 2,
-            }
-        
+        try:
+            template_path = self.get_resource_path('resource/export_json_templete.json')
+            if os.path.exists(template_path):
+                with open(template_path, 'r', encoding='utf-8') as f:
+                    json_template = json.load(f)
+            else:
+                # 如果沒有模板，使用預設結構
+                json_template = {
+                    "stock_code": stock_id,
+                    "base": "0",
+                    "date": end_date.strftime('%Y-%m-%d'),
+                    "data": data,
+                    "over_ratio_dont_buy": "0.03",
+                    "extend_over_ratio_dont_buy": "0.03",
+                    "no_buy_after": "10:00:00",
+                    "final_buy": "12:00:00",
+                    "extend_time": "00:30:00",
+                    "enable_15k20ma": True,
+                    "enable_15k10ma": True,
+                    "before_n": 2,
+                }
+        except Exception as e:
+            logger.error(f"讀取JSON模板失敗 (stock_id={stock_id}): {e}\n{traceback.format_exc()}")
+            return False
+
         # 更新JSON模板中的數據
         json_template['stock_code'] = stock_id
         json_template['base'] = f"{latest_close_price:.2f}"
         json_template['date'] = end_date.strftime('%Y-%m-%d')
         json_template['data'] = data
-        
+
         # 如果要求返回資料而不是寫入檔案
         if return_data:
             return json_template
-        
+
         # 設定輸出路徑
         if not output_path:
             output_path = f"{stock_id}_data_{end_date.strftime('%Y-%m-%d')}.json"
-        
+
         # 寫入JSON檔案
         try:
             with open(output_path, 'w', encoding='utf-8') as f:
                 json.dump(json_template, f, ensure_ascii=False, indent=4)
-            print(f"成功匯出JSON檔案: {output_path}")
+            logger.info(f"成功匯出JSON檔案: {output_path}")
             return True
         except Exception as e:
-            print(f"匯出JSON檔案失敗: {e}")
+            logger.error(f"匯出JSON檔案失敗 (stock_id={stock_id}, path={output_path}): {e}\n{traceback.format_exc()}")
             return False
 
 def main():

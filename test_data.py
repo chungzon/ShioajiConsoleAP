@@ -45,7 +45,7 @@ def test_data():
                 print(weekly_prices.tail(5).to_string())
             
             # 計算月均線
-            monthly_prices = df['close_price'].resample('M').last()
+            monthly_prices = df['close_price'].resample('ME').last()
             monthly_prices = monthly_prices.dropna()
             print(f'月均線資料筆數: {len(monthly_prices)}')
             if len(monthly_prices) > 0:

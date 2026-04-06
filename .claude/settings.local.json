@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m py_compile:*)",
+      "Bash(powershell.exe -Command \"$env:PYTHONUTF8=''1''; & ''D:\\\\Projects\\\\ShioajiConsoleAP\\\\venv\\\\Scripts\\\\python.exe'' -m pip install -r ''D:\\\\Projects\\\\ShioajiConsoleAP\\\\requirements.txt''\")"
+    ]
+  }
+}

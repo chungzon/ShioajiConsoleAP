@@ -1,4 +1,4 @@
-﻿import shioaji as sj
+import shioaji as sj
 import pandas as pd
 import os
 import tkinter as tk
@@ -230,7 +230,7 @@ def calculate_weekly_average(prices, window):
 
 # 計算月均線
 def calculate_monthly_average(prices, window):
-    monthly_prices = prices.resample('M').last()
+    monthly_prices = prices.resample('ME').last()
     return calculate_moving_average(monthly_prices, window)
 
 # 儲存資料到Excel

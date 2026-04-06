@@ -158,7 +158,7 @@ class Math:
         ]
 
         # 計算月均線
-        monthly_prices = close_prices.resample('M').last()
+        monthly_prices = close_prices.resample('ME').last()
         monthly_prices = monthly_prices.dropna()
         monthly_5_sma = monthly_prices.rolling(window=5, min_periods=5).mean()
         monthly_10_sma = monthly_prices.rolling(window=10, min_periods=10).mean()
@@ -212,7 +212,7 @@ class Math:
 
     @staticmethod
     def calculate_monthly_average(prices, window):
-        monthly_prices = prices.resample('M').last()
+        monthly_prices = prices.resample('ME').last()
         return monthly_prices.rolling(window=window, min_periods=window).mean()
     
     @staticmethod

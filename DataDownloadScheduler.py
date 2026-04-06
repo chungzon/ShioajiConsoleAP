@@ -1,4 +1,4 @@
-﻿import time
+import time
 from threading import Thread
 from datetime import datetime, date, timedelta
 import requests
