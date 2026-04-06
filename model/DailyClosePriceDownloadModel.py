@@ -32,7 +32,7 @@ class DailyClosePriceDownloadModel:
   
 
     def write_log(self, message):
-        with open(self.log_filename, "a") as log_file:
+        with open(self.log_filename, "a", encoding="utf-8") as log_file:
             log_file.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
 
     def connect_db(self):
@@ -75,7 +75,7 @@ class DailyClosePriceDownloadModel:
         conn.close()
 
     def write_log(self, message):
-        with open(self.log_filename, "a") as log_file:
+        with open(self.log_filename, "a", encoding="utf-8") as log_file:
             log_file.write(f"{pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
 
     def download_stock_data(self, api, stock_id, conn, cursor, view, start_date, end_date, is_retry=False):
@@ -373,6 +373,45 @@ class DailyClosePriceDownloadModel:
     def download_daily_close_price_all(self, view, start_date, end_date):
         self.download_daily_close_top30_stock(view, start_date, end_date)
 
+    def download_close_price_by_range(self, start_date, end_date):
+        """依指定日期區間下載 TWSE + TPEx 收盤價資料"""
+        # if not self.ensure_database_structure():
+        #     self.write_log("無法確保資料庫結構，退出下載程序")
+        #     return
+
+        current = start_date
+        while current <= end_date:
+            # 跳過週六日
+            if current.weekday() >= 5:
+                current += timedelta(days=1)
+                continue
+
+            date_label = current.strftime('%Y-%m-%d')
+            self.event.notify(f"開始下載 {date_label} 收盤價資料...")
+
+            # 下載 TWSE
+            twse_data = self.download_data_from_twse(current)
+            if twse_data:
+                self.insert_data_to_database(twse_data, is_twse=True)
+                self.event.notify(f"TWSE {date_label} 共 {len(twse_data)} 筆")
+            else:
+                self.event.notify(f"TWSE {date_label} 無資料")
+
+            time.sleep(3)
+
+            # 下載 TPEx
+            tpex_data = self.download_data_from_tpex(current)
+            if tpex_data:
+                self.insert_data_to_database(tpex_data, is_twse=False)
+                self.event.notify(f"TPEx {date_label} 共 {len(tpex_data)} 筆")
+            else:
+                self.event.notify(f"TPEx {date_label} 無資料")
+
+            time.sleep(3)
+            current += timedelta(days=1)
+
+        self.event.notify("收盤價日期區間下載完成")
+
     def ensure_system_config_table(self):
         """确保系统配置表存在"""
         conn = self.connect_db()
@@ -448,14 +487,16 @@ class DailyClosePriceDownloadModel:
             cursor.close()
             conn.close()
 
-    def download_data_from_twse(self):
+    def download_data_from_twse(self, target_date=None):
         """从TWSE下载数据"""
         try:
-            today = date.today().strftime('%Y%m%d')
-            
+            if target_date is None:
+                target_date = date.today()
+            date_str = target_date.strftime('%Y%m%d')
+
             # 根據日期和股票代碼來構建請求URL
             resp = requests.get(
-                f'https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX?date={today}&type=ALLBUT0999&response=csv')
+                f'https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX?date={date_str}&type=ALLBUT0999&response=csv')
 
             if resp.status_code != 200:
                 raise Exception(f'HTTP response code is not 200: {resp.status_code}')
@@ -463,7 +504,7 @@ class DailyClosePriceDownloadModel:
             # 解析CSV數據
             lines = io.StringIO(resp.text).readlines()
             # 找到目標字符串所在的行
-            TARGET_STRING = "每日收盤行情(全部(不含權證、牛熊證))"
+            TARGET_STRING = "每日收盤行情(全部(不含權證、牛熊證、可展延牛熊證))"
             start_index = next((i for i, line in enumerate(lines) if TARGET_STRING in line), -1)
             
             if start_index == -1:
@@ -513,7 +554,7 @@ class DailyClosePriceDownloadModel:
                     stock_data = {
                         'Code': stock_id,
                         'Name': stock_name,
-                        'Date': today,
+                        'Date': target_date.strftime('%Y-%m-%d'),
                         'OpeningPrice': open_price,
                         'HighestPrice': high_price,
                         'LowestPrice': low_price,
@@ -530,15 +571,73 @@ class DailyClosePriceDownloadModel:
             self.write_log(f"下載TWSE數據時發生錯誤: {e}")
             return None
 
-    def download_data_from_tpex(self):
-        """从TPEx下载数据"""
+    def download_data_from_tpex(self, target_date=None):
+        """从TPEx下载数据（使用 mi-pricing CSV 串流）"""
         try:
-            tpex_api_url = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_quotes"
-            response = requests.get(tpex_api_url)
-            response.raise_for_status()
-            return json.loads(response.text)
-        except requests.RequestException as e:
-            self.write_log(f"TPEx API 請求錯誤: {e}")
+            if target_date is None:
+                target_date = date.today()
+            roc_year = target_date.year - 1911
+            roc_date = f"{roc_year}/{target_date.strftime('%m/%d')}"
+            date_str = target_date.strftime('%Y-%m-%d')
+
+            url = (
+                'https://www.tpex.org.tw/web/stock/aftertrading/'
+                'otc_quotes_no1430/stk_wn1430_result.php'
+                f'?l=zh-tw&d={roc_date}&se=EW&sect=EW&o=csv'
+            )
+            resp = requests.get(url, timeout=30)
+            resp.raise_for_status()
+
+            # CSV 以 Big5 編碼回傳
+            content = resp.content.decode('big5', errors='replace')
+            lines = content.splitlines()
+
+            # 跳過空行和標題行，找到欄位標頭
+            # CSV 格式：前幾行可能是標題/空行，欄位標頭包含「代號」
+            header_idx = None
+            for i, line in enumerate(lines):
+                if '代號' in line:
+                    header_idx = i
+                    break
+
+            if header_idx is None:
+                raise Exception('無法找到 CSV 欄位標頭')
+
+            # 從標頭行開始解析
+            csv_text = '\n'.join(lines[header_idx:])
+            reader = csv.DictReader(io.StringIO(csv_text))
+
+            data = []
+            for row in reader:
+                try:
+                    stock_id = row.get('代號', '').strip()
+                    if not stock_id:
+                        continue
+
+                    stock_name = row.get('名稱', '').strip()
+                    close_price = self.parse_float(row.get('收盤', '').replace(',', '').strip())
+                    open_price = self.parse_float(row.get('開盤', '').replace(',', '').strip())
+                    high_price = self.parse_float(row.get('最高', '').replace(',', '').strip())
+                    low_price = self.parse_float(row.get('最低', '').replace(',', '').strip())
+                    volume = self.parse_int(row.get('成交股數', '').replace(',', '').strip())
+
+                    data.append({
+                        'Code': stock_id,
+                        'Name': stock_name,
+                        'Date': date_str,
+                        'OpeningPrice': open_price,
+                        'HighestPrice': high_price,
+                        'LowestPrice': low_price,
+                        'ClosingPrice': close_price,
+                        'TradeVolume': volume
+                    })
+                except Exception as e:
+                    self.write_log(f"處理TPEx CSV行時發生錯誤: {e}")
+
+            return data
+
+        except Exception as e:
+            self.write_log(f"TPEx CSV 下載錯誤: {e}")
             return None
 
     def insert_data_to_database(self, data, is_twse):
@@ -554,26 +653,15 @@ class DailyClosePriceDownloadModel:
             # 准备批量数据
             stock_data_list = []
             for stock in data:
-                if is_twse:
-                    values = (
-                        stock['Code'].replace('=', '').replace('"', ''),
-                        today,
-                        stock['OpeningPrice'],
-                        stock['HighestPrice'],
-                        stock['LowestPrice'],
-                        stock['ClosingPrice'],
-                        stock['TradeVolume']
-                    )
-                else:  # TPEx data
-                    values = (
-                        stock['SecuritiesCompanyCode'].replace('=', '').replace('"', ''),
-                        self.convert_tw_date_to_ad(stock['Date']),
-                        self.parse_float(stock['Open']),
-                        self.parse_float(stock['High']),
-                        self.parse_float(stock['Low']),
-                        self.parse_float(stock['Close']),
-                        self.parse_int(stock['TradingShares'])
-                    )
+                values = (
+                    stock['Code'].replace('=', '').replace('"', ''),
+                    stock.get('Date', today),
+                    stock['OpeningPrice'],
+                    stock['HighestPrice'],
+                    stock['LowestPrice'],
+                    stock['ClosingPrice'],
+                    stock['TradeVolume']
+                )
                 stock_data_list.append(values)
 
             # 使用 MERGE 语句批量处理

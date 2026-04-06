@@ -16,3 +16,6 @@ class DailyClosePriceDownloadController:
 
     def start_download_all(self, start_date, end_date):
         self.model.download_daily_close_price_all(self.view, start_date, end_date)
+
+    def download_close_price_by_range(self, start_date, end_date):
+        self.model.download_close_price_by_range(start_date, end_date)

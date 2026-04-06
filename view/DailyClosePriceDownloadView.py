@@ -36,7 +36,7 @@ class DailyClosePriceDownloadView(tk.Frame):
 
         ttk.Button(self, text="下載", command=self.start_download_thread).grid(row=5, column=0, columnspan=2, pady=10)
         ttk.Button(self, text="下載所有", command=self.start_manual_download_all_thread).grid(row=5, column=1, pady=10)
-        ttk.Button(self, text="下載當日收盤價", command=self.start_download_thread).grid(row=5, column=2, pady=10)
+        ttk.Button(self, text="下載收盤價(日期區間)", command=self.start_close_price_range_thread).grid(row=5, column=2, pady=10)
 
     def start_download_thread(self):
         # 開始一個新線程來處理下載，以防止卡住GUI
@@ -60,6 +60,17 @@ class DailyClosePriceDownloadView(tk.Frame):
 
     def download_daily_close_price(self, start_date, end_date):
         self.model.download_daily_close_top30_stock(start_date, end_date)
+
+    def start_close_price_range_thread(self):
+        thread = threading.Thread(target=self.start_close_price_range_download)
+        thread.start()
+
+    def start_close_price_range_download(self):
+        start_date = self.start_date_ticks_entry.get()
+        end_date = self.end_date_ticks_entry.get()
+        start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
+        end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
+        self.controller.download_close_price_by_range(start_date, end_date)
 
     def start_manual_download_all_thread(self):
         thread = threading.Thread(target=self.start_manual_download_all)

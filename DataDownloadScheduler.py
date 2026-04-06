@@ -7,7 +7,7 @@ import logging
 import pymssql
 import csv
 import io
-from utils.unified_scheduler_manager import get_unified_scheduler_manager
+from app_utils.unified_scheduler_manager import get_unified_scheduler_manager
 from plyer import notification
 
 
