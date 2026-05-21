@@ -32,6 +32,10 @@ class DailyClosePriceDownloadModel:
         # 共用的資料庫連線（延遲建立，重複使用，不每次重連）
         self.conn = None
         self.cursor = None
+        # 程式啟動時自動檢查並升級資料庫結構，
+        # 確保部署到客戶端的舊資料庫也能正常運作（例如 volume INT -> BIGINT），
+        # 客戶端不需手動執行 ALTER TABLE
+        self.ensure_database_structure()
   
 
     def write_log(self, message):
@@ -838,14 +842,23 @@ class DailyClosePriceDownloadModel:
         return date_obj.strftime('%Y-%m-%d')
 
     def ensure_database_structure(self):
-        """確保資料庫結構正確，包括表格、索引和約束"""
-        conn = self.connect_db()
+        """確保資料庫結構正確：建立缺少的表格與索引，並執行必要的結構遷移。
+
+        本方法可安全重複呼叫（idempotent），程式啟動時會自動執行。
+        部署到客戶端時，會自動把舊版資料庫升級到目前程式所需的結構
+        （例如把 volume 欄位由 INT 升級為 BIGINT），客戶端不需手動執行 ALTER TABLE。
+        """
+        try:
+            conn = self.connect_db()
+        except Exception as e:
+            self.write_log(f"資料庫結構檢查失敗，無法連線資料庫: {e}")
+            return False
         if not conn:
             return False
 
         cursor = conn.cursor()
         try:
-            # 檢查並創建 stock_data 表格
+            # 1. 檢查並創建 stock_data 表格
             cursor.execute("""
                 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='stock_data' AND xtype='U')
                 CREATE TABLE stock_data (
@@ -861,26 +874,44 @@ class DailyClosePriceDownloadModel:
                     CONSTRAINT PK_stock_data PRIMARY KEY (stock_id, date)
                 )
             """)
-            
-            # 檢查並創建索引
+
+            # 2. 結構遷移：舊版資料庫的 volume 欄位為 INT，但成交股數可能
+            #    超過 int 上限（約 21.4 億），需升級為 BIGINT，否則 MERGE 會溢位失敗
+            cursor.execute("""
+                SELECT ty.name
+                FROM sys.columns c
+                JOIN sys.types ty ON c.user_type_id = ty.user_type_id
+                WHERE c.object_id = OBJECT_ID('stock_data') AND c.name = 'volume'
+            """)
+            volume_type = cursor.fetchone()
+            if volume_type and volume_type[0] == 'int':
+                self.write_log("偵測到 stock_data.volume 為 INT，正在升級為 BIGINT...")
+                cursor.execute("ALTER TABLE stock_data ALTER COLUMN volume BIGINT")
+                self.write_log("stock_data.volume 已升級為 BIGINT")
+
+            # 3. 檢查並創建索引
             indexes = [
                 ("IX_stock_data_stock_id", "CREATE INDEX IX_stock_data_stock_id ON stock_data (stock_id)"),
                 ("IX_stock_data_date", "CREATE INDEX IX_stock_data_date ON stock_data (date)"),
                 ("IX_stock_data_stock_date", "CREATE INDEX IX_stock_data_stock_date ON stock_data (stock_id, date)")
             ]
-            
+
             for index_name, create_sql in indexes:
                 cursor.execute(f"""
                     IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = '{index_name}' AND object_id = OBJECT_ID('stock_data'))
                     {create_sql}
                 """)
-            
+
             conn.commit()
             self.write_log("資料庫結構檢查完成")
             return True
-            
+
         except Exception as e:
             self.write_log(f"資料庫結構檢查錯誤: {e}")
+            try:
+                conn.rollback()
+            except Exception:
+                pass
             return False
         finally:
             cursor.close()
