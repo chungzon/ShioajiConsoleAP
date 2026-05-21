@@ -29,6 +29,9 @@ class DailyClosePriceDownloadModel:
         resource_dir = os.path.join(current_dir, '..', 'resource')
         self.tw_all_stocks_file = os.path.join(resource_dir, 'tw_all_stocks.csv')
         self.event = Event()
+        # 共用的資料庫連線（延遲建立，重複使用，不每次重連）
+        self.conn = None
+        self.cursor = None
   
 
     def write_log(self, message):
@@ -43,7 +46,42 @@ class DailyClosePriceDownloadModel:
             database='TSE'
         )
         return conn
-        
+
+    def get_db(self):
+        """取得共用的資料庫連線。
+
+        若連線已存在且仍然有效則重複使用，否則重新建立，
+        避免每次呼叫都重新連線。回傳 (conn, cursor)。
+        """
+        try:
+            if self.conn is not None and self.cursor is not None:
+                # 測試連線是否仍然有效
+                self.cursor.execute("SELECT 1")
+                self.cursor.fetchall()
+                return self.conn, self.cursor
+        except Exception:
+            # 連線已失效，關閉後重建
+            self.close_db()
+
+        self.conn = self.connect_db()
+        self.cursor = self.conn.cursor()
+        return self.conn, self.cursor
+
+    def close_db(self):
+        """關閉共用的資料庫連線（程式結束或不再使用時呼叫）。"""
+        try:
+            if self.cursor is not None:
+                self.cursor.close()
+        except Exception:
+            pass
+        try:
+            if self.conn is not None:
+                self.conn.close()
+        except Exception:
+            pass
+        self.cursor = None
+        self.conn = None
+
     def download_daily_close_top30_stock(self, view, start_date, end_date, stock_id=None):
         # 確保資料庫結構正確
         if not self.ensure_database_structure():
@@ -369,6 +407,9 @@ class DailyClosePriceDownloadModel:
             # self.write_log(error_message)
             print(f"❌ {error_message}")
             logger.error(f"下载任务异常: {error_message}")
+        finally:
+            # 關閉共用的資料庫連線
+            self.close_db()
 
     def download_daily_close_price_all(self, view, start_date, end_date):
         self.download_daily_close_top30_stock(view, start_date, end_date)
@@ -379,38 +420,42 @@ class DailyClosePriceDownloadModel:
         #     self.write_log("無法確保資料庫結構，退出下載程序")
         #     return
 
-        current = start_date
-        while current <= end_date:
-            # 跳過週六日
-            if current.weekday() >= 5:
+        try:
+            current = start_date
+            while current <= end_date:
+                # 跳過週六日
+                if current.weekday() >= 5:
+                    current += timedelta(days=1)
+                    continue
+
+                date_label = current.strftime('%Y-%m-%d')
+                self.event.notify(f"開始下載 {date_label} 收盤價資料...")
+
+                # 下載 TWSE
+                twse_data = self.download_data_from_twse(current)
+                if twse_data:
+                    self.insert_data_to_database(twse_data, is_twse=True)
+                    self.event.notify(f"TWSE {date_label} 共 {len(twse_data)} 筆")
+                else:
+                    self.event.notify(f"TWSE {date_label} 無資料")
+
+                time.sleep(3)
+
+                # 下載 TPEx
+                tpex_data = self.download_data_from_tpex(current)
+                if tpex_data:
+                    self.insert_data_to_database(tpex_data, is_twse=False)
+                    self.event.notify(f"TPEx {date_label} 共 {len(tpex_data)} 筆")
+                else:
+                    self.event.notify(f"TPEx {date_label} 無資料")
+
+                time.sleep(3)
                 current += timedelta(days=1)
-                continue
 
-            date_label = current.strftime('%Y-%m-%d')
-            self.event.notify(f"開始下載 {date_label} 收盤價資料...")
-
-            # 下載 TWSE
-            twse_data = self.download_data_from_twse(current)
-            if twse_data:
-                self.insert_data_to_database(twse_data, is_twse=True)
-                self.event.notify(f"TWSE {date_label} 共 {len(twse_data)} 筆")
-            else:
-                self.event.notify(f"TWSE {date_label} 無資料")
-
-            time.sleep(3)
-
-            # 下載 TPEx
-            tpex_data = self.download_data_from_tpex(current)
-            if tpex_data:
-                self.insert_data_to_database(tpex_data, is_twse=False)
-                self.event.notify(f"TPEx {date_label} 共 {len(tpex_data)} 筆")
-            else:
-                self.event.notify(f"TPEx {date_label} 無資料")
-
-            time.sleep(3)
-            current += timedelta(days=1)
-
-        self.event.notify("收盤價日期區間下載完成")
+            self.event.notify("收盤價日期區間下載完成")
+        finally:
+            # 關閉共用的資料庫連線
+            self.close_db()
 
     def ensure_system_config_table(self):
         """确保系统配置表存在"""
@@ -610,16 +655,23 @@ class DailyClosePriceDownloadModel:
             data = []
             for row in reader:
                 try:
-                    stock_id = row.get('代號', '').strip()
-                    if not stock_id:
+                    # CSV 欄位標頭含有不固定的前後空白（例如 '收盤 '、'成交股數  '），
+                    # 先把每個 key 去除空白後重建，否則 row.get('收盤') 會取不到值
+                    row = {(k or '').strip(): v for k, v in row.items()}
+
+                    # row.get(key) 在欄位缺值時會回傳 None，需用 (... or '') 兜底
+                    stock_id = (row.get('代號') or '').strip()
+                    # 跳過非股票資料列：空白行、檔尾統計行（「共1007筆」）、
+                    # 說明文字（「ETF證券代號第六碼...」）等
+                    if not self.is_valid_stock_code(stock_id):
                         continue
 
-                    stock_name = row.get('名稱', '').strip()
-                    close_price = self.parse_float(row.get('收盤', '').replace(',', '').strip())
-                    open_price = self.parse_float(row.get('開盤', '').replace(',', '').strip())
-                    high_price = self.parse_float(row.get('最高', '').replace(',', '').strip())
-                    low_price = self.parse_float(row.get('最低', '').replace(',', '').strip())
-                    volume = self.parse_int(row.get('成交股數', '').replace(',', '').strip())
+                    stock_name = (row.get('名稱') or '').strip()
+                    close_price = self.parse_float((row.get('收盤') or '').replace(',', '').strip())
+                    open_price = self.parse_float((row.get('開盤') or '').replace(',', '').strip())
+                    high_price = self.parse_float((row.get('最高') or '').replace(',', '').strip())
+                    low_price = self.parse_float((row.get('最低') or '').replace(',', '').strip())
+                    volume = self.parse_int((row.get('成交股數') or '').replace(',', '').strip())
 
                     data.append({
                         'Code': stock_id,
@@ -642,19 +694,23 @@ class DailyClosePriceDownloadModel:
 
     def insert_data_to_database(self, data, is_twse):
         """将数据插入数据库，使用 MERGE 语句避免重复数据"""
-        conn = self.connect_db()
-        if not conn:
-            return False
-
-        cursor = conn.cursor()
+        # 取得共用連線，不每次重新連線
+        conn, cursor = self.get_db()
         today = date.today().strftime('%Y-%m-%d')
 
         try:
             # 准备批量数据
             stock_data_list = []
             for stock in data:
+                code = stock['Code'].replace('=', '').replace('"', '').strip()
+                # 跳過異常代號（檔尾統計行、說明文字等）：
+                # 非法代號會超出 stock_id VARCHAR(10) 或污染資料，
+                # 嚴重時導致整批 MERGE 失敗、整天資料回滾遺失
+                if not self.is_valid_stock_code(code):
+                    self.write_log(f"略過異常股票代號: {code!r}")
+                    continue
                 values = (
-                    stock['Code'].replace('=', '').replace('"', ''),
+                    code,
                     stock.get('Date', today),
                     stock['OpeningPrice'],
                     stock['HighestPrice'],
@@ -666,34 +722,46 @@ class DailyClosePriceDownloadModel:
 
             # 使用 MERGE 语句批量处理
             if stock_data_list:
-                self.merge_stock_data_batch(conn, cursor, stock_data_list)
-                self.write_log(f"數據已成功下載並存儲到 stock_data 表中，日期為 {today}，共 {len(stock_data_list)} 筆資料")
-                return True
+                if self.merge_stock_data_batch(conn, cursor, stock_data_list):
+                    self.write_log(f"數據已成功下載並存儲到 stock_data 表中，日期為 {today}，共 {len(stock_data_list)} 筆資料")
+                    return True
+                else:
+                    self.write_log(f"數據寫入 stock_data 表失敗，日期為 {today}（詳見上方 MERGE 錯誤）")
+                    return False
             else:
                 self.write_log(f"沒有有效數據需要插入，日期為 {today}")
                 return True
-                
+
         except Exception as err:
             self.write_log(f"數據插入錯誤: {err}")
-            conn.rollback()
+            try:
+                conn.rollback()
+            except Exception:
+                pass
             return False
-        finally:
-            cursor.close()
-            conn.close()
 
     def merge_stock_data_batch(self, conn, cursor, stock_data_list):
         """使用 MERGE 語句批量處理股票資料，避免重複資料"""
         try:
+            # 若上次執行殘留臨時表，先清掉（連線重複使用時的保險）
+            cursor.execute(
+                "IF OBJECT_ID('tempdb..#temp_stock_data') IS NOT NULL "
+                "DROP TABLE #temp_stock_data"
+            )
+
             # 創建臨時表來存儲批量資料
+            # stock_id 加上 COLLATE DATABASE_DEFAULT，讓臨時表使用 TSE 資料庫的定序，
+            # 避免與 stock_data 表 (Chinese_Taiwan_Stroke_CI_AS) 比對時定序衝突。
+            # volume 改用 BIGINT，避免成交股數超過 int 上限造成溢位。
             cursor.execute("""
                 CREATE TABLE #temp_stock_data (
-                    stock_id VARCHAR(10),
+                    stock_id VARCHAR(10) COLLATE DATABASE_DEFAULT,
                     date DATE,
                     open_price FLOAT,
                     high_price FLOAT,
                     low_price FLOAT,
                     close_price FLOAT,
-                    volume INT
+                    volume BIGINT
                 )
             """)
             
@@ -743,6 +811,16 @@ class DailyClosePriceDownloadModel:
         """解析整数"""
         return int(value.replace(',', '')) if value not in ['--', '----', ''] else None
 
+    def is_valid_stock_code(self, code):
+        """判斷字串是否為有效的股票代號。
+
+        有效代號為純 ASCII 英數字（例如 2330、0050、00679B、020033）。
+        可濾掉 CSV 檔尾的統計行（如「共1007筆」）與說明文字
+        （如「ETF證券代號第六碼...」），避免被當成股票資料寫入。
+        """
+        code = (code or '').strip()
+        return bool(code) and code.isascii() and code.isalnum() and len(code) <= 10
+
     def convert_tw_date_to_ad(self, tw_date_str):
         """转换台湾日期为西元日期"""
         tw_date_str = str(tw_date_str)
@@ -777,7 +855,7 @@ class DailyClosePriceDownloadModel:
                     high_price FLOAT,
                     low_price FLOAT,
                     close_price FLOAT,
-                    volume INT,
+                    volume BIGINT,
                     created_at DATETIME2 DEFAULT GETDATE(),
                     updated_at DATETIME2 DEFAULT GETDATE(),
                     CONSTRAINT PK_stock_data PRIMARY KEY (stock_id, date)
