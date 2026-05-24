@@ -933,6 +933,56 @@ class DailyClosePriceDownloadModel:
                     {create_sql}
                 """)
 
+            # 4. 檢查 PK：舊版/客戶端的 stock_data 可能缺少 PRIMARY KEY (stock_id, date)，
+            #    這會讓 MERGE 無法 UPDATE 原列、導致同一天資料每次下載都重複插入。
+            #    - 沒 PK 且資料表內沒重複 (stock_id, date)：自動補上 PK
+            #    - 沒 PK 但已有重複資料：印警告並提示先呼叫 clean_duplicate_data()，
+            #      不自動刪資料（避免在客戶端默默動到原始資料）
+            cursor.execute("""
+                SELECT name FROM sys.key_constraints
+                WHERE parent_object_id = OBJECT_ID('stock_data') AND type = 'PK'
+            """)
+            pk_row = cursor.fetchone()
+            if pk_row is None:
+                cursor.execute("""
+                    SELECT COUNT(*) FROM (
+                        SELECT stock_id, date
+                        FROM stock_data
+                        GROUP BY stock_id, date
+                        HAVING COUNT(*) > 1
+                    ) d
+                """)
+                dup_pairs = cursor.fetchone()[0]
+                if dup_pairs == 0:
+                    msg_start = "[資料庫結構檢查] 偵測到 stock_data 缺少 PK，正在補上 PRIMARY KEY (stock_id, date)..."
+                    print(msg_start)
+                    self.write_log(msg_start)
+                    try:
+                        cursor.execute(
+                            "ALTER TABLE stock_data ADD CONSTRAINT PK_stock_data "
+                            "PRIMARY KEY (stock_id, date)"
+                        )
+                    except Exception as pk_err:
+                        msg_fail = (
+                            f"[資料庫結構檢查] 補上 PK 失敗：{pk_err}。"
+                            " 請確認資料庫使用者具備 ALTER TABLE 權限。"
+                        )
+                        print(msg_fail)
+                        self.write_log(msg_fail)
+                        raise
+                    msg_done = "[資料庫結構檢查] PK_stock_data (stock_id, date) 已建立"
+                    print(msg_done)
+                    self.write_log(msg_done)
+                else:
+                    msg_warn = (
+                        f"[資料庫結構檢查] 警告：stock_data 缺少 PK，且資料表內已有 {dup_pairs} 組"
+                        f" (stock_id, date) 重複資料，無法自動建立 PK。"
+                        f" 請先呼叫 clean_duplicate_data() 或於 SSMS 手動去重後，"
+                        f" 重新啟動程式即可自動補上 PK。"
+                    )
+                    print(msg_warn)
+                    self.write_log(msg_warn)
+
             conn.commit()
             self.write_log("資料庫結構檢查完成")
             return True
