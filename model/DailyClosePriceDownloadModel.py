@@ -349,6 +349,12 @@ class DailyClosePriceDownloadModel:
         success = False
         
         try:
+            # 部署到另一台機器/另一套資料庫時，__init__ 不見得能保證已執行成功，
+            # 每次下載前再檢查一次，確保 volume 已是 BIGINT 等遷移都已就緒
+            if not self.ensure_database_structure():
+                logger.error("資料庫結構檢查未通過,退出每日收盤價下載")
+                raise Exception("資料庫結構檢查未通過")
+
             # 检查是否已经下载过
             if not self.ensure_system_config_table():
                 logger.error("無法確保 system_config 表存在,退出程序")
@@ -420,9 +426,15 @@ class DailyClosePriceDownloadModel:
 
     def download_close_price_by_range(self, start_date, end_date):
         """依指定日期區間下載 TWSE + TPEx 收盤價資料"""
-        # if not self.ensure_database_structure():
-        #     self.write_log("無法確保資料庫結構，退出下載程序")
-        #     return
+        # 部署到另一台機器/另一套資料庫時，__init__ 不見得能保證已執行成功，
+        # 每次下載前再檢查一次，確保 volume 已是 BIGINT 等遷移都已就緒，
+        # 否則直接中止下載並通知使用者（不要讓整批 MERGE 默默失敗）
+        if not self.ensure_database_structure():
+            msg = "資料庫結構檢查未通過，中止收盤價區間下載。請查看上方錯誤訊息。"
+            print(msg)
+            self.write_log(msg)
+            self.event.notify(msg)
+            return
 
         try:
             current = start_date
@@ -851,9 +863,12 @@ class DailyClosePriceDownloadModel:
         try:
             conn = self.connect_db()
         except Exception as e:
-            self.write_log(f"資料庫結構檢查失敗，無法連線資料庫: {e}")
+            msg = f"[資料庫結構檢查] 無法連線資料庫: {e}"
+            print(msg)
+            self.write_log(msg)
             return False
         if not conn:
+            print("[資料庫結構檢查] 取得資料庫連線失敗")
             return False
 
         cursor = conn.cursor()
@@ -885,9 +900,25 @@ class DailyClosePriceDownloadModel:
             """)
             volume_type = cursor.fetchone()
             if volume_type and volume_type[0] == 'int':
-                self.write_log("偵測到 stock_data.volume 為 INT，正在升級為 BIGINT...")
-                cursor.execute("ALTER TABLE stock_data ALTER COLUMN volume BIGINT")
-                self.write_log("stock_data.volume 已升級為 BIGINT")
+                # 此分支非常重要：客戶端舊資料庫第一次跑會升級欄位型別。
+                # 印到 console 以及寫入 log，方便部署時確認遷移有成功執行。
+                msg_start = "[資料庫結構檢查] 偵測到 stock_data.volume 為 INT，正在升級為 BIGINT..."
+                print(msg_start)
+                self.write_log(msg_start)
+                try:
+                    cursor.execute("ALTER TABLE stock_data ALTER COLUMN volume BIGINT")
+                except Exception as alter_err:
+                    msg_fail = (
+                        f"[資料庫結構檢查] 升級 volume 為 BIGINT 失敗：{alter_err}。"
+                        " 請確認資料庫使用者具備 ALTER TABLE 權限，"
+                        " 否則成交股數超過 21.4 億時 MERGE 會溢位、整批資料無法寫入。"
+                    )
+                    print(msg_fail)
+                    self.write_log(msg_fail)
+                    raise
+                msg_done = "[資料庫結構檢查] stock_data.volume 已升級為 BIGINT"
+                print(msg_done)
+                self.write_log(msg_done)
 
             # 3. 檢查並創建索引
             indexes = [
@@ -907,7 +938,9 @@ class DailyClosePriceDownloadModel:
             return True
 
         except Exception as e:
-            self.write_log(f"資料庫結構檢查錯誤: {e}")
+            msg = f"[資料庫結構檢查] 失敗: {e}"
+            print(msg)
+            self.write_log(msg)
             try:
                 conn.rollback()
             except Exception:
